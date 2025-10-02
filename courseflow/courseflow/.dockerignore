@@ -1,0 +1,19 @@
+# node/yarn caches
+**/node_modules
+**/.pnpm-store
+**/.parcel-cache
+
+# build outputs
+**/dist
+**/build
+target
+
+# VCS/IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# OS junk
+.DS_Store
+Thumbs.db
