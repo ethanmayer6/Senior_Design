@@ -9,8 +9,9 @@ test-backend:
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
   script:
+    - courseflow/courseflow
     - mvn -B -DskipTests=false test
-
+W
 docker-build:
   stage: docker
   image: docker:24
