@@ -1,16 +1,21 @@
-stages: [docker]
+stages: [test, docker]
 
-# test-backend:
-#   stage: test
-#   image: trion/maven-node:latest
-#   cache:
-#     key: maven-cache
-#     paths: [ .m2/repository/ ]
-#   variables:
-#     MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
-#   script:
-#     - cd courseflow/courseflow
-#     - mvn -B -P '!frontend' -DskipTests=false test
+test-backend:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  cache:
+    key: maven-cache
+    paths: [ .m2/repository/ ]
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  before_script:
+    - apt-get update && apt-get install -y curl
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y nodejs
+    - node -v && npm -v   # sanity check
+  script:
+    - cd courseflow/courseflow
+    - mvn -B -P '!frontend' -DskipTests=false test
 
 docker-build:
   stage: docker
