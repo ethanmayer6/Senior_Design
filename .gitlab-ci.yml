@@ -2,7 +2,7 @@ stages: [test, docker]
 
 test-backend:
   stage: test
-  image: maven:3.9-eclipse-temurin-21
+  image: trion/maven-node:latest
   cache:
     key: maven-cache
     paths: [ .m2/repository/ ]
@@ -10,8 +10,8 @@ test-backend:
     MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
   script:
     - cd courseflow/courseflow
-    - mvn -B -DskipTests=false test
-    
+    - mvn -B -P '!frontend' -DskipTests=false test
+
 docker-build:
   stage: docker
   image: docker:24
@@ -22,6 +22,7 @@ docker-build:
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
+    - cd courseflow/courseflow
     - docker build -t "$IMAGE_SHA" .
     - docker push "$IMAGE_SHA"
   needs: ["test-backend"]
