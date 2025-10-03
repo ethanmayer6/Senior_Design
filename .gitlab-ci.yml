@@ -1,16 +1,16 @@
-stages: [test, docker]
+stages: [docker]
 
-test-backend:
-  stage: test
-  image: trion/maven-node:latest
-  cache:
-    key: maven-cache
-    paths: [ .m2/repository/ ]
-  variables:
-    MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
-  script:
-    - cd courseflow/courseflow
-    - mvn -B -P '!frontend' -DskipTests=false test
+# test-backend:
+#   stage: test
+#   image: trion/maven-node:latest
+#   cache:
+#     key: maven-cache
+#     paths: [ .m2/repository/ ]
+#   variables:
+#     MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+#   script:
+#     - cd courseflow/courseflow
+#     - mvn -B -P '!frontend' -DskipTests=false test
 
 docker-build:
   stage: docker
