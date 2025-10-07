@@ -10,6 +10,7 @@ CourseFlow is a Senior Design Project built to help students and advisors have a
 You have two options for building the project
 * For Local Development
   * Run `./mvnw clean package` to build project
+    * If that doesn't work try `.\mvnw.cmd clean package`
   * Run `java -jar target\courseflow-0.0.1-SNAPSHOT.jar` to run project in localhost:8080
   * OR for fast reload during development use `./mvnw spring-boot:run`
 * Building for Docker (Also can be used for local development) DO THIS BEFORE PUSHING CHANGES
