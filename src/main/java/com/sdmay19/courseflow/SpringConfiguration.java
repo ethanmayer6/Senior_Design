@@ -76,7 +76,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
                 .authorizeHttpRequests(config -> {
                     config
                             .requestMatchers("/api/ping").permitAll()
-                            .requestMatchers("/testdata").permitAll()
+                            .requestMatchers("/testdata/**").permitAll()
                             .anyRequest().authenticated();
                 })
                 .sessionManagement(config -> {

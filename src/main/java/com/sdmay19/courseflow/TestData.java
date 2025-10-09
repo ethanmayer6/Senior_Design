@@ -18,6 +18,6 @@ import jakarta.persistence.Table;
 
         public void setName(int name) {
             this.name = name;
+
         }
     }
-
