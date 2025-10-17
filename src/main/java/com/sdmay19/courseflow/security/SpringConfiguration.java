@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow;
+package com.sdmay19.courseflow.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
@@ -77,6 +77,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
                     config
                             .requestMatchers("/api/ping").permitAll()
                             .requestMatchers("/testdata/**").permitAll()
+                            .requestMatchers("/api/users/**").permitAll()
                             .anyRequest().authenticated();
                 })
                 .sessionManagement(config -> {
