@@ -58,6 +58,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
         UserDetails user = User.builder()
                 .username("Test")
                 .password(BCRYPT.encode("abc123"))
+                .roles("USER")
                 .build();
         return new InMemoryUserDetailsManager(user);
     }
