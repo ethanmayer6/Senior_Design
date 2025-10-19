@@ -26,15 +26,20 @@ features. Below is the 4 main folders of the backend and how they should be used
 ### Controller
 Houses all the REST endpoints
 * Example - UserController (CRUD operations for the user)
-### Service
-Houses all the business logic and helper services
-* Example - UserService (Encrypt the password for the user when signing up)
-### Repository
-Houses all the interfaces with the Database
-* Example - UserRepository (query for a user based off of a parameter)
+### Exception
+Houses the GlobalException Handler which includes the defined exception classes
+* Example - UserNotFoundException (Throws errors for all operations that have todo with retrieving an account)
 ### Model
 Houses all the JPA entities
 * Example - User (id, Name, email...)
+### Repository
+Houses all the interfaces with the Database
+* Example - UserRepository (query for a user based off of a parameter)
+### Security
+Houses the security config file for the Spring Security. If you have an issue with endpoints or requests, this is probably the culprit.
+### Service
+Houses all the business logic and helper services
+* Example - UserService (Encrypt the password for the user when signing up)
 ## Database
 The PostGres Database is currently configured on the schools VM and all of the settings for it can be
 found in the `/src/main/resources/application.properties` folder. It is configured so that when changes 
