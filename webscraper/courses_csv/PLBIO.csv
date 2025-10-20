@@ -1,0 +1,5 @@
+subject_code,course_number,title_name,credits,contact_hours,cross_listed,dual_listed,repeatable,prerequisites,description,typically_offered,source_url
+PLBIO,5130,Plant Metabolism,2.,Lecture 2.,,,,Graduate Standing or Permission of Instructor,"Photosynthesis, respiration, and other aspects of plant metabolism. Offered even-numbered years.",Fall,https://catalog.iastate.edu/azcourses/plbio/
+PLBIO,5450,"Plant Molecular, Cell and Developmental Biology",3.,Lecture 3.,,,,Graduate Standing or Permission of Instructor,"Plant nuclear and organelle genomes; regulation of gene expression; hormone signaling; organization, function, and development of plant cells and subcellular structures; regulation of plant growth and development. Offered odd-numbered years.",Fall,https://catalog.iastate.edu/azcourses/plbio/
+PLBIO,6960,Research Seminar,1.,Lecture 1.,,,True,,Research seminars by faculty and graduate students. Offered on a satisfactory-fail basis only.,"Fall, Spring",https://catalog.iastate.edu/azcourses/plbio/
+PLBIO,6990,Research,1-30.,,,,True,,,,https://catalog.iastate.edu/azcourses/plbio/

@@ -1,0 +1,7 @@
+subject_code,course_number,title_name,credits,contact_hours,cross_listed,dual_listed,repeatable,prerequisites,description,typically_offered,source_url
+IMBIO,6020,Current Topics Workshop in Immunology,1.,Lecture 3.,,,True,,Lectures provided by off-campus experts. Students are required to participate in discussion sessions with lecturers.,Fall,https://catalog.iastate.edu/azcourses/imbio/
+IMBIO,6040,Seminar in Immunobiology,1.,Lecture 1.,,,True,,Student and faculty presentation.,Spring,https://catalog.iastate.edu/azcourses/imbio/
+IMBIO,6610,Comparative Immunology and Infectious Disease,2.,Lecture 2.,,,,,"Discuss and define similarities and differences of varied host responses to infectious challenge. Learning will focus on comparative aspects of the host response and the unique aspects of immunity from different organisms, while highlighting molecular and mechanistic similarities of pathogen recognition, response and resolution. Offered odd-numbered years.",Spring,https://catalog.iastate.edu/azcourses/imbio/
+IMBIO,6900,Special Topics,1-30.,,,,True,,Advanced study of specific topics in specialized field of immunobiology.,,https://catalog.iastate.edu/azcourses/imbio/
+IMBIO,6970,Graduate Research Rotation,1-30.,Lecture 30.,,,True,,Graduate research projects performed under the supervision of selected faculty members in the Interdepartmental Immunobiology major.,,https://catalog.iastate.edu/azcourses/imbio/
+IMBIO,6990,Research,1-30.,,,,True,Department Permission for Course,,,https://catalog.iastate.edu/azcourses/imbio/
