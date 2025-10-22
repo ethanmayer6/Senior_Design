@@ -72,18 +72,15 @@ public class SpringConfiguration implements WebMvcConfigurer {
     @SneakyThrows
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
         return httpSecurity
-                .httpBasic(config -> {})
-                .csrf(config -> config.disable())
-                .authorizeHttpRequests(config -> {
-                    config
-                            .requestMatchers("/api/ping").permitAll()
-                            .requestMatchers("/testdata/**").permitAll()
-                            .requestMatchers("/api/users/**").permitAll()
-                            .anyRequest().authenticated();
-                })
-                .sessionManagement(config -> {
-                    config.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-                })
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/users/**").permitAll()
+                        .requestMatchers("/api/ping").permitAll()
+                        .requestMatchers("/testdata/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(http -> {}) // optional
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
 

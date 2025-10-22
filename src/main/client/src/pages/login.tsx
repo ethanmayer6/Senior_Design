@@ -1,20 +1,37 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Button } from "primereact/button";
-import { FloatLabel } from "primereact/floatlabel";
-import { Card } from "primereact/Card";
+import { Card } from "primereact/card";
+import axios from "axios";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    if (!username || !password) {
-      alert("Please enter both username and password.");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Please enter both email and password.");
       return;
     }
-    alert(`Welcome, ${username}!`);
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/api/users/login",
+        {
+          email,
+          password,
+        }
+      );
+      console.log("✅ Login successful:", response.data);
+
+      // Example: Save user info to local storage
+      localStorage.setItem("user", JSON.stringify(response.data));
+      alert("Welcome " + response.data.firstName + "!");
+      // Redirect or show a message
+      // window.location.href = "/dashboard"; // adjust route
+    } catch (err: any) {
+      console.error("❌ Login failed:", err);
+    }
   };
 
   return (
@@ -38,18 +55,18 @@ export default function Login() {
 
         {/* Form */}
         <div className="flex flex-col w-[330px] gap-5 m-0">
-          {/* Username */}
+          {/* Email */}
           <div className="flex flex-col">
             <label
-              htmlFor="username"
+              htmlFor="email"
               className="text-sm font-medium text-gray-600 mb-1"
             >
               Email address
             </label>
             <InputText
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200"
               placeholder="you@example.com"
             />
