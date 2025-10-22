@@ -3,6 +3,7 @@ import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Button } from "primereact/button";
 import { FloatLabel } from "primereact/floatlabel";
+import { Card } from "primereact/Card";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -17,41 +18,48 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen text-black">
-      {/* Logo */}
-      <img src="/logo.png" alt="CourseFlow Logo" className="w-[400px] mb-6" />
+    <div className="flex h-screen items-center justify-center bg-gray-50">
+      {/* Logo Section */}
+      <img
+        src="/logo.png"
+        alt="CourseFlow Logo"
+        className="w-[200px] absolute top-2 left-2 object-contain"
+      />
 
-      {/* Welcome Text */}
-      <h2 className="text-2xl font-semibold mb-8 text-gray-800">
-        Welcome Back!
-      </h2>
+      {/* Login Card */}
+      <Card className="w-[400px] bg-white shadow-md rounded-xl p-6 flex flex-col items-center">
+        {/* Header Text */}
+        <div className="text-center mb-5">
+          <p className="text-gray-500 text-sm">Please enter your details</p>
+          <h2 className="text-2xl font-bold text-gray-800 mt-1">
+            Welcome back
+          </h2>
+        </div>
 
-      {/* Login Form */}
-      <div className="flex flex-col w-[100px] gap-6">
-        {/* Username */}
-        <div className="flex flex-col text-left items-center">
-          <FloatLabel>
+        {/* Form */}
+        <div className="flex flex-col w-[330px] gap-5 m-0">
+          {/* Username */}
+          <div className="flex flex-col">
             <label
               htmlFor="username"
-              className="text-sm pl-2 transition-all duration-150 ease-in-out font-medium text-gray-500"
+              className="text-sm font-medium text-gray-600 mb-1"
             >
-              Username
+              Email address
             </label>
             <InputText
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="border pl-2 text-gray-800 border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-300"
+              className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200"
+              placeholder="you@example.com"
             />
-          </FloatLabel>
-        </div>
+          </div>
 
-        {/* Password */}
-        <div className="flex flex-col text-left items-center">
-          <FloatLabel>
+          {/* Password */}
+          <div className="flex flex-col">
             <label
               htmlFor="password"
-              className="text-sm pl-2 transition-all duration-150 ease-in-out font-medium text-gray-500"
+              className="text-sm font-medium text-gray-600 mb-1"
             >
               Password
             </label>
@@ -61,18 +69,43 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               feedback={false}
               toggleMask={false}
-              inputClassName="border pl-2 border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-300"
+              inputClassName="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200"
+              placeholder="••••••••"
             />
-          </FloatLabel>
-        </div>
+          </div>
 
-        {/* Login Button */}
-        <Button
-          label="Login"
-          onClick={handleLogin}
-          className="bg-red-600! hover:bg-red-700! border-none! text-white! font-semibold py-1 rounded-md transition-all duration-150"
-        />
-      </div>
+          {/* Remember Me / Forgot Password */}
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="remember" className="accent-red-600" />
+              <label htmlFor="remember" className="text-gray-600">
+                Remember me
+              </label>
+            </div>
+            <a
+              href="#"
+              className="text-red-600 hover:text-red-700 transition-colors duration-150"
+            >
+              Forgot password?
+            </a>
+          </div>
+
+          {/* Login Button */}
+          <Button
+            label="Sign In"
+            onClick={handleLogin}
+            className="bg-red-600 hover:bg-red-700 border-none text-white font-semibold py-2 rounded-md transition-all duration-200 mt-3"
+          />
+
+          {/* Sign-up link */}
+          <p className="text-center text-sm text-gray-500">
+            Don't have an account?{" "}
+            <a href="#" className="text-red-600 hover:text-red-700 font-medium">
+              Sign up
+            </a>
+          </p>
+        </div>
+      </Card>
     </div>
   );
 }
