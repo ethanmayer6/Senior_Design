@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Button } from "primereact/button";
+import { FloatLabel } from "primereact/floatlabel";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -16,58 +17,60 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen overflow-hidden bg-white text-black">
+    <div className="flex flex-col items-center justify-center h-screen text-black">
       {/* Logo */}
-      <img
-        src="/logo.png"
-        alt="CourseFlow Logo"
-        className="w-[400px] mb-6"
-      />
+      <img src="/logo.png" alt="CourseFlow Logo" className="w-[400px] mb-6" />
 
       {/* Welcome Text */}
-      <h2 className="text-2xl font-semibold mb-8 text-blue-500">Welcome Back!</h2>
+      <h2 className="text-2xl font-semibold mb-8 text-gray-800">
+        Welcome Back!
+      </h2>
 
       {/* Login Form */}
-      <div className="flex flex-col w-[300px] ">
+      <div className="flex flex-col w-[100px] gap-6">
         {/* Username */}
-        <div className="flex flex-col text-left space-y-1">
-          <label
-            htmlFor="username"
-            className="text-sm font-medium text-blue-200"
-          >
-            Username
-          </label>
-          <InputText
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="p-inputtext-sm w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
+        <div className="flex flex-col text-left items-center">
+          <FloatLabel>
+            <label
+              htmlFor="username"
+              className="text-sm pl-2 transition-all duration-150 ease-in-out font-medium text-gray-500"
+            >
+              Username
+            </label>
+            <InputText
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="border pl-2 text-gray-800 border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-300"
+            />
+          </FloatLabel>
         </div>
 
         {/* Password */}
-        <div className="flex flex-col text-left space-y-1">
-          <label
-            htmlFor="password"
-            className="text-sm font-medium text-gray-800"
-          >
-            Password
-          </label>
-          <Password
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            feedback={false}
-            toggleMask={false}
-            inputClassName="w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
+        <div className="flex flex-col text-left items-center">
+          <FloatLabel>
+            <label
+              htmlFor="password"
+              className="text-sm pl-2 transition-all duration-150 ease-in-out font-medium text-gray-500"
+            >
+              Password
+            </label>
+            <Password
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              feedback={false}
+              toggleMask={false}
+              inputClassName="border pl-2 border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-300"
+            />
+          </FloatLabel>
         </div>
 
         {/* Login Button */}
         <Button
           label="Login"
           onClick={handleLogin}
-          className="!bg-red-600 hover:!bg-red-700 !border-none !text-white font-semibold py-2 rounded-md transition-all duration-150"
+          className="bg-red-600! hover:bg-red-700! border-none! text-white! font-semibold py-1 rounded-md transition-all duration-150"
         />
       </div>
     </div>
