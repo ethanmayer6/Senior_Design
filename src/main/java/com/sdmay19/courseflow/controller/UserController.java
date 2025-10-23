@@ -1,5 +1,6 @@
 package com.sdmay19.courseflow.controller;
 
+import com.sdmay19.courseflow.model.AuthResponse;
 import com.sdmay19.courseflow.model.User;
 import com.sdmay19.courseflow.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +18,11 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<User> loginUser(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<AuthResponse> loginUser(@RequestBody Map<String, String> credentials) {
         String email = credentials.get("email");
         String password = credentials.get("password");
-        User user = userService.login(email, password);
-        return ResponseEntity.ok(user);
+        AuthResponse auth = userService.login(email, password);
+        return ResponseEntity.ok(auth);
     }
 
     // CREATE
