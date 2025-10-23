@@ -2,12 +2,15 @@ package com.sdmay19.courseflow.service;
 
 import com.sdmay19.courseflow.exception.AuthenticationFailedException;
 import com.sdmay19.courseflow.exception.UserNotFoundException;
+import com.sdmay19.courseflow.model.AuthResponse;
 import com.sdmay19.courseflow.model.User;
 import com.sdmay19.courseflow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import jakarta.validation.constraints.Pattern;
+import com.sdmay19.courseflow.model.AuthResponse;
 
 
 @Service
@@ -18,7 +21,11 @@ public class UserService {
     @Autowired
     UserRepository userRepository;
 
-    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
 
     // CREATE SERVICE - still need to add spring security
     public User register(User user) {
@@ -32,7 +39,7 @@ public class UserService {
     }
 
     // READ SERVICES
-    public User login(String email, String password) {
+    public AuthResponse login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationFailedException("User with this email address does not exist"));
 
@@ -40,7 +47,9 @@ public class UserService {
             throw new AuthenticationFailedException("Incorrect password");
         }
 
-        return user;
+        String token = jwtService.generateToken(user.getEmail());
+
+        return new AuthResponse(token, user);
     }
     public User getUserById(long id) {
         return userRepository.findById(id)
@@ -63,22 +72,27 @@ public class UserService {
     public void updatePassword(long id, String password) {
         User user = getUserById(id);
         user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
     }
     public void updateFirstName(long id, String firstName) {
         User user = getUserById(id);
         user.setFirstName(firstName);
+        userRepository.save(user);
     }
     public void updateLastName(long id, String lastName) {
         User user = getUserById(id);
         user.setLastName(lastName);
+        userRepository.save(user);
     }
     public void updateMajor(long id, String major) {
         User user = getUserById(id);
         user.setMajor(major);
+        userRepository.save(user);
     }
     public void updatePhone(long id, String phone) {
         User user = getUserById(id);
         user.setPhone(phone);
+        userRepository.save(user);
     }
 
     // DELETE SERVICES

@@ -1,17 +1,17 @@
 package com.sdmay19.courseflow.security;
 
+import com.sdmay19.courseflow.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -23,11 +23,14 @@ import static java.util.Objects.nonNull;
 @Configuration
 public class SpringConfiguration implements WebMvcConfigurer {
 
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    // SERVING FRONTENT BUILD
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         this.serveDirectory(registry, "/", "classpath:/static/");
     }
-
     private void serveDirectory(ResourceHandlerRegistry registry, String endpoint, String location) {
         // 1
         String[] endpointPatterns = endpoint.endsWith("/")
@@ -51,41 +54,34 @@ public class SpringConfiguration implements WebMvcConfigurer {
                 });
     }
 
+    // PASSWORD HASHING
     public static final PasswordEncoder BCRYPT = new BCryptPasswordEncoder();
-
-    @Bean
-    public InMemoryUserDetailsManager inMemoryUserDetailsManager() {
-        UserDetails user = User.builder()
-                .username("Test")
-                .password(BCRYPT.encode("abc123"))
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(user);
-    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return BCRYPT;
     }
 
+    // MAIN SECURITY CONFIG
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthFilter;
+
     @Bean
     @SneakyThrows
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
-        return httpSecurity
-                .httpBasic(config -> {})
-                .csrf(config -> config.disable())
-                .authorizeHttpRequests(config -> {
-                    config
-                            .requestMatchers("/api/ping").permitAll()
-                            .requestMatchers("/testdata/**").permitAll()
-                            .requestMatchers("/api/users/**").permitAll()
-                            .anyRequest().authenticated();
-                })
-                .sessionManagement(config -> {
-                    config.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-                })
-                .build();
-    }
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(Customizer.withDefaults())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
+        return http.build();
+    }
 
 }
