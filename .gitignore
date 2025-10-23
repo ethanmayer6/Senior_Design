@@ -36,3 +36,14 @@ build/
 
 ### VS Code ###
 .vscode/
+src/main/.DS_Store
+.DS_Store
+courseflow/.DS_Store
+courseflow/courseflow/.DS_Store
+courseflow/courseflow/src/.DS_Store
+courseflow/courseflow/src/main/.DS_Store
+courseflow/courseflow/src/main/client/.DS_Store
+courseflow/courseflow/src/main/resources/static/assets/index-CeUK6Dva 2.js
+courseflow/courseflow/src/main/resources/static/assets/index-D8b4DHJx 2.css
+courseflow/courseflow/src/main/resources/static/assets/react-CHdo91hT 2.svg
+src/.DS_Store
