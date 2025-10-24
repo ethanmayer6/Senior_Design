@@ -47,3 +47,8 @@ courseflow/courseflow/src/main/resources/static/assets/index-CeUK6Dva 2.js
 courseflow/courseflow/src/main/resources/static/assets/index-D8b4DHJx 2.css
 courseflow/courseflow/src/main/resources/static/assets/react-CHdo91hT 2.svg
 src/.DS_Store
+
+## VITE ##
+/src/main/resources/static/assets/
+/src/main/resources/static/*.js
+/src/main/resources/static/*.css
