@@ -1,8 +1,8 @@
 package com.sdmay19.courseflow.security;
 
-import com.sdmay19.courseflow.service.CustomUserDetailsService;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.SneakyThrows;
+import java.util.List;
+import static java.util.Objects.nonNull;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,14 +21,13 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 import org.springframework.web.servlet.resource.ResourceResolverChain;
-import java.util.List;
-import static java.util.Objects.nonNull;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.SneakyThrows;
 
 @Configuration
 public class SpringConfiguration implements WebMvcConfigurer {
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
 
     // SERVING FRONTENT BUILD
     @Override
