@@ -1,12 +1,20 @@
-package com.sdmay19.courseflow.user;
+package com.sdmay19.courseflow.User;
 
-import com.sdmay19.courseflow.security.AuthResponse;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import com.sdmay19.courseflow.security.AuthResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,74 +33,27 @@ public class UserController {
 
     // CREATE
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        User savedUser = userService.register(user);
+    public ResponseEntity<AppUser> registerUser(@RequestBody AppUser user) {
+      AppUser savedUser = userService.register(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
     // READ
-    @GetMapping("/id/{id}")
-    public ResponseEntity<User> getById(@PathVariable long id) {
-        User user = userService.getUserById(id);
-        return ResponseEntity.ok(user);
+    @GetMapping("/me")
+    public ResponseEntity<AppUser> getMe(Authentication auth) {
+      AppUser u = (AppUser) auth.getPrincipal();
+      return ResponseEntity.ok(u);
     }
-    @GetMapping("/username/{username}")
-    public ResponseEntity<User> getByUsername(@PathVariable String username) {
-        User user = userService.getUserByUsername(username);
-        return ResponseEntity.ok(user);
-    }
-    @GetMapping("/email/{email}")
-    public ResponseEntity<User> getByEmail(@PathVariable String email) {
-        User user = userService.getUserByEmail(email);
-        return ResponseEntity.ok(user);
-    }
-    @GetMapping("/phone/{phone}")
-    public ResponseEntity<User> getByPhone(@PathVariable String phone) {
-        User user = userService.getUserByPhone(phone);
-        return ResponseEntity.ok(user);
-    }
-
     // UPDATE
-    @PutMapping("/update/{id}/password")
-    public ResponseEntity<Void> updatePassword(@PathVariable long id, @RequestBody Map<String, String> requestBody) {
-        String newPassword = requestBody.get("newPassword");
-        userService.updatePassword(id, newPassword);
-        return ResponseEntity.noContent().build();
-    }
-    @PutMapping("/update/{id}/firstname")
-    public ResponseEntity<Void> upddateFirstName(@PathVariable long id, @RequestBody Map<String, String> requestBody) {
-        String firstName = requestBody.get("firstName");
-        userService.updateFirstName(id, firstName);
-        return ResponseEntity.noContent().build();
-    }
-    @PutMapping("/update/{id}/lastname")
-    public ResponseEntity<User> upddateLastName(@PathVariable long id, @RequestBody Map<String, String> requestBody) {
-        String lastName = requestBody.get("lastName");
-        userService.updateLastName(id, lastName);
-        return ResponseEntity.noContent().build();
-    }
-    @PutMapping("/update/{id}/major")
-    public ResponseEntity<Void> updateMajor(@PathVariable long id, @RequestBody Map<String, String> requestBody) {
-        String major = requestBody.get("major");
-        userService.updateMajor(id, major);
-        return ResponseEntity.noContent().build();
-    }
-    @PutMapping("/update/{id}/phone")
-    public ResponseEntity<Void> updatePhone(@PathVariable long id, @RequestBody Map<String, String> requestBody) {
-        String phone = requestBody.get("phone");
-        userService.updatePhone(id, phone);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/me")
+    public ResponseEntity<AppUser> updateUser(Authentication auth, @RequestBody UserUpdator updates) {
+        return ResponseEntity.ok(userService.updateUser(((AppUser) auth.getPrincipal()).getId(), updates));
     }
 
     // DELETE
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> delete(long id) {
-        userService.deleteById(id);
-        return ResponseEntity.noContent().build();
-    }
-    @DeleteMapping("/delete/{username}")
-    public ResponseEntity<Void> delete(String id) {
-        userService.deleteByUsername(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> delete(Authentication auth) {
+      userService.deleteById(((AppUser)auth.getPrincipal()).getId());
+      return ResponseEntity.noContent().build();
     }
 }

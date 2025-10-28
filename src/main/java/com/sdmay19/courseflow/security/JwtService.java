@@ -14,6 +14,21 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
+/*
+ *
+ * This service handles all operations related to JSON Web Tokens (JWTs) for user authentication.
+ * It is responsible for generating, parsing, and validating tokens used to securely identify users.
+ *
+ * Main responsibilities:
+ * 1. **Token Generation** — Creates signed JWTs containing the username (subject) and optional claims.
+ * 2. **Token Validation** — Verifies the token’s signature, checks expiration, and ensures it matches the user.
+ * 3. **Claim Extraction** — Retrieves data (like the username or expiration date) embedded within the token.
+ *
+ * This service is used by authentication and filter components (e.g., JwtAuthenticationFilter)
+ * to issue and verify tokens for stateless, sessionless authentication in the API.
+ *
+ */
+
 @Service
 public class JwtService {
 

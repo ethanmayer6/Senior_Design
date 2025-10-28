@@ -25,6 +25,36 @@ import org.springframework.web.servlet.resource.ResourceResolverChain;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 
+/*
+ *
+ * This class defines the central Spring Security and Web MVC configuration
+ * for the CourseFlow application. It performs three major responsibilities:
+ *
+ * 1. **Frontend Serving**
+ *    - Configures Spring to serve static frontend assets (the Vite build)
+ *      located in `classpath:/static/`.
+ *    - Uses a custom `PathResourceResolver` to handle client-side routing
+ *      by serving `index.html` for unknown routes (enabling SPA navigation).
+ *
+ * 2. **Security Configuration**
+ *    - Disables CSRF protection (appropriate for stateless APIs using JWT).
+ *    - Defines which endpoints are publicly accessible (e.g., `/api/users/login`).
+ *    - Requires authentication for all other API routes.
+ *    - Configures stateless session management since JWTs are used instead
+ *      of server-side sessions.
+ *    - Registers a custom `JwtAuthenticationFilter` before the built-in
+ *      `UsernamePasswordAuthenticationFilter` to process incoming JWT tokens.
+ *
+ * 3. **Authentication & Password Handling**
+ *    - Defines a global `BCryptPasswordEncoder` bean for secure password hashing.
+ *    - Provides an in-memory `UserDetailsService` with a test user
+ *      (`username` / `password`) to satisfy Spring Security’s requirement
+ *      for a user source during startup.
+ *
+ * Overall, this configuration integrates the Spring Boot backend with a Vite-built
+ * frontend and secures API endpoints using JWT-based authentication in a stateless manner.
+ */
+
 @Configuration
 public class SpringConfiguration implements WebMvcConfigurer {
 
@@ -69,6 +99,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
     @Autowired
     private JwtAuthenticationFilter jwtAuthFilter;
 
+
     @Bean
     @SneakyThrows
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
@@ -100,4 +131,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
         System.out.println("Loaded test user: username/password");
         return new InMemoryUserDetailsManager(user);
     }
+
+
+
 }
