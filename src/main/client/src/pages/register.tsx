@@ -10,11 +10,10 @@ import { InputMask } from "primereact/inputmask";
 
 export default function Register() {
   const [user, setUser] = useState<User>({
-    role: "",
+    role: "student",
     firstName: "",
     lastName: "",
     email: "",
-    username: "",
     password: "",
     phone: "",
     major: "",
@@ -23,6 +22,10 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(true);
+  const [unavailableEmail, setUnavailableEmail] = useState("");
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
+  const [incorrectPassword, setIncorrectPassword] = useState("");
 
   const roleOptions = [
     { label: "Student", value: "student" },
@@ -40,10 +43,27 @@ export default function Register() {
     setSuccess("");
 
     if (user.password !== confirmPassword) {
-      setError("Passwords do not match");
+      setPasswordsMatch(false);
+      setIncorrectPassword(confirmPassword);
       return;
     }
 
+    try {
+      const checkEmail = await axios.get(
+        "http://localhost:8080/api/users/check-email",
+        {
+          params: { email: user.email },
+        }
+      );
+      if (!checkEmail.data.available) {
+        setEmailAvailable(false);
+        setUnavailableEmail(user.email);
+        return;
+      }
+    } catch (err) {
+      setError("Failed to check email availability. Please try again.");
+      return;
+    }
     try {
       const response = await axios.post(
         "http://localhost:8080/api/users/register",
@@ -149,21 +169,11 @@ export default function Register() {
               className="w-full"
               placeholder="you@example.com"
             />
-          </div>
-
-          {/* Username */}
-          <div>
-            <label className="text-sm font-medium text-gray-600 mb-1">
-              Username
-            </label>
-            <InputText
-              name="username"
-              value={user.username}
-              onChange={handleChange}
-              className="w-full"
-              placeholder="Choose a username"
-              required
-            />
+            {!emailAvailable && unavailableEmail === user.email && (
+              <span className="text-red-600 text-sm mt-1 ml-1 font-semibold">
+                Looks like you already have an account. Try signing in instead.
+              </span>
+            )}
           </div>
 
           {/* Phone Number / Major */}
@@ -228,6 +238,11 @@ export default function Register() {
               placeholder="••••••••"
               required
             />
+            {!passwordsMatch && incorrectPassword === confirmPassword && (
+              <span className="text-red-600 text-sm mt-1 ml-1 font-semibold">
+                Passwords do not match.
+              </span>
+            )}
           </div>
 
           {/* Sign Up Button */}

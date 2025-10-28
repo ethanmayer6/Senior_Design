@@ -31,9 +31,6 @@ public class AppUser implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "user_name", nullable = false, unique = true)
-    private String username;
-
         // Required by UserDetails
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -52,10 +49,9 @@ public class AppUser implements UserDetails {
 
     public AppUser() {}
 
-    public AppUser(String firstName, String lastName, String username, String password, String email, String phone, String major) {
+    public AppUser(String firstName, String lastName, String password, String email, String phone, String major) {
         this.firstName = firstName;
         this.lastName = lastName;
-        this.username = username;
         this.password = password;
         this.email = email;
         this.phone = phone;
@@ -84,14 +80,6 @@ public class AppUser implements UserDetails {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getPassword() {
@@ -124,5 +112,11 @@ public class AppUser implements UserDetails {
 
     public void setMajor(String major) {
         this.major = major;
+    }
+
+    @Override
+    //idk why we need this but the class gets mad without it.
+    public String getUsername() {
+        return email;
     }
 }

@@ -38,6 +38,12 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, Boolean>> checkEmailAvailability(@org.springframework.web.bind.annotation.RequestParam String email) {
+        boolean isAvailable = userService.isEmailAvailable(email);
+        return ResponseEntity.ok(Map.of("available", isAvailable));
+    }
+
     // READ
     @GetMapping("/me")
     public ResponseEntity<AppUser> getMe(Authentication auth) {
