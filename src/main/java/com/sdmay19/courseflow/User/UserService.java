@@ -1,16 +1,15 @@
-package com.sdmay19.courseflow.service;
+package com.sdmay19.courseflow.user;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import com.sdmay19.courseflow.exception.AuthenticationFailedException;
 import com.sdmay19.courseflow.exception.UserNotFoundException;
-import com.sdmay19.courseflow.model.AuthResponse;
-import com.sdmay19.courseflow.model.User;
-import com.sdmay19.courseflow.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import jakarta.validation.constraints.Pattern;
-import com.sdmay19.courseflow.model.AuthResponse;
+import com.sdmay19.courseflow.security.AuthResponse;
+import com.sdmay19.courseflow.security.JwtService;
 
 
 @Service
@@ -128,5 +127,19 @@ public class UserService {
     }
     private boolean usernameNotExists(String username) {
         return userRepository.findByUsername(username).isEmpty();
+    }
+
+
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // Lookup user in your database
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Build and return a Spring Security UserDetails object
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getEmail())
+                .password(user.getPassword())
+                .roles("USER") // Default role; you can make this dynamic later
+                .build();
     }
 }
