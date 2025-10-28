@@ -27,19 +27,19 @@ public class UserService {
     private JwtService jwtService;
 
     // CREATE SERVICE - still need to add spring security
-    public User register(User user) {
+    public AppUser register(AppUser user) {
         boolean validAccount = checkValidAccount(user);
         if (!validAccount) {
             throw new AuthenticationFailedException("Invalid Email or Password");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(user.getPassword());
         return userRepository.save(user);
     }
 
     // READ SERVICES
     public AuthResponse login(String email, String password) {
-        User user = userRepository.findByEmail(email)
+      AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationFailedException("User with this email address does not exist"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -50,62 +50,77 @@ public class UserService {
 
         return new AuthResponse(token, user);
     }
-    public User getUserById(long id) {
+    public AppUser getUserById(long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
     }
-    public User getUserByUsername(String username) {
+    public AppUser getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
     }
-    public User getUserByEmail(String email) {
+    public AppUser getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + email));
     }
-    public User getUserByPhone(String phone) {
+    public AppUser getUserByPhone(String phone) {
         return userRepository.findByPhone(phone)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + phone));
     }
 
+    
+
     // UPDATE SERVICES
+    public AppUser updateUser(long id, UserUpdator updates) {
+      AppUser user = getUserById(id);
+  
+      if (updates.getFirstName() != null) user.setFirstName(updates.getFirstName());
+      if (updates.getLastName() != null)  user.setLastName(updates.getLastName());
+      if (updates.getMajor() != null)     user.setMajor(updates.getMajor());
+      if (updates.getPhone() != null)     user.setPhone(updates.getPhone());
+      if (updates.getPassword() != null)
+          user.setPassword(updates.getPassword());
+  
+      return userRepository.save(user);
+  }
+
     public void updatePassword(long id, String password) {
-        User user = getUserById(id);
-        user.setPassword(passwordEncoder.encode(password));
+      AppUser user = getUserById(id);
+        user.setPassword(password);
         userRepository.save(user);
     }
     public void updateFirstName(long id, String firstName) {
-        User user = getUserById(id);
+      AppUser user = getUserById(id);
         user.setFirstName(firstName);
         userRepository.save(user);
     }
     public void updateLastName(long id, String lastName) {
-        User user = getUserById(id);
+      AppUser user = getUserById(id);
         user.setLastName(lastName);
         userRepository.save(user);
     }
     public void updateMajor(long id, String major) {
-        User user = getUserById(id);
+      AppUser user = getUserById(id);
         user.setMajor(major);
         userRepository.save(user);
     }
     public void updatePhone(long id, String phone) {
-        User user = getUserById(id);
+      AppUser user = getUserById(id);
         user.setPhone(phone);
         userRepository.save(user);
     }
 
     // DELETE SERVICES
     public void deleteById(long id) {
-        User user = getUserById(id);
+      AppUser user = getUserById(id);
         userRepository.delete(user);
     }
     public void deleteByUsername(String username) {
-        User user = getUserByUsername(username);
+      AppUser user = getUserByUsername(username);
         userRepository.delete(user);
     }
 
     // NEW ACCOUNT CHECKING MEASURES
-    private boolean checkValidAccount(User user) {
+    private boolean checkValidAccount(AppUser user) {
         boolean validEmail = checkEmailFormat(user.getEmail()) && emailNotExists(user.getEmail());
         boolean validPassword = checkPasswordStrength(user.getPassword());
         boolean validUserName = usernameNotExists(user.getUsername());
@@ -131,15 +146,7 @@ public class UserService {
 
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        // Lookup user in your database
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-
-        // Build and return a Spring Security UserDetails object
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .roles("USER") // Default role; you can make this dynamic later
-                .build();
-    }
+      return userRepository.findByEmail(email)
+          .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+  }
 }

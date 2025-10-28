@@ -1,5 +1,13 @@
 package com.sdmay19.courseflow.user;
 
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,7 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class AppUser implements UserDetails {
 
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
@@ -18,6 +26,7 @@ public class User {
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
+    @JsonIgnore
     private String password;
     private String phone;
     private String major;
@@ -28,9 +37,25 @@ public class User {
     @Column(name = "user_name", nullable = false, unique = true)
     private String username;
 
-    public User() {}
+        // Required by UserDetails
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(); // or your roles if you add them later
+    }
 
-    public User(String firstName, String lastName, String username, String password, String email, String phone, String major) {
+    @Override
+    public boolean isAccountNonExpired() { return true; }
+    @Override
+    public boolean isAccountNonLocked() { return true; }
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+    @Override
+    public boolean isEnabled() { return true; }
+
+
+    public AppUser() {}
+
+    public AppUser(String firstName, String lastName, String username, String password, String email, String phone, String major) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
