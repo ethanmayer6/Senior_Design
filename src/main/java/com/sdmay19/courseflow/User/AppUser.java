@@ -26,7 +26,7 @@ public class AppUser implements UserDetails {
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
-    @JsonIgnore
+
     private String password;
     private String phone;
     private String major;
