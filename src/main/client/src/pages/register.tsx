@@ -6,6 +6,7 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Card } from "primereact/card";
+import { InputMask } from "primereact/inputmask";
 
 export default function Register() {
   const [user, setUser] = useState<User>({
@@ -25,8 +26,7 @@ export default function Register() {
 
   const roleOptions = [
     { label: "Student", value: "student" },
-    { label: "Advisor", value: "advisor" },
-    { label: "Faculty", value: "faculty" },
+    { label: "Advisor/Faculty", value: "advisor" },
   ];
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -172,14 +172,13 @@ export default function Register() {
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Phone Number
               </label>
-              <InputText
+              <InputMask
                 name="phone"
-                type="tel"
+                mask="(999) 999-9999"
                 value={user.phone}
-                onChange={handleChange}
-                className="w-full"
+                onChange={(e) => setUser({ ...user, phone: e.value || "" })}
                 placeholder="(555) 123-4567"
-                required
+                className="w-full"
               />
             </div>
             <div className="w-[60%]">
