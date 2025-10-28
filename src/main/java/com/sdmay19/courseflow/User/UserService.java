@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.user;
+package com.sdmay19.courseflow.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -39,16 +39,16 @@ public class UserService {
 
     // READ SERVICES
     public AuthResponse login(String email, String password) {
-      AppUser user = userRepository.findByEmail(email)
+      AppUser appUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationFailedException("User with this email address does not exist"));
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!passwordEncoder.matches(password, appUser.getPassword())) {
             throw new AuthenticationFailedException("Incorrect password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(appUser.getEmail());
 
-        return new AuthResponse(token, user);
+        return new AuthResponse(token, appUser);
     }
     public AppUser getUserById(long id) {
         return userRepository.findById(id)

@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.user;
+package com.sdmay19.courseflow.User;
 
 import java.util.Collection;
 import java.util.List;

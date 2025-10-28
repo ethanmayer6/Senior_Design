@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.user;
+package com.sdmay19.courseflow.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;

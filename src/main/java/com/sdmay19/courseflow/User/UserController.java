@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.user;
+package com.sdmay19.courseflow.User;
 
 import java.util.Map;
 
@@ -23,8 +23,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    
-
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> loginUser(@RequestBody Map<String, String> credentials) {
         String email = credentials.get("email");
@@ -43,7 +41,7 @@ public class UserController {
     // READ
     @GetMapping("/me")
     public ResponseEntity<AppUser> getMe(Authentication auth) {
-      AppUser u =  (AppUser) auth.getPrincipal();
+      AppUser u = (AppUser) auth.getPrincipal();
       return ResponseEntity.ok(u);
     }
     // UPDATE
