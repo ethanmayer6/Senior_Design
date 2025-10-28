@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.service;
+package com.sdmay19.courseflow.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -8,9 +8,8 @@ import org.springframework.stereotype.Service;
 
 import com.sdmay19.courseflow.exception.AuthenticationFailedException;
 import com.sdmay19.courseflow.exception.UserNotFoundException;
-import com.sdmay19.courseflow.model.AuthResponse;
-import com.sdmay19.courseflow.model.User;
-import com.sdmay19.courseflow.repository.UserRepository;
+import com.sdmay19.courseflow.security.AuthResponse;
+import com.sdmay19.courseflow.security.JwtService;
 
 
 @Service

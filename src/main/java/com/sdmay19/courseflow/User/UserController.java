@@ -1,8 +1,6 @@
-package com.sdmay19.courseflow.controller;
+package com.sdmay19.courseflow.user;
 
-import com.sdmay19.courseflow.model.AuthResponse;
-import com.sdmay19.courseflow.model.User;
-import com.sdmay19.courseflow.service.UserService;
+import com.sdmay19.courseflow.security.AuthResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
