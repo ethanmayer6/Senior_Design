@@ -1,14 +1,25 @@
 package com.sdmay19.courseflow.course;
-import com.sdmay19.courseflow.exception.BadRequestException;
-import com.sdmay19.courseflow.exception.CourseNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Optional;
+import java.lang.String;
+import java.lang.Integer;
+import java.lang.Exception;
+import org.springframework.stereotype.Service;
 
+import com.sdmay19.courseflow.exception.AuthenticationFailedException;
+import com.sdmay19.courseflow.exception.UserNotFoundException;
+import com.sdmay19.courseflow.security.AuthResponse;
+import com.sdmay19.courseflow.security.JwtService;
+
+
+@Service
 public class CourseService {
 
 private final CourseRepository courseRepository;
@@ -19,19 +30,16 @@ private final CourseRepository courseRepository;
         this.courseRepository = courseRepository;
     }
 
-    @Override
     @Transactional
     public Course create(Course c) {
 
         if(c.getName() == null || c.getName() == ""){
-            throw new BadRequestException("Course name is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Course name is required");
         }
         if(c.getDescription() == null || c.getDescription() == ""){
-            throw new BadRequestException("Course description is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Course description is required");
         }
-        if(c.getCredits() == null){
-            throw new BadRequestException("Course credits are required")
-        }
+
 
         //This prevents if the course object has itself as a prereq
         c.getPrerequisites().remove(c);
@@ -40,29 +48,30 @@ private final CourseRepository courseRepository;
         return courseRepository.save(c);
     }
 
-    @Override
     @Transactional(readOnly = true)
-    public Course getCourseById(long id) {
+    public Optional<Course> getCourseById(long id) {
         return courseRepository.findById(id);
     }
 
-    @Override
-    public Course getCourseByName(String name) {
+    public Optional<Course> getCourseByName(String name) {
         return courseRepository.findByName(name);
     }
 
-    @Override
-    public Course getCourseByCourseIdent(String courseIdent) {
+    public Optional<Course> getCourseByCourseIdent(String courseIdent) {
         return courseRepository.findByCourseIdent(courseIdent);
     }
 
+    @Transactional(readOnly = true)
+    public List<Course> getAll() {
+        return courseRepository.findAll();
+    }
 
-    @Override
+
     @Transactional
-    public Course updateCourse(long id, CourseUpdator u) {
+    public Course updateCourse(long id, CourseUpdater u) {
 
 
-        Course course = getCourseById(id);
+        Course course = getCourseById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Course not found: " + id));
 
         if(u.getName() != null){
             course.setName(u.getName());
@@ -89,19 +98,19 @@ private final CourseRepository courseRepository;
         if(ids != null){
             
             //Prevent self prereq
-            if (ids.contains(id)) throw new BadRequestException("A course cannot list itself as a prerequisite.");
+            if (ids.contains(id)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A course cannot list itself as a prerequisite.");
 
 
             List<Course> found = courseRepository.findAllById(ids);
 
 
             if(found.size() != ids.size()){
-                throw new CourseNotFoundException("Prerequisite courses not found, got some or none, but not all: " + found);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Prerequisite courses not found, got some or none, but not all: " + found);
             }
 
             for(Course c : found) {
                 if(c.getPrerequisites().contains(course)) {
-                    throw new BadRequestException("Cycle detected: course " + c.getCourseIdent() + " lists this course as a prereq");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cycle detected: course " + c.getCourseIdent() + " lists this course as a prereq");
                 }
             }
 
@@ -111,10 +120,9 @@ private final CourseRepository courseRepository;
         return courseRepository.save(course);
     }
 
-    @Override
     @Transactional
     public void deleteById(long id) {
-        Course c = getCourseById(id);
+        Course c = getCourseById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Course not found: " + id));
         courseRepository.delete(c);
     }
 }

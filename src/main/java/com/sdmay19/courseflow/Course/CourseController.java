@@ -5,6 +5,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/courses")
 public class CourseController {
@@ -21,19 +24,22 @@ public class CourseController {
 
     // READ
     @GetMapping("/{id}")
-    public ResponseEntity<Course> getById(@PathVariable long id) {
+    public ResponseEntity<Optional<Course>> getById(@PathVariable long id) {
         return ResponseEntity.ok(courseService.getCourseById(id));
     }
 
     // READ
     @GetMapping("/{courseIdent}")
-    public ResponseEntity<Course> getByCourseIdent(@PathVariable String courseIdent) {
+    public ResponseEntity<Optional<Course>> getByCourseIdent(@PathVariable String courseIdent) {
         return ResponseEntity.ok(courseService.getCourseByCourseIdent(courseIdent));
     }
 
+    public ResponseEntity<List<Course>> getAll() {
+        return ResponseEntity.ok(courseService.getAll());
+    }
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<Course> update(@PathVariable long id, @RequestBody CourseUpdator updates) {
+    public ResponseEntity<Course> update(@PathVariable long id, @RequestBody CourseUpdater updates) {
         return ResponseEntity.ok(courseService.updateCourse(id, updates));
     }
 

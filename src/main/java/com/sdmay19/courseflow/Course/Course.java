@@ -79,3 +79,4 @@ public class Course {
 
     public String getOffered() { return offered; }
     public void setOffered(String offered) { this.offered = offered; }
+}

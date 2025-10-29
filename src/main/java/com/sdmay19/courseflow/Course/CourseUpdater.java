@@ -2,7 +2,7 @@ package com.sdmay19.courseflow.course;
 
 import java.util.List;
 
-public class CourseUpdator {
+public class CourseUpdater {
     private String name;
     private Integer credits;
     private String prereq_txt;
@@ -14,7 +14,7 @@ public class CourseUpdator {
     private List<Long> prereqIds;
 
     public String getName() { return name; }
-    
+
     public void setName(String name) { this.name = name; }
 
     public Integer getCredits() { return credits; }
