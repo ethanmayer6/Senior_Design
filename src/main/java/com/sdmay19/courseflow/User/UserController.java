@@ -28,6 +28,7 @@ public class UserController {
         String email = credentials.get("email");
         String password = credentials.get("password");
         AuthResponse auth = userService.login(email, password);
+        
         return ResponseEntity.ok(auth);
     }
 
@@ -35,6 +36,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<AppUser> registerUser(@RequestBody AppUser user) {
       AppUser savedUser = userService.register(user);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
@@ -47,6 +49,7 @@ public class UserController {
     // READ
     @GetMapping("/me")
     public ResponseEntity<AppUser> getMe(Authentication auth) {
+      System.out.println("MADE IT HERE");
       AppUser u = (AppUser) auth.getPrincipal();
       return ResponseEntity.ok(u);
     }

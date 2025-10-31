@@ -1,7 +1,6 @@
 package com.sdmay19.courseflow.security;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -47,44 +46,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private UserService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+protected void doFilterInternal(HttpServletRequest request,
+                                HttpServletResponse response,
+                                FilterChain filterChain)
+        throws ServletException, IOException {
 
-        String path = request.getServletPath();
-        if (path.startsWith("/api/users/login") ||
-            path.startsWith("/api/users/register") ||
-            path.startsWith("/api/ping") ||
-            path.startsWith("/testdata")
-        ) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+    String path = request.getServletPath();
+    System.out.println("Jwt filter: " + path);
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String email;
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        jwt = authHeader.substring(7);
-        email = jwtService.extractEmail(jwt);
-
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-           AppUser user = userDetailsService.getUserByEmail(email);
-if (jwtService.isTokenValid(jwt, email)) {
-    UsernamePasswordAuthenticationToken authToken =
-            new UsernamePasswordAuthenticationToken(
-                    user, null, List.of());
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
+    if (path.startsWith("/api/users/login") ||
+        path.startsWith("/api/users/register") ||
+        path.startsWith("/api/ping") ||
+        path.startsWith("/testdata")) {
         filterChain.doFilter(request, response);
+        return;
     }
+
+    final String authHeader = request.getHeader("Authorization");
+    final String jwt;
+    final String email;
+
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        filterChain.doFilter(request, response);
+        return;
+    }
+
+    jwt = authHeader.substring(7);
+    email = jwtService.extractEmail(jwt);
+
+    if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        AppUser user = userDetailsService.getUserByEmail(email);
+        if (jwtService.isTokenValid(jwt, email)) {
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            user, null, user.getAuthorities());
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+    }
+
+    // ✅ Always continue the chain
+    filterChain.doFilter(request, response);
+}
 }
