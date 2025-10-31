@@ -27,4 +27,19 @@ public class GlobalExceptionHandler {
         body.put("message", e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler(CourseNotFoundException.class)
+    public ResponseEntity<Object> handleCourseNotFoundException(AuthenticationFailedException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+    @ExceptionHandler(CourseCreationException.class)
+    public ResponseEntity<Object> handleCourseCreationException(AuthenticationFailedException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
 }
