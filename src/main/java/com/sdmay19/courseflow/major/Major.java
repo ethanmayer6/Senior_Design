@@ -11,7 +11,7 @@ import java.util.List;
 public class Major {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.AUTO)
+    @GeneratedValue(strategy=GenerationType.AUTO)
     private long id;
     private String name;
     private College college;
@@ -68,6 +68,4 @@ public class Major {
     public void setDegreeRequirements(List<DegreeRequirement> degreeRequirements) {
         this.degreeRequirements = degreeRequirements;
     }
-
-    // ADD GETTERS AND SETTERS HERE
 }
