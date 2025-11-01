@@ -38,10 +38,11 @@ public class JwtService {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generateToken(String email) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
-    }
+    public String generateToken(long id) {
+      Map<String, Object> claims = new HashMap<>();
+      return createToken(claims, String.valueOf(id)); // convert id → string
+  }
+
 
     private String createToken(Map<String, Object> claims, String subject) {
         long now = System.currentTimeMillis();
@@ -54,9 +55,11 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractEmail(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
+    public long extractUserId(String token) {
+      String subject = extractClaim(token, Claims::getSubject);
+      return Long.parseLong(subject);
+  }
+
 
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         final Claims claims = Jwts.parserBuilder()
@@ -67,10 +70,11 @@ public class JwtService {
         return resolver.apply(claims);
     }
 
-    public boolean isTokenValid(String token, String email) {
-        final String extracted = extractEmail(token);
-        return (extracted.equals(email) && !isTokenExpired(token));
-    }
+    public boolean isTokenValid(String token, long id) {
+      final long extracted = extractUserId(token);
+      return (extracted == id && !isTokenExpired(token));
+  }
+
 
     private boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());

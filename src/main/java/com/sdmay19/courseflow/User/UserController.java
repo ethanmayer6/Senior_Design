@@ -49,7 +49,6 @@ public class UserController {
     // READ
     @GetMapping("/me")
     public ResponseEntity<AppUser> getMe(Authentication auth) {
-      System.out.println("MADE IT HERE");
       AppUser u = (AppUser) auth.getPrincipal();
       return ResponseEntity.ok(u);
     }

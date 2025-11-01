@@ -64,7 +64,7 @@ protected void doFilterInternal(HttpServletRequest request,
 
     final String authHeader = request.getHeader("Authorization");
     final String jwt;
-    final String email;
+    final long id;
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
         filterChain.doFilter(request, response);
@@ -72,11 +72,11 @@ protected void doFilterInternal(HttpServletRequest request,
     }
 
     jwt = authHeader.substring(7);
-    email = jwtService.extractEmail(jwt);
+    id = jwtService.extractUserId(jwt);
 
-    if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        AppUser user = userDetailsService.getUserByEmail(email);
-        if (jwtService.isTokenValid(jwt, email)) {
+    if (SecurityContextHolder.getContext().getAuthentication() == null) {
+        AppUser user = userDetailsService.getUserById(id);
+        if (jwtService.isTokenValid(jwt, id)) {
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
                             user, null, user.getAuthorities());

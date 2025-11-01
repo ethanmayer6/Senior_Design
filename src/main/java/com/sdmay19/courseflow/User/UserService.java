@@ -50,7 +50,7 @@ public class UserService {
             throw new AuthenticationFailedException("Incorrect password");
         }
 
-        String token = jwtService.generateToken(appUser.getEmail());
+        String token = jwtService.generateToken(appUser.getId());
 
         return new AuthResponse(token, appUser);
     }

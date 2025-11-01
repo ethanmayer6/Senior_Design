@@ -60,7 +60,7 @@ public class AdminController {
   @DeleteMapping("/user")
     public ResponseEntity<Void> delete(@RequestBody Map<String, Object> body) {
       long id = getIdFromBody(body);
-      userService.deleteById(id);
+      userService.deleteById(id); 
       return ResponseEntity.noContent().build();
     }
 
