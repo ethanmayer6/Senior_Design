@@ -86,7 +86,6 @@ protected void doFilterInternal(HttpServletRequest request,
         }
     }
 
-    // ✅ Always continue the chain
     filterChain.doFilter(request, response);
 }
 }
