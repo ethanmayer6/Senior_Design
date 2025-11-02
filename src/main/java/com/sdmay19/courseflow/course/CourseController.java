@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,24 +21,28 @@ public class CourseController {
     }
 
     // CREATE
-    @PostMapping
-    public ResponseEntity<Course> create(Authentication auth, @RequestBody Course course) {
-        // Add in Auth Check here?
-
+    @PostMapping("/create")
+    public ResponseEntity<Course> create(@RequestBody Course course) { // ADD AUTH CHECK??
         Course saved = courseService.create(course);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+    @PostMapping("/bulk-create")
+    public ResponseEntity<List<Course>> createMultiple(@RequestBody List<Course> courses) {
+        System.out.println("Creating" + courses);
+        List<Course> createdCourses = courseService.createAll(courses);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCourses);
+    }
 
     // READ
-    @GetMapping("/{id}")
+    @GetMapping("/ident/{id}")
     public ResponseEntity<Course> getById(@PathVariable long id) {
         return ResponseEntity.ok(courseService.getById(id));
     }
-    @GetMapping("/{courseIdent}")
+    @GetMapping("/courseIdent/{courseIdent}")
     public ResponseEntity<Course> getByCourseIdent(@PathVariable String courseIdent) {
         return ResponseEntity.ok(courseService.getByCourseIdent(courseIdent));
     }
-    @GetMapping("/{name}")
+    @GetMapping("name/{name}")
     public ResponseEntity<Course> getByName(@PathVariable String name) {
         return ResponseEntity.ok(courseService.getByName(name));
     }
@@ -45,10 +50,11 @@ public class CourseController {
     public ResponseEntity<List<Course>> getAll() {
         return ResponseEntity.ok(courseService.getAllCourse());
     }
+
     // UPDATE
-    @PutMapping("/{id}")
-    public ResponseEntity<Course> update(@PathVariable long id, @RequestBody CourseUpdater updates) {
-        return ResponseEntity.ok(courseService.updateCourse(id, updates));
+    @PutMapping
+    public ResponseEntity<Course> update(@RequestBody CourseUpdater updates) {
+        return ResponseEntity.ok(courseService.updateCourse(updates));
     }
 
     // DELETE

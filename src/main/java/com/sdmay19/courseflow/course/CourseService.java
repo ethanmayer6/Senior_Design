@@ -2,6 +2,8 @@ package com.sdmay19.courseflow.course;
 import com.sdmay19.courseflow.exception.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.lang.String;
@@ -18,14 +20,29 @@ public class CourseService {
     }
 
     @Transactional
+    public List<Course> createAll(List<Course> courses) {
+        // Validate all courses first
+        for (Course course : courses) {
+            if (!requiredFields(course)) throw new CourseCreationException("Required fields not present in course. Please check name and description exist");
+            if (courseRepository.findByCourseIdent(course.getCourseIdent()).isPresent()) throw new CourseCreationException("Course with this courseIdent already exists: " + course.getCourseIdent());
+
+            course.getPrerequisites().remove(course.getCourseIdent());
+        }
+        return courseRepository.saveAll(courses);
+    }
+
+    @Transactional
     public Course create(Course course) {
         if(!requiredFields(course)) throw new CourseCreationException("Required fields not present in course. Please check name and description exist");
-        course.getPrerequisites().remove(course); // Prevents self addition to prereqs
+        if(courseRepository.findByCourseIdent(course.getCourseIdent()).isPresent()) throw new CourseCreationException("Course with this name already exists");
 
+        course.getPrerequisites().remove(course); // Prevent self prequisite loop
         return courseRepository.save(course);
     }
     public boolean requiredFields(Course course) {
-        return !(course.getName() == null || course.getName() == "" || course.getDescription() == null || course.getDescription() == "");
+        return !(course.getName() == null || course.getName() == ""
+                || course.getDescription() == null || course.getDescription() == ""
+                || course.getCourseIdent() == null || course.getCourseIdent() == "");
     }
 
     public Course getById(long id) {
@@ -52,11 +69,15 @@ public class CourseService {
     }
     
     @Transactional
-    public Course updateCourse(long id, CourseUpdater updator) {
-        Course course = getById(id);
+    public Course updateCourse(CourseUpdater updator) {
+        Course course = getByCourseIdent(updator.getIdent());
+        String courseIdent = course.getCourseIdent();
 
         if(updator.getName() != null){
             course.setName(updator.getName());
+        }
+        if(updator.getIdent() != null){
+            course.setCourseIdent(updator.getIdent());
         }
         if(updator.getCredits() != null){
             course.setCredits(updator.getCredits());
@@ -75,27 +96,27 @@ public class CourseService {
         }
 
         // Update Prerequisites
-        List<Long> courseIds = updator.getPrereqIds();
+        List<String> courseIdents = updator.getPrereqIdents();
 
-        if(courseIds != null){
+        if(courseIdents != null){
             // Course can not be a prerequisite to itself
-            if (courseIds.contains(id)) {
+            if (courseIdents.contains(courseIdent)) {
                 throw new CourseUpdateException("A course cannot list itself as a prerequisite.");
             }
             // Get All Prerequisite Courses
-            List<Course> courses = getAllById(courseIds);
-            if(courses.size() != courseIds.size()) {
-                throw new CourseUpdateException("Prerequisite courses not found, got some or none, but not all: " + courses);
+            List<Course> prereqCourses = courseRepository.findAllByCourseIdentIn(courseIdents);
+            if(prereqCourses.size() != courseIdents.size()) {
+                throw new CourseUpdateException("Prerequisite courses not found, got some or none, but not all: " + prereqCourses);
             }
             // Check for Prerequisite Cycle
-            for(Course c : courses) {
-                if(c.getPrerequisites().contains(id)) {
+            for(Course c : prereqCourses) {
+                if(c.getPrerequisites().contains(courseIdent)) {
                     throw new CourseUpdateException("Cycle detected: course " + c.getCourseIdent() + " lists this course as a prereq");
                 }
             }
 
             // Update with New Prerequisites (set of Ids)
-            course.setPrerequisites(new HashSet<>(courseIds));
+            course.setPrerequisites(new HashSet<>(courseIdents));
         }
 
         // Save all Updates
@@ -107,4 +128,5 @@ public class CourseService {
         Course c = getById(id);
         courseRepository.delete(c);
     }
+
 }

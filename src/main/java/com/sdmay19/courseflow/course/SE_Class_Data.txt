@@ -1,0 +1,55 @@
+International Perspective 3 cr
+
+U.S. Cultures and Communities 3 cr
+
+Communication Proficiency / Library Requirement 10 cr
+    ENGL 1500 3 cr
+    ENGL 2500 3 cr
+    LIB 1600 1 cr
+    ENGL 3090 OR  ENGL 3140 3 cr
+
+General Education Requirements 21 cr
+    ECON 1010  OR ECON 1020 OR EXON 1030 OR IE 3050 3 cr
+    Approved Arts and Humantities or Social Sciences courses 9 cr ???
+    REPEAT ENGL 2500 AND (ENGL 3090 OR ENGL 3140) 6 cr
+    SPCM 2120 3 cr
+
+Engineering Basic Program 24 cr
+    CHEM 1670 OR CHEM 1770 4 cr
+    REPEAT ENGL 1500 3 cr
+    SE 1010 R
+    SE 1850 3 cr
+    REPEAT LIB 1600 1 cr
+    MATH 1650 4 cr
+    MATH 1660 4 cr
+    PHYS 2310 4 cr
+    PHYS 2310L 1 cr
+
+Math and Physical Science 17 cr
+    COMS 2270 4 cr
+    COMS 2280 3 cr
+    MATH 2670 4 cr
+    MATH 2070 OR MATH 2650 OR MATH 3040 OR MATH 3140 OR 3170 3 cr
+    STAT 3300 3 cr
+
+SE Core 37 cr
+    CPRE 2810 4 cr
+    COMS 3270 OR CPRE 2880 3 cr (think 2880 is 4 cr)
+    COMS 3210 OR CPRE 3810 3 cr
+    COMS 3520 OR CPRE 3080 3 cr (3080 is 4 cr)
+    COMS 2300 OR 3100 3 cr
+    COMS 3110 3 cr
+    COMS 3630 3 cr
+    SE 3090 3 cr
+    SE 3170 3 cr
+    SE 3190 3 cr
+    SE 3390 3 cr
+    SE 4210 3 cr
+
+Other Remaining Courses 26 cr
+    SE 1660 R
+    SE 4910 3 cr
+    SE 4920 2 cr
+    SE Electives 9 cr
+    SUP electives 9 cr
+    Open elective 3 cr
