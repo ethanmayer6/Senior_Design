@@ -52,3 +52,6 @@ src/.DS_Store
 /src/main/resources/static/assets/
 /src/main/resources/static/*.js
 /src/main/resources/static/*.css
+
+## OTHER ##
+/src/main/resources/static/index.html
