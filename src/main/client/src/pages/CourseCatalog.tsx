@@ -5,12 +5,9 @@ import {useEffect, useState} from "react";
 import {Button} from "primereact/button";
 import {InputText} from "primereact/inputtext";
 import {Panel} from "primereact/panel"
-import { TreeSelect } from 'primereact/treeselect';
 
 export default function CourseCatalog() {
     const [courses, setCourses] = useState<Course[]>([]);
-    const [nodes, setNodes] = useState(null);
-    const [selectedNodeKeys, setSelectedNodeKeys] = useState(null);
 
     const getCourses = async (): Promise<void> => {
         try {
