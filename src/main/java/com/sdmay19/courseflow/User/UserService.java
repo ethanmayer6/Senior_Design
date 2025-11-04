@@ -1,8 +1,7 @@
 package com.sdmay19.courseflow.User;
 
+import com.sdmay19.courseflow.course.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,8 +16,10 @@ public class UserService {
 
     private static final String EMAIL_REGEX = "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
 
-    @Autowired
-    UserRepository userRepository;
+    private final UserRepository userRepository;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -33,7 +34,7 @@ public class UserService {
             throw new AuthenticationFailedException("Invalid Email or Password");
         }
 
-        user.setPassword(user.getPassword());
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -54,10 +55,6 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
     }
-    public AppUser getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-    }
     public AppUser getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + email));
@@ -66,8 +63,9 @@ public class UserService {
         return userRepository.findByPhone(phone)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + phone));
     }
-
-    
+    public boolean isEmailAvailable(String email) {
+        return userRepository.findByEmail(email).isEmpty();
+    }
 
     // UPDATE SERVICES
     public AppUser updateUser(long id, UserUpdator updates) {
@@ -114,18 +112,13 @@ public class UserService {
       AppUser user = getUserById(id);
         userRepository.delete(user);
     }
-    public void deleteByUsername(String username) {
-      AppUser user = getUserByUsername(username);
-        userRepository.delete(user);
-    }
 
     // NEW ACCOUNT CHECKING MEASURES
     private boolean checkValidAccount(AppUser user) {
         boolean validEmail = checkEmailFormat(user.getEmail()) && emailNotExists(user.getEmail());
         boolean validPassword = checkPasswordStrength(user.getPassword());
-        boolean validUserName = usernameNotExists(user.getUsername());
 
-        return validEmail && validPassword && validUserName;
+        return validEmail && validPassword;
     }
     private boolean checkEmailFormat(String email) {
         if (email == null || email.isBlank()) return false;
@@ -140,13 +133,4 @@ public class UserService {
         }
         return true;
     }
-    private boolean usernameNotExists(String username) {
-        return userRepository.findByUsername(username).isEmpty();
-    }
-
-
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-      return userRepository.findByEmail(email)
-          .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-  }
 }
