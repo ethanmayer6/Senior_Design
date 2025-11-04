@@ -6,14 +6,14 @@ import {Button} from "primereact/button";
 import {InputText} from "primereact/inputtext";
 import {Panel} from "primereact/panel"
 import {RadioButton} from "primereact/radiobutton";
-import { Slider } from 'primereact/slider';
+// import { Slider } from 'primereact/slider';
 
 export default function CourseCatalog() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [level, setLevel] = useState('');
     const [offeredTerm, setOfferedTerm] = useState('');
     const [department, setDepartment] = useState('');
-    const [credits, setCredits] = useState(0);
+    // const [credits, setCredits] = useState(0);
 
 
     const getCourses = async (): Promise<void> => {
@@ -77,18 +77,18 @@ export default function CourseCatalog() {
                     </div>
 
                     {/* Credit Hours */}
-                    <div className="flex flex-col gap-3 mt-3">
-                        <h1 className="text-red-600 text-lg">Credit Hours</h1>
-                        <Slider value={credits} onChange={(e) => setCredits(e.value)} min={1} max={5} step={1} />
-                        <div className="text-sm text-gray-600 text-center">Credits: {credits}</div>
-                    </div>
+                    {/*<div className="flex flex-col gap-3 mt-3">*/}
+                    {/*    <h1 className="text-red-600 text-lg">Credit Hours</h1>*/}
+                    {/*    <Slider value={credits} onChange={(e) => setCredits(e.value)} min={1} max={5} step={1} />*/}
+                    {/*    <div className="text-sm text-gray-600 text-center">Credits: {credits}</div>*/}
+                    {/*</div>*/}
 
 
                     {/* Apply / Reset Buttons */}
                     <div className="flex justify-between mt-4">
                         <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" />
                         <Button label="Reset" icon="pi pi-refresh" className="p-button-text p-button-sm"
-                                onClick={() => { setLevel(''); setOfferedTerm(''); setDepartment(''); setCredits(0)}} />
+                                onClick={() => { setLevel(''); setOfferedTerm(''); setDepartment(''); }} />
                     </div>
 
                 </Panel>
