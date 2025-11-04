@@ -14,8 +14,24 @@ export default function CourseCatalog() {
     const [offeredTerm, setOfferedTerm] = useState('');
     const [department, setDepartment] = useState('');
     const [allCourses, setAllCourses] = useState<Course[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
     // const [credits, setCredits] = useState(0);
 
+
+
+    const searchCourses = async (): Promise<void> => {
+        try {
+            const filteredCourses = allCourses.filter(course =>{
+                  if(course.courseIdent.replace("_", " ").toLowerCase().includes(searchTerm.toLowerCase())){
+                    return course;
+                  }
+                });
+            
+            setCourses(filteredCourses);
+        } catch (error) {
+            console.error("Error fetching courses:", error);
+        }
+    };
 
     const getCourses = async (): Promise<void> => {
         try {
@@ -163,8 +179,13 @@ export default function CourseCatalog() {
 
             <main className="flex-1 flex flex-col gap-4">
                 <div className="flex flex-row gap-4">
-                    <InputText placeholder="Search" className="w-full bg-gray-700 border border-gray-700"/>
-                    <Button icon="pi pi-sort-alt"/>
+                    <InputText placeholder="Search" className="w-full bg-gray-700 border border-gray-700"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}/>
+                    <Button icon="pi pi-sort-alt"
+                      onClick={() => {
+                        searchCourses();
+                      }}/>
                 </div>
                 <div className="flex flex-col gap-4 w-full">
                     {courses.map((course) => (
