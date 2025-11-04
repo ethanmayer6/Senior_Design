@@ -3,18 +3,16 @@ package com.sdmay19.courseflow.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 public class UserUpdator {
     private String firstName;
     private String lastName;
     private String major;
     private String phone;
 
-    @JsonIgnore
+
     private String password;
 
-        @Autowired
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     // Getters

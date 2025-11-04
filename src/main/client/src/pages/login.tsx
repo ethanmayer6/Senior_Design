@@ -27,6 +27,7 @@ export default function Login() {
 
       // Example: Save user info to local storage
       localStorage.setItem("user", JSON.stringify(response.data));
+      localStorage.setItem("token", response.data.token.trim());
       alert("Welcome " + response.data.firstName + "!");
       // redirect or show a message
       // window.location.href = "/dashboard"; // adjust route
