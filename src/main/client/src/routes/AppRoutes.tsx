@@ -11,6 +11,7 @@ export default function AppRoutes() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/catalog" element={<CourseCatalog />} />
       </Routes>
     </BrowserRouter>
   );
