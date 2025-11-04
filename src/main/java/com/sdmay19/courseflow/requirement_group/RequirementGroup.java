@@ -3,7 +3,9 @@ package com.sdmay19.courseflow.requirement_group;
 import com.sdmay19.courseflow.course.Course;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -16,12 +18,19 @@ public class RequirementGroup {
     private String name;
     private int satisfyingCredits;
 
-    @ManyToMany
-    private Set<Course> courses = new HashSet<>();
+    // https://chatgpt.com/c/690a10ea-acfc-832c-89f2-1a455a16ba2d
+    // TURN THIS INTO A DATA TRANSFER OBJECT SO API CALLS IS EASY BUT CAN STILL STORE FULL OBJECT
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "requirement_group_courses",
+            joinColumns = @JoinColumn(name = "requirement_group_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses = new ArrayList<>();
 
     public RequirementGroup() {}
 
-    public RequirementGroup(String name, int satisfyingCredits, Set<Course> courses) {
+    public RequirementGroup(String name, int satisfyingCredits, List<Course> courses) {
         this.name = name;
         this.satisfyingCredits = satisfyingCredits;
         this.courses = courses;
@@ -47,11 +56,11 @@ public class RequirementGroup {
 
     public void setSatisfyingCredits(int satisfyingCredits) { this.satisfyingCredits = satisfyingCredits; }
 
-    public Set<Course> getCourses() {
+    public List<Course> getCourses() {
         return courses;
     }
 
-    public void setCourses(Set<Course> courses) {
+    public void setCourses(List<Course> courses) {
         this.courses = courses;
     }
 }

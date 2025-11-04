@@ -70,8 +70,9 @@ public class CourseService {
     }
     
     @Transactional
-    public Course updateCourse(CourseUpdater updator) {
-        Course course = getByCourseIdent(updator.getIdent());
+    public Course updateCourse(long id, CourseUpdater updator) {
+        // THIS IS WRONG IT HAS TO BE ID CAUSE WE ARE UPDATING, DUH
+        Course course = getById(id);
         String courseIdent = course.getCourseIdent();
 
         if(updator.getName() != null){
@@ -105,7 +106,7 @@ public class CourseService {
                 throw new CourseUpdateException("A course cannot list itself as a prerequisite.");
             }
             // Get All Prerequisite Courses
-            List<Course> prereqCourses = courseRepository.findAllByCourseIdentIn(courseIdents);
+            List<Course> prereqCourses = courseRepository.findAllByCourseIdent(courseIdents);
             if(prereqCourses.size() != courseIdents.size()) {
                 throw new CourseUpdateException("Prerequisite courses not found, got some or none, but not all: " + prereqCourses);
             }

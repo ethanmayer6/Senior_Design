@@ -1,25 +1,33 @@
 package com.sdmay19.courseflow.requirement_group;
 
+import com.sdmay19.courseflow.course.Course;
+import com.sdmay19.courseflow.course.CourseRepository;
 import com.sdmay19.courseflow.exception.requirementgroup.RequirementGroupCreationException;
 import com.sdmay19.courseflow.exception.requirementgroup.RequirementGroupNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class RequirementGroupService {
 
     private final RequirementGroupRepository requirementGroupRepository;
+    private final CourseRepository courseRepository;
 
-    public RequirementGroupService(RequirementGroupRepository requirementGroupRepository) {
+    public RequirementGroupService(RequirementGroupRepository requirementGroupRepository, CourseRepository courseRepository) {
         this.requirementGroupRepository = requirementGroupRepository;
+        this.courseRepository = courseRepository;
     }
 
+    // Create
     @Transactional
-    public RequirementGroup create(RequirementGroup requirementGroup) {
-        validateRequirementGroup(requirementGroup);
-        return requirementGroupRepository.save(requirementGroup);
+    public RequirementGroup create(RequirementGroupDTO requirementGroupDTO) {
+        List<Course> courses = getCourses(requirementGroupDTO);
+        RequirementGroup saved = buildRequirementGroup(requirementGroupDTO, courses);
+        return requirementGroupRepository.save(saved);
     }
     public void validateRequirementGroup(RequirementGroup requirementGroup) {
         if (requirementGroup.getName().isEmpty()) {
@@ -29,7 +37,15 @@ public class RequirementGroupService {
             throw new RequirementGroupCreationException("Requirement group satisfying credits is invalid");
         }
     }
+    public List<Course> getCourses(RequirementGroupDTO requirementGroupDTO) {
+        List<String> courseIdents = requirementGroupDTO.getCourseIdents();
+        return courseRepository.findAllByCourseIdent(courseIdents);
+    }
+    public RequirementGroup buildRequirementGroup(RequirementGroupDTO requirementGroupDTO, List<Course> courses) {
+        return new RequirementGroup(requirementGroupDTO.getName(), requirementGroupDTO.getSatisfyingCredits(), courses);
+    }
 
+    // Read
     public RequirementGroup getById(long id) {
         return requirementGroupRepository.findById(id)
                 .orElseThrow(() -> new RequirementGroupNotFoundException("Requirement group with id " + id + " not found"));
@@ -42,12 +58,26 @@ public class RequirementGroupService {
         return requirementGroupRepository.findAll();
     }
 
+    // Update
     @Transactional
-    public RequirementGroup updateRequirementGroup(RequirementGroupUpdator updates) {
-        // USE UPDATOR HERE
-        return new RequirementGroup();
+    public RequirementGroup updateRequirementGroup(long id, RequirementGroupUpdator updator) {
+        RequirementGroup requirementGroup = getById(id);
+
+        // Check for Updates
+        if (updator.getName() != null) {
+            requirementGroup.setName(updator.getName());
+        }
+        if (updator.getSatisfyingCredits() > 0) {
+            requirementGroup.setSatisfyingCredits(updator.getSatisfyingCredits());
+        }
+        if (updator.getCourses() != null) {
+            requirementGroup.setSatisfyingCredits(updator.getSatisfyingCredits());
+        }
+
+        return requirementGroupRepository.save(requirementGroup);
     }
 
+    // Delete
     @Transactional
     public void deleteById(long id) {
         requirementGroupRepository.deleteById(id);

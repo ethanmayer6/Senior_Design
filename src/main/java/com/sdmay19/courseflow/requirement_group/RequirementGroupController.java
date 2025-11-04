@@ -1,8 +1,11 @@
 package com.sdmay19.courseflow.requirement_group;
 
+import com.sdmay19.courseflow.course.Course;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/requirementgroup")
@@ -16,8 +19,10 @@ public class RequirementGroupController {
 
     // CREATE
     @PostMapping("/create")
-    public ResponseEntity<RequirementGroup> createRequirementGroup(@RequestBody RequirementGroup requirementGroup) {
-        RequirementGroup saved = requirementGroupService.create(requirementGroup);
+    public ResponseEntity<RequirementGroup> createRequirementGroup(@RequestBody RequirementGroupDTO requirementGroupDTO) {
+
+
+        RequirementGroup saved = requirementGroupService.create(requirementGroupDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -32,9 +37,9 @@ public class RequirementGroupController {
     }
 
     // UPDATE
-    @PutMapping
-    public ResponseEntity<RequirementGroup> updateRequirementGroup(@RequestBody RequirementGroupUpdator updates) {
-        return ResponseEntity.ok(requirementGroupService.updateRequirementGroup(updates));
+    @PutMapping("/update/{id}")
+    public ResponseEntity<RequirementGroup> updateRequirementGroup(@PathVariable long id, @RequestBody RequirementGroupUpdator updates) {
+        return ResponseEntity.ok(requirementGroupService.updateRequirementGroup(id, updates));
     }
 
     // DELETE
