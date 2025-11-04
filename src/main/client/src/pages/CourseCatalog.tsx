@@ -13,6 +13,7 @@ export default function CourseCatalog() {
     const [level, setLevel] = useState('');
     const [offeredTerm, setOfferedTerm] = useState('');
     const [department, setDepartment] = useState('');
+    const [allCourses, setAllCourses] = useState<Course[]>([]);
     // const [credits, setCredits] = useState(0);
 
 
@@ -21,10 +22,73 @@ export default function CourseCatalog() {
             const response = await axios.get("http://localhost:8080/api/courses/all");
             console.log(response.data);
             setCourses(response.data);
+            setAllCourses(response.data);
         } catch (error) {
             console.error("Error fetching courses:", error);
         }
     };
+
+    const applyFilter = async (): Promise<void> => {
+        try {
+              
+              let filteredCourses = allCourses;
+              let all = allCourses;
+
+
+              if(level != ''){
+                filteredCourses = all.filter(course =>{
+                  const number = parseInt(course.courseIdent.split("_")[1]);
+                  if(number >= parseInt(level) && number <= parseInt(level) + 1000){
+                    return number;
+                  }
+                });
+                
+                
+
+              }
+              if(filteredCourses != all){
+                all = filteredCourses;
+              }
+
+
+              if(offeredTerm != ''){
+                filteredCourses = all.filter(course =>{
+                  const terms = course.offered.toLowerCase();
+
+                  if(terms.includes(offeredTerm)){
+                    return terms;
+                  }
+
+                });
+
+              }
+
+              if(filteredCourses != all){
+                all = filteredCourses;
+              }
+
+
+              if(department != ''){
+                filteredCourses = all.filter(course =>{
+                  const dept = course.courseIdent.split("_")[0];
+
+                  if(dept == department){
+                    return dept;
+                  }
+
+                });
+              }
+
+              setCourses(filteredCourses);
+              
+            
+
+
+        } catch (error) {
+            console.error("Error fetching courses:", error);
+        }
+    };
+    
 
     useEffect(() => {
         getCourses();
@@ -86,9 +150,12 @@ export default function CourseCatalog() {
 
                     {/* Apply / Reset Buttons */}
                     <div className="flex justify-between mt-4">
-                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" />
+                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" onClick={() => { applyFilter();}} />
                         <Button label="Reset" icon="pi pi-refresh" className="p-button-text p-button-sm"
-                                onClick={() => { setLevel(''); setOfferedTerm(''); setDepartment(''); }} />
+                                onClick={() => {  setLevel('');
+                                                  setOfferedTerm('');
+                                                  setDepartment('');
+                                                  setCourses(allCourses);}} />
                     </div>
 
                 </Panel>
