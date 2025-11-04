@@ -4,6 +4,12 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.sdmay19.courseflow.exception.course.CourseCreationException;
+import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
+import com.sdmay19.courseflow.exception.requirementgroup.RequirementGroupCreationException;
+import com.sdmay19.courseflow.exception.requirementgroup.RequirementGroupNotFoundException;
+import com.sdmay19.courseflow.exception.user.AuthenticationFailedException;
+import com.sdmay19.courseflow.exception.user.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,5 +47,20 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(RequirementGroupCreationException.class)
+    public ResponseEntity<Object> handleRequirementGroupCreationException(AuthenticationFailedException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(RequirementGroupNotFoundException.class)
+    public ResponseEntity<Object> handleRequirementGroupNotFoundException(AuthenticationFailedException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 }

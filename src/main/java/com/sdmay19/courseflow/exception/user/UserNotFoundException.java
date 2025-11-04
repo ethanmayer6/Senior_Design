@@ -1,4 +1,4 @@
-package com.sdmay19.courseflow.exception;
+package com.sdmay19.courseflow.exception.user;
 
 public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(String message) {

@@ -43,6 +43,10 @@ public class RequirementGroup {
         this.name = name;
     }
 
+    public int getSatisfyingCredits() { return this.satisfyingCredits; }
+
+    public void setSatisfyingCredits(int satisfyingCredits) { this.satisfyingCredits = satisfyingCredits; }
+
     public Set<Course> getCourses() {
         return courses;
     }

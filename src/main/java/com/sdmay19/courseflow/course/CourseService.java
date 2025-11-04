@@ -1,9 +1,10 @@
 package com.sdmay19.courseflow.course;
-import com.sdmay19.courseflow.exception.*;
+import com.sdmay19.courseflow.exception.course.CourseCreationException;
+import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
+import com.sdmay19.courseflow.exception.course.CourseUpdateException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.lang.String;
@@ -125,8 +126,8 @@ public class CourseService {
 
     @Transactional
     public void deleteById(long id) {
-        Course c = getById(id);
-        courseRepository.delete(c);
+        // NEED TO REMOVE FROM REQUIREMENT GROUPS AND REMOVE FROM MAJOR REQUIREMENTS
+        courseRepository.deleteById(id);
     }
 
 }

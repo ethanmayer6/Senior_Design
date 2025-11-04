@@ -1,17 +1,19 @@
 package com.sdmay19.courseflow.major;
 
-import com.sdmay19.courseflow.exception.MajorNotFoundException;
+import com.sdmay19.courseflow.exception.major.MajorNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class MajorService {
 
-    @Autowired
-    MajorRepository majorRepository;
+    private MajorRepository majorRepository;
+
+    public MajorService(MajorRepository majorRepository) {
+        this.majorRepository = majorRepository;
+    }
 
     // CREATE
     public Major createMajor(Major major) {
