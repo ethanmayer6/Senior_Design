@@ -4,17 +4,20 @@ import { Password } from "primereact/password";
 import { Button } from "primereact/button";
 import { Card } from "primereact/card";
 import axios from "axios";
-import Header from "../components/header";
+import Header from "../components/header.tsx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [noEmailOrPassword, setNoEmailOrPassword] = useState(false);
+
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Please enter both email and password.");
+      setNoEmailOrPassword(true);
       return;
     }
+    setNoEmailOrPassword(false);
     try {
       const response = await axios.post(
         "http://localhost:8080/api/users/login",
@@ -64,7 +67,10 @@ export default function Login() {
             <InputText
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (noEmailOrPassword) setNoEmailOrPassword(false);
+              }}
               className="w-full"
               placeholder="you@example.com"
             />
@@ -81,13 +87,22 @@ export default function Login() {
             <Password
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (noEmailOrPassword) setNoEmailOrPassword(false);
+              }}
               feedback={false}
               toggleMask={false}
               inputClassName="w-full"
               placeholder="••••••••"
             />
           </div>
+
+          {noEmailOrPassword && (
+            <div className="text-red-500 font-bold text-sm pl-2">
+              Please enter both email and password.
+            </div>
+          )}
 
           {/* Remember Me / Forgot Password */}
           <div className="flex items-center justify-between text-sm">
