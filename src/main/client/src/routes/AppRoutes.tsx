@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "../pages/login";
+import Login from "../pages/login.tsx";
 import "../index.css";
-import Register from "../pages/register";
+import Register from "../pages/register.tsx";
 import AdminDashboard from "../pages/AdminDashboard";
 import CourseCatalog from "../pages/CourseCatalog.tsx";
 import Dashboard from "../pages/Dashboard.tsx";
