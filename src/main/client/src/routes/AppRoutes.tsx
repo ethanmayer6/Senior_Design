@@ -4,6 +4,7 @@ import "../index.css";
 import Register from "../pages/register";
 import AdminDashboard from "../pages/AdminDashboard";
 import CourseCatalog from "../pages/CourseCatalog.tsx";
+import Dashboard from "../pages/Dashboard.tsx";
 
 export default function AppRoutes() {
   return (
@@ -13,6 +14,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/catalog" element={<CourseCatalog />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );
