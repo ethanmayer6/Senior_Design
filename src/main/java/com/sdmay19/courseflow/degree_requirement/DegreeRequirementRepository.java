@@ -1,4 +1,7 @@
 package com.sdmay19.courseflow.degree_requirement;
 
-public interface DegreeRequirementRepository {
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DegreeRequirementRepository extends JpaRepository<DegreeRequirement, Long> {
 }

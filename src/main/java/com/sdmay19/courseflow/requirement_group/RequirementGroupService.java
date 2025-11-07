@@ -24,9 +24,11 @@ public class RequirementGroupService {
 
     // Create
     @Transactional
-    public RequirementGroup create(RequirementGroupDTO requirementGroupDTO) {
+    public RequirementGroup createFromDTO(RequirementGroupDTO requirementGroupDTO) {
+        // CHECK FOR REQUIREMENT GROUP ALREADY EXISTING
         List<Course> courses = getCourses(requirementGroupDTO);
         RequirementGroup saved = buildRequirementGroup(requirementGroupDTO, courses);
+        validateRequirementGroup(saved);
         return requirementGroupRepository.save(saved);
     }
     public void validateRequirementGroup(RequirementGroup requirementGroup) {
@@ -37,12 +39,21 @@ public class RequirementGroupService {
             throw new RequirementGroupCreationException("Requirement group satisfying credits is invalid");
         }
     }
-    public List<Course> getCourses(RequirementGroupDTO requirementGroupDTO) {
-        List<String> courseIdents = requirementGroupDTO.getCourseIdents();
-        return courseRepository.findAllByCourseIdent(courseIdents);
+    public List<Course> getCourses(RequirementGroupDTO dto) {
+        List<String> courseIdents = dto.getCourseIdents();
+        List<Course> courses = courseRepository.findAllByCourseIdentIn(courseIdents);
+
+        // THROW ERROR HERE
+        System.out.println("Course lookup for: " + courseIdents);
+        System.out.println("Found courses: ");
+        for (Course c : courses) {
+            System.out.println(" - " + c.getId() + " " + c.getCourseIdent() + " " + c.getName());
+        }
+
+        return courses;
     }
-    public RequirementGroup buildRequirementGroup(RequirementGroupDTO requirementGroupDTO, List<Course> courses) {
-        return new RequirementGroup(requirementGroupDTO.getName(), requirementGroupDTO.getSatisfyingCredits(), courses);
+    public RequirementGroup buildRequirementGroup(RequirementGroupDTO dto, List<Course> courses) {
+        return new RequirementGroup(dto.getName(), dto.getSatisfyingCredits(), courses);
     }
 
     // Read

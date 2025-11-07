@@ -106,7 +106,7 @@ public class CourseService {
                 throw new CourseUpdateException("A course cannot list itself as a prerequisite.");
             }
             // Get All Prerequisite Courses
-            List<Course> prereqCourses = courseRepository.findAllByCourseIdent(courseIdents);
+            List<Course> prereqCourses = courseRepository.findAllByCourseIdentIn(courseIdents);
             if(prereqCourses.size() != courseIdents.size()) {
                 throw new CourseUpdateException("Prerequisite courses not found, got some or none, but not all: " + prereqCourses);
             }

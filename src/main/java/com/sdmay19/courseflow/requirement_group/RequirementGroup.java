@@ -12,14 +12,14 @@ import java.util.Set;
 @Table(name="requirement_group")
 public class RequirementGroup {
 
+    // ADD CHECK TO NOT CREATE REDUNDANT GROUPS
+
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private long id;
     private String name;
     private int satisfyingCredits;
 
-    // https://chatgpt.com/c/690a10ea-acfc-832c-89f2-1a455a16ba2d
-    // TURN THIS INTO A DATA TRANSFER OBJECT SO API CALLS IS EASY BUT CAN STILL STORE FULL OBJECT
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "requirement_group_courses",

@@ -19,10 +19,8 @@ public class RequirementGroupController {
 
     // CREATE
     @PostMapping("/create")
-    public ResponseEntity<RequirementGroup> createRequirementGroup(@RequestBody RequirementGroupDTO requirementGroupDTO) {
-
-
-        RequirementGroup saved = requirementGroupService.create(requirementGroupDTO);
+    public ResponseEntity<RequirementGroup> createRequirementGroup(@RequestBody RequirementGroupDTO dto) {
+        RequirementGroup saved = requirementGroupService.createFromDTO(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 

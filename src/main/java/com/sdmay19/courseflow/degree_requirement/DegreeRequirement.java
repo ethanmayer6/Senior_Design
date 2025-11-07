@@ -5,7 +5,9 @@ import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.requirement_group.RequirementGroup;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -16,13 +18,13 @@ public class DegreeRequirement {
     @GeneratedValue(strategy=GenerationType.AUTO)
     private long id;
     private String name;
+    private int satisfyingCredits;
 
     @ManyToMany
-    public Set<Course> courses = new HashSet<>();
+    public List<Course> courses = new ArrayList<>();
 
     @ManyToMany
-    public Set<RequirementGroup> courseGroups = new HashSet<>();
-
+    public List<RequirementGroup> courseGroups = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "major_id")
@@ -30,10 +32,11 @@ public class DegreeRequirement {
 
     public DegreeRequirement() {}
 
-    public DegreeRequirement(String name, Set<Course> courses, Set<RequirementGroup> courseGroups) {
+    public DegreeRequirement(String name, List<Course> courses, List<RequirementGroup> courseGroups, int satisfyingCredits) {
         this.name = name;
         this.courses = courses;
         this.courseGroups = courseGroups;
+        this.satisfyingCredits = satisfyingCredits;
     }
 
     public long getId() {
@@ -52,19 +55,23 @@ public class DegreeRequirement {
         this.name = name;
     }
 
-    public Set<Course> getCourses() {
+    public List<Course> getCourses() {
         return courses;
     }
 
-    public void setCourses(Set<Course> courses) {
+    public void setCourses(List<Course> courses) {
         this.courses = courses;
     }
 
-    public Set<RequirementGroup> getCourseGroups() {
+    public List<RequirementGroup> getCourseGroups() {
         return courseGroups;
     }
 
-    public void setCourseGroups(Set<RequirementGroup> courseGroups) {
+    public void setCourseGroups(List<RequirementGroup> courseGroups) {
         this.courseGroups = courseGroups;
     }
+
+    public int getSatisfyingCredits() { return satisfyingCredits; }
+
+    public void setSatisfyingCredits(int satisfyingCredits) { this.satisfyingCredits = satisfyingCredits; }
 }
