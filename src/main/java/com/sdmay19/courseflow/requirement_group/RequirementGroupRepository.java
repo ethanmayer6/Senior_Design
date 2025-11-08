@@ -9,4 +9,6 @@ public interface RequirementGroupRepository extends JpaRepository<RequirementGro
     Optional<RequirementGroup> findByName(String name);
     Optional<RequirementGroup> findById(long id);
     List<RequirementGroup> findAllByNameIn(List<String> requirementGroupNames);
+
+    boolean existsByName(String name);
 }

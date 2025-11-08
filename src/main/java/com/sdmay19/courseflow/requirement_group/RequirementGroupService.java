@@ -7,9 +7,7 @@ import com.sdmay19.courseflow.exception.requirementgroup.RequirementGroupNotFoun
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class RequirementGroupService {
@@ -25,9 +23,8 @@ public class RequirementGroupService {
     // Create
     @Transactional
     public RequirementGroup createFromDTO(RequirementGroupDTO requirementGroupDTO) {
-        // CHECK FOR REQUIREMENT GROUP ALREADY EXISTING
         List<Course> courses = getCourses(requirementGroupDTO);
-        RequirementGroup saved = buildRequirementGroup(requirementGroupDTO, courses);
+        RequirementGroup saved = buildFromDTO(requirementGroupDTO, courses);
         validateRequirementGroup(saved);
         return requirementGroupRepository.save(saved);
     }
@@ -38,21 +35,21 @@ public class RequirementGroupService {
         if (requirementGroup.getSatisfyingCredits() == 0 || requirementGroup.getSatisfyingCredits() < 0) {
             throw new RequirementGroupCreationException("Requirement group satisfying credits is invalid");
         }
+        if (requirementGroupRepository.existsByName(requirementGroup.getName())) {
+            throw new RequirementGroupCreationException("Requirement group already exists with ID " + requirementGroup.getName());
+        }
     }
     public List<Course> getCourses(RequirementGroupDTO dto) {
         List<String> courseIdents = dto.getCourseIdents();
         List<Course> courses = courseRepository.findAllByCourseIdentIn(courseIdents);
 
-        // THROW ERROR HERE
-        System.out.println("Course lookup for: " + courseIdents);
-        System.out.println("Found courses: ");
-        for (Course c : courses) {
-            System.out.println(" - " + c.getId() + " " + c.getCourseIdent() + " " + c.getName());
+        if (courses.isEmpty()) {
+            throw new RequirementGroupNotFoundException("All Courses not found in requirement group " + dto.getCourseIdents());
         }
 
         return courses;
     }
-    public RequirementGroup buildRequirementGroup(RequirementGroupDTO dto, List<Course> courses) {
+    public RequirementGroup buildFromDTO(RequirementGroupDTO dto, List<Course> courses) {
         return new RequirementGroup(dto.getName(), dto.getSatisfyingCredits(), courses);
     }
 
@@ -65,24 +62,27 @@ public class RequirementGroupService {
         return requirementGroupRepository.findByName(name)
                 .orElseThrow(() -> new RequirementGroupNotFoundException("Requirement group with name " + name + "not found"));
     }
+    public List<RequirementGroup> getAllByName(List<String> names) {
+        return requirementGroupRepository.findAllByNameIn(names);
+    }
     public List<RequirementGroup> getAll() {
         return requirementGroupRepository.findAll();
     }
 
     // Update
     @Transactional
-    public RequirementGroup updateRequirementGroup(long id, RequirementGroupUpdator updator) {
+    public RequirementGroup updateRequirementGroup(long id, RequirementGroupDTO updater) {
         RequirementGroup requirementGroup = getById(id);
+        List<Course> newCourses = getCourses(updater);
 
-        // Check for Updates
-        if (updator.getName() != null) {
-            requirementGroup.setName(updator.getName());
+        if (updater.getName() != null) {
+            requirementGroup.setName(updater.getName());
         }
-        if (updator.getSatisfyingCredits() > 0) {
-            requirementGroup.setSatisfyingCredits(updator.getSatisfyingCredits());
+        if (updater.getSatisfyingCredits() > 0) {
+            requirementGroup.setSatisfyingCredits(updater.getSatisfyingCredits());
         }
-        if (updator.getCourses() != null) {
-            requirementGroup.setSatisfyingCredits(updator.getSatisfyingCredits());
+        if (!newCourses.isEmpty()) {
+            requirementGroup.setCourses(newCourses);
         }
 
         return requirementGroupRepository.save(requirementGroup);

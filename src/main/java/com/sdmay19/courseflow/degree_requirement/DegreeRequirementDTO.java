@@ -18,35 +18,15 @@ public class DegreeRequirementDTO {
         this.satisfyingCredits = satisfyingCredits;
     }
 
-    public String getName() {
-        return name;
-    }
+    // GETTERS
+    public String getName() { return name; }
+    public List<String> getCourseIdents() { return courseIdents; }
+    public List<String> getRequirementGroupNames() { return requirementGroupNames; }
+    public int getSatisfyingCredits() { return satisfyingCredits; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public List<String> getCourseIdents() {
-        return courseIdents;
-    }
-
-    public void setCourseIdents(List<String> courseIdents) {
-        this.courseIdents = courseIdents;
-    }
-
-    public List<String> getRequirementGroupNames() {
-        return requirementGroupNames;
-    }
-
-    public void setRequirementGroupNames(List<String> requirementGroupNames) {
-        this.requirementGroupNames = requirementGroupNames;
-    }
-
-    public int getSatisfyingCredits() {
-        return satisfyingCredits;
-    }
-
-    public void setSatisfyingCredits(int satisfyingCredits) {
-        this.satisfyingCredits = satisfyingCredits;
-    }
+    // SETTERS
+    public void setName(String name) { this.name = name; }
+    public void setCourseIdents(List<String> courseIdents) { this.courseIdents = courseIdents; }
+    public void setRequirementGroupNames(List<String> requirementGroupNames) { this.requirementGroupNames = requirementGroupNames; }
+    public void setSatisfyingCredits(int satisfyingCredits) { this.satisfyingCredits = satisfyingCredits; }
 }

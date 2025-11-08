@@ -16,26 +16,24 @@ public class RequirementGroupDTO {
         this.courseIdents = courseIdents;
     }
 
+    // GETTERS
     public String getName() {
         return name;
     }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public int getSatisfyingCredits() {
         return satisfyingCredits;
     }
-
-    public void setSatisfyingCredits(int satisfyingCredits) {
-        this.satisfyingCredits = satisfyingCredits;
-    }
-
     public List<String> getCourseIdents() {
         return courseIdents;
     }
 
+    // SETTERS
+    public void setName(String name) {
+        this.name = name;
+    }
+    public void setSatisfyingCredits(int satisfyingCredits) {
+        this.satisfyingCredits = satisfyingCredits;
+    }
     public void setCourseIdents(List<String> courseIdents) {
         this.courseIdents = courseIdents;
     }

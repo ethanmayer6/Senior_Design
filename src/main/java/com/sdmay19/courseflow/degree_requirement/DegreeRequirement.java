@@ -1,5 +1,6 @@
 package com.sdmay19.courseflow.degree_requirement;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.requirement_group.RequirementGroup;
@@ -21,21 +22,32 @@ public class DegreeRequirement {
     private int satisfyingCredits;
 
     @ManyToMany
-    public List<Course> courses = new ArrayList<>();
+    @JoinTable(
+            name = "degree_requirement_courses",
+            joinColumns = @JoinColumn(name = "degree_requirement_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses = new ArrayList<>();
 
     @ManyToMany
-    public List<RequirementGroup> courseGroups = new ArrayList<>();
+    @JoinTable(
+            name = "degree_requirement_groups",
+            joinColumns = @JoinColumn(name = "degree_requirement_id"),
+            inverseJoinColumns = @JoinColumn(name = "requirement_group_id")
+    )
+    private List<RequirementGroup> requirementGroups = new ArrayList<>();
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "major_id")
     private Major major;
 
     public DegreeRequirement() {}
 
-    public DegreeRequirement(String name, List<Course> courses, List<RequirementGroup> courseGroups, int satisfyingCredits) {
+    public DegreeRequirement(String name, List<Course> courses, List<RequirementGroup> requirementGroups, int satisfyingCredits) {
         this.name = name;
         this.courses = courses;
-        this.courseGroups = courseGroups;
+        this.requirementGroups = requirementGroups;
         this.satisfyingCredits = satisfyingCredits;
     }
 
@@ -63,12 +75,12 @@ public class DegreeRequirement {
         this.courses = courses;
     }
 
-    public List<RequirementGroup> getCourseGroups() {
-        return courseGroups;
+    public List<RequirementGroup> getRequirementGroups() {
+        return requirementGroups;
     }
 
-    public void setCourseGroups(List<RequirementGroup> courseGroups) {
-        this.courseGroups = courseGroups;
+    public void setRequirementGroups(List<RequirementGroup> courseGroups) {
+        this.requirementGroups = courseGroups;
     }
 
     public int getSatisfyingCredits() { return satisfyingCredits; }

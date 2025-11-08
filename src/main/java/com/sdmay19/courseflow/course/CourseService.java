@@ -50,13 +50,6 @@ public class CourseService {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new CourseNotFoundException("Course with id: " + id + "not found"));
     }
-    public List<Course> getAllById(List<Long> ids) {
-        List<Course> courses = courseRepository.findAllById(ids);
-        if(courses.isEmpty()) {
-            throw new CourseNotFoundException("Group of courses could not be found");
-        }
-        return courses;
-    }
     public Course getByName(String name) {
         return courseRepository.findByName(name)
                 .orElseThrow(() -> new CourseNotFoundException("Course with name: " + name + "not found"));
@@ -65,13 +58,15 @@ public class CourseService {
         return courseRepository.findByCourseIdent(courseIdent)
                 .orElseThrow(() -> new CourseNotFoundException("Course with id: " + courseIdent + "not found"));
     }
+    public List<Course> getAllByCourseIdent(List<String> courseIdent) {
+        return courseRepository.findAllByCourseIdentIn(courseIdent);
+    }
     public List<Course> getAllCourse() {
         return courseRepository.findAll();
     }
     
     @Transactional
     public Course updateCourse(long id, CourseUpdater updator) {
-        // THIS IS WRONG IT HAS TO BE ID CAUSE WE ARE UPDATING, DUH
         Course course = getById(id);
         String courseIdent = course.getCourseIdent();
 

@@ -16,10 +16,10 @@ public class MajorController {
 
     // CREATE
     @PostMapping("/create")
-    public ResponseEntity<Major> createMajor(Authentication auth, @RequestBody Major major) {
+    public ResponseEntity<Major> createMajor(Authentication auth, @RequestBody MajorDTO dto) {
         // Potentially add an Admin check here for the auth being passed in
 
-        Major createdMajor = majorService.createMajor(major);
+        Major createdMajor = majorService.createMajor(dto);
         return ResponseEntity.ok(createdMajor);
     }
 

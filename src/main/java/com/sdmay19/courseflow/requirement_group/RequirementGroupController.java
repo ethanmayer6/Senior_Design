@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -29,14 +30,18 @@ public class RequirementGroupController {
     public ResponseEntity<RequirementGroup> getById(@PathVariable long id) {
         return ResponseEntity.ok(requirementGroupService.getById(id));
     }
-    @GetMapping("/ident/{name}")
+    @GetMapping("/name/{name}")
     public ResponseEntity<RequirementGroup> getByName(@PathVariable String name) {
         return ResponseEntity.ok(requirementGroupService.getByName(name));
+    }
+    @GetMapping("/getall")
+    public ResponseEntity<List<RequirementGroup>> getAll() {
+        return ResponseEntity.ok(requirementGroupService.getAll());
     }
 
     // UPDATE
     @PutMapping("/update/{id}")
-    public ResponseEntity<RequirementGroup> updateRequirementGroup(@PathVariable long id, @RequestBody RequirementGroupUpdator updates) {
+    public ResponseEntity<RequirementGroup> updateRequirementGroup(@PathVariable long id, @RequestBody RequirementGroupDTO updates) {
         return ResponseEntity.ok(requirementGroupService.updateRequirementGroup(id, updates));
     }
 
