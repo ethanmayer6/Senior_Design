@@ -1,5 +1,7 @@
 package com.sdmay19.courseflow.User;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -9,8 +11,11 @@ import com.sdmay19.courseflow.exception.user.UserNotFoundException;
 import com.sdmay19.courseflow.security.AuthResponse;
 import com.sdmay19.courseflow.security.JwtService;
 
+import jakarta.transaction.Transactional;
+
 
 @Service
+@Transactional
 public class UserService {
 
     private static final String EMAIL_REGEX = "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
@@ -34,6 +39,7 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole("USER");
         return userRepository.save(user);
     }
 
@@ -46,7 +52,7 @@ public class UserService {
             throw new AuthenticationFailedException("Incorrect password");
         }
 
-        String token = jwtService.generateToken(appUser.getEmail());
+        String token = jwtService.generateToken(appUser.getId());
 
         return new AuthResponse(token, appUser);
     }
@@ -64,6 +70,10 @@ public class UserService {
     }
     public boolean isEmailAvailable(String email) {
         return userRepository.findByEmail(email).isEmpty();
+    }
+
+    public List<AppUser> getAllUsers() {
+      return userRepository.findAll();
     }
 
     // UPDATE SERVICES
@@ -104,6 +114,14 @@ public class UserService {
       AppUser user = getUserById(id);
         user.setPhone(phone);
         userRepository.save(user);
+    }
+
+    public void setRole(long id, String role) {
+      AppUser user = userRepository.findById(id)
+    .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+    user.setRole(role); 
+    userRepository.save(user); 
     }
 
     // DELETE SERVICES
