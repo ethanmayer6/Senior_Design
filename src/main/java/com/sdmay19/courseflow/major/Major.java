@@ -15,6 +15,9 @@ public class Major {
     private long id;
     private String name;
     private College college;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @OneToMany(mappedBy = "major", cascade = CascadeType.ALL, orphanRemoval = true)

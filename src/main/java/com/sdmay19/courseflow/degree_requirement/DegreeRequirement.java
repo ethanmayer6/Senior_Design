@@ -86,4 +86,6 @@ public class DegreeRequirement {
     public int getSatisfyingCredits() { return satisfyingCredits; }
 
     public void setSatisfyingCredits(int satisfyingCredits) { this.satisfyingCredits = satisfyingCredits; }
+
+    public void setMajor(Major major) { this.major = major; }
 }

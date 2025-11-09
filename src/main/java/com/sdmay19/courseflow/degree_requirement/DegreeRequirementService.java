@@ -5,12 +5,15 @@ import com.sdmay19.courseflow.course.CourseRepository;
 import com.sdmay19.courseflow.course.CourseService;
 import com.sdmay19.courseflow.exception.degreerequirement.DegreeRequirementCreationException;
 import com.sdmay19.courseflow.exception.degreerequirement.DegreeRequirementNotFoundException;
+import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.requirement_group.RequirementGroup;
 import com.sdmay19.courseflow.requirement_group.RequirementGroupRepository;
 import com.sdmay19.courseflow.requirement_group.RequirementGroupService;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -96,8 +99,21 @@ public class DegreeRequirementService {
 
         return degreeRequirementRepository.save(degreeRequirement);
     }
+    public void addMajorRelationship(List<String> degreeRequirements, Major major) {
+        List<DegreeRequirement> requirements = new ArrayList<>();
+        for (String name : degreeRequirements) {
+            DegreeRequirement degreeRequirement = degreeRequirementRepository.findByName(name)
+                    .orElseThrow(() -> new DegreeRequirementNotFoundException("Degree Requirement with Name " + name + " Not Found"));
+
+            degreeRequirement.setMajor(major);
+            requirements.add(degreeRequirement);
+        }
+        degreeRequirementRepository.saveAll(requirements);
+    }
 
     // Delete
     @Transactional
     public void deleteById(long id) { degreeRequirementRepository.deleteById(id); }
+
+
 }
