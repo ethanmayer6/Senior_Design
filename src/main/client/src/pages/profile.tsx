@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Header from "../components/header";
 import type { User } from "../types/user";
 import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
@@ -180,15 +181,23 @@ export default function Profile(){
         );
     }
 
-    return(
-        <div className="flex h-screen items-center justify-center bg-gray-50">
-            <img
-                src="/logo.png"
-                alt="CourseFlow Logo"
-                className="w-[200px] absolute top-2 left-2 object-contain"
-            />
+    const formatPhone = (phone?: string | null) => {
+        if (!phone) return "";
+        const digits = phone.replace(/\D/g, "");
+        if (digits.length === 10) {
+            const a = digits.slice(0, 3);
+            const b = digits.slice(3, 6);
+            const c = digits.slice(6, 10);
+            return `(${a}) ${b}-${c}`;
+        }
+        return phone;
+    };
 
-            <main className="flex-1 flex items-center justify-center">
+    return(
+        <div className="min-h-screen bg-gray-50">
+            <Header />
+
+            <main className="pt-24 flex items-center justify-center min-h-[calc(100vh-5rem)]">
                 <div className="w-full max-w-md px-4">
                     <Card className="shadow-md">
                         <div className="flex flex-col items-center gap-4 p-4">
@@ -230,7 +239,7 @@ export default function Profile(){
                                 <h3 className="text-sm font-medium text-gray-600 mb-2">User</h3>
                                 <div className="text-sm text-gray-800"><strong>Name: </strong>{fullName}</div>
                                 <div className="text-sm text-gray-800"><strong>Email: </strong>{user?.email}</div>
-                                <div className="text-sm text-gray-800"><strong>Phone: </strong>{user?.phone}</div>
+                                <div className="text-sm text-gray-800"><strong>Phone: </strong>{formatPhone(user?.phone)}</div>
                                 <div className="text-sm text-gray-800"><strong>Major: </strong>{user?.major}</div>
                             </div>
 
