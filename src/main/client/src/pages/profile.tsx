@@ -47,7 +47,10 @@ export default function Profile(){
             setLoading(true);
             setError("");
             try{
-                const resp = await axios.get("http://localhost:8080/api/users/me");
+                const token = localStorage.getItem("token");
+                const resp = await axios.get("http://localhost:8080/api/users/me", {
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                });
                 setUser(resp.data);
             }
             catch(err: any){
@@ -131,7 +134,10 @@ export default function Profile(){
         setError("");
         setSuccess("");
         try{
-            const resp = await axios.put("http://localhost:8080/api/users/me", updates);
+            const token = localStorage.getItem("token");
+            const resp = await axios.put("http://localhost:8080/api/users/me", updates, {
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            });
             if(resp.status === 200){
                 setUser((u) => ({ ...(u ?? {}), ...updates }));
                 setSuccess("Profile updated.");
