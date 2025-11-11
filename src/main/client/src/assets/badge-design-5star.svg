@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_13" data-name="Layer 13" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
+  <defs>
+    <style>
+       .cls-1 {
+        fill: "currentColor";
+        stroke:"currentColor";
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="63.79 74.96 61.29 78.25 50.51 78 60.12 73.09 63.79 74.96"/>
+  <polygon class="cls-1" points="61.3 67.94 54.77 59.35 64.6 63.81 65.42 67.84 61.3 67.94"/>
+  <polygon class="cls-1" points="68.35 80.68 69.36 84.67 62.44 92.95 64.6 82.38 68.35 80.68"/>
+  <polygon class="cls-1" points="74.64 61.51 72 64.67 69.36 61.51 72 51.05 74.64 61.51"/>
+  <polygon class="cls-1" points="79.4 82.38 81.56 92.95 74.64 84.67 75.65 80.68 79.4 82.38"/>
+  <polygon class="cls-1" points="82.7 67.94 78.58 67.84 79.4 63.81 89.23 59.35 82.7 67.94"/>
+  <polygon class="cls-1" points="93.49 78 82.71 78.25 80.21 74.96 83.88 73.09 93.49 78"/>
+</svg>
