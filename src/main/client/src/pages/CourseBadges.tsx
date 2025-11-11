@@ -22,7 +22,7 @@ export default function CourseBadges() {
 
   return (
     <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 justify-items-center">
-      {courses.map((course) => (
+      {courses.map((course) => ( 
         <Badge key={course.courseIdent} course={course} size={128} />
       ))}
     </div>

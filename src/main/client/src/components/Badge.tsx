@@ -9,6 +9,8 @@ import DesignSVG1 from "../assets/badge-design-1star.svg?react";
 import DesignSVG2 from "../assets/badge-design-2star.svg?react";
 import DesignSVG3 from "../assets/badge-design-3star.svg?react";
 import DesignSVG4 from "../assets/badge-design-4star.svg?react";
+import DesignSVG5 from "../assets/badge-design-5star.svg?react";
+import DesignSVG6 from "../assets/badge-design-6star.svg?react";
 
 // ------------------------
 // String → Color Utilities
@@ -64,6 +66,8 @@ const designMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   "2": DesignSVG2,
   "3": DesignSVG3,
   "4": DesignSVG4,
+  "5": DesignSVG5,
+  "6": DesignSVG6,
 };
 
 const ribbonMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
