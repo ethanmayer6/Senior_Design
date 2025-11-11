@@ -28,6 +28,7 @@ public class UserController {
         String email = credentials.get("email");
         String password = credentials.get("password");
         AuthResponse auth = userService.login(email, password);
+        
         return ResponseEntity.ok(auth);
     }
 
@@ -35,6 +36,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<AppUser> registerUser(@RequestBody AppUser user) {
       AppUser savedUser = userService.register(user);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 

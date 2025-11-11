@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.Column;
@@ -28,15 +29,17 @@ public class AppUser implements UserDetails {
     private String phone;
     private String major;
 
+    private String role;
+
     @Column(nullable = false, unique = true)
     private String email;
 
-        // Required by UserDetails
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(); // or your roles if you add them later
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
-
+    
     @Override
     public boolean isAccountNonExpired() { return true; }
     @Override
@@ -56,6 +59,7 @@ public class AppUser implements UserDetails {
         this.email = email;
         this.phone = phone;
         this.major = major;
+        this.role = "USER";
     }
 
     public long getId() {
@@ -114,9 +118,22 @@ public class AppUser implements UserDetails {
         this.major = major;
     }
 
+    
+
     @Override
     //idk why we need this but the class gets mad without it.
     public String getUsername() {
         return email;
     }
+
+
+    public String getRole() {
+        return role;
+    }
+
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
 }
