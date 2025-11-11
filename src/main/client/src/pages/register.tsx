@@ -170,7 +170,7 @@ export default function Register() {
               placeholder="you@example.com"
             />
             {!emailAvailable && unavailableEmail === user.email && (
-              <span className="text-red-600 text-sm mt-1 ml-1 font-semibold">
+              <span className="text-primary-600 text-sm mt-1 ml-1 font-semibold">
                 Looks like you already have an account. Try signing in instead.
               </span>
             )}
@@ -239,7 +239,7 @@ export default function Register() {
               required
             />
             {!passwordsMatch && incorrectPassword === confirmPassword && (
-              <span className="text-red-600 text-sm mt-1 ml-1 font-semibold">
+              <span className="text-primary-600 text-sm mt-1 ml-1 font-semibold">
                 Passwords do not match.
               </span>
             )}
@@ -255,7 +255,7 @@ export default function Register() {
           {/* Sign-in link */}
           <p className="text-center text-sm mt-3">
             Already have an account?{" "}
-            <a href="/login" className="text-red-600 hover:underline">
+            <a href="/login" className="text-primary-600 hover:underline">
               Sign In
             </a>
           </p>

@@ -52,13 +52,13 @@ public class CourseController {
     }
 
     // UPDATE
-    @PutMapping
-    public ResponseEntity<Course> update(@RequestBody CourseUpdater updates) {
-        return ResponseEntity.ok(courseService.updateCourse(updates));
+    @PutMapping("update/{id}")
+    public ResponseEntity<Course> update(@PathVariable long id, @RequestBody CourseUpdater updates) {
+        return ResponseEntity.ok(courseService.updateCourse(id, updates));
     }
 
     // DELETE
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
         courseService.deleteById(id);
         return ResponseEntity.noContent().build();

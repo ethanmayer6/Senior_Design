@@ -1,0 +1,12 @@
+package com.sdmay19.courseflow.major;
+
+public enum College {
+    ENGINEERING,
+    BUSINESS,
+    AGRICULTURE_AND_LIFE_SCIENCE,
+    HUMAN_SCIENCE,
+    LIBERAL_ARTS_AND_SCIENCES,
+    VETERINARY_MEDICINE,
+    SCHOOL_OF_EDUCATION,
+    GRADUATE_COLLEGE
+}
