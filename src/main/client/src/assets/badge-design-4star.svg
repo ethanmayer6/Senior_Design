@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: "currentColor";
+        stroke:"currentColor";
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="68.17 62.76 66.87 66.87 62.76 68.17 56.8 56.81 68.17 62.76"/>
+  <polygon class="cls-1" points="87.19 56.81 81.24 68.17 77.11 66.87 75.83 62.76 87.19 56.81"/>
+  <polygon class="cls-1" points="87.19 87.19 75.83 81.24 77.11 77.11 81.24 75.83 87.19 87.19"/>
+  <polygon class="cls-1" points="68.17 81.24 56.8 87.19 62.76 75.83 66.87 77.11 68.17 81.24"/>
+  <polygon class="cls-1" points="93.49 72 81.24 75.83 77.11 77.11 75.83 81.24 72 93.49 68.17 81.24 66.87 77.11 62.76 75.83 50.51 72 62.76 68.17 66.87 66.87 68.17 62.76 72 50.51 75.83 62.76 77.11 66.87 81.24 68.17 93.49 72"/>
+</svg>
