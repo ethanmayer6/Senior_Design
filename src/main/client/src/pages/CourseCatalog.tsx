@@ -181,8 +181,13 @@ export default function CourseCatalog() {
                 <div className="flex flex-row gap-4">
                     <InputText placeholder="Search" className="w-full bg-gray-700 border border-gray-700"
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}/>
-                    <Button icon="pi pi-sort-alt"
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                        searchCourses();
+                        }
+                      }}/>
+                    <Button icon="pi pi-search"
                       onClick={() => {
                         searchCourses();
                       }}/>
