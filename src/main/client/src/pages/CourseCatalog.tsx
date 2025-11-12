@@ -13,101 +13,129 @@ export default function CourseCatalog() {
     const [level, setLevel] = useState('');
     const [offeredTerm, setOfferedTerm] = useState('');
     const [department, setDepartment] = useState('');
-    const [allCourses, setAllCourses] = useState<Course[]>([]);
+    //const [allCourses, setAllCourses] = useState<Course[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     // const [credits, setCredits] = useState(0);
+    const [pageNumber, setPageNumber] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
 
-
+    // const searchCourses = async (): Promise<void> => {
+    //     try {
+    //         const filteredCourses = allCourses.filter(course =>{
+    //               if(course.courseIdent.replace("_", " ").toLowerCase().includes(searchTerm.toLowerCase())){
+    //                 return course;
+    //               }
+    //             });
+            
+    //         setCourses(filteredCourses);
+    //     } catch (error) {
+    //         console.error("Error fetching courses:", error);
+    //     }
+    // };
 
     const searchCourses = async (): Promise<void> => {
-        try {
-            const filteredCourses = allCourses.filter(course =>{
-                  if(course.courseIdent.replace("_", " ").toLowerCase().includes(searchTerm.toLowerCase())){
-                    return course;
-                  }
-                });
-            
-            setCourses(filteredCourses);
-        } catch (error) {
+      try {
+        const response = await axios.get("http://localhost:8080/api/courses/search", {params: {searchTerm}});
+        setCourses(response.data);
+        setHasMore(false);
+      } catch (error) {
             console.error("Error fetching courses:", error);
-        }
+      }
     };
-
-    const getCourses = async (): Promise<void> => {
-        try {
-            const response = await axios.get("http://localhost:8080/api/courses/all");
-            console.log(response.data);
-            setCourses(response.data);
-            setAllCourses(response.data);
-        } catch (error) {
-            console.error("Error fetching courses:", error);
-        }
-    };
-
     const applyFilter = async (): Promise<void> => {
+      try {
+        const response = await axios.get("http://localhost:8080/api/courses/filter", {params: {level, offeredTerm, department}});
+        setCourses(response.data);
+        setHasMore(false);
+      } catch (error) {
+            console.error("Error fetching courses:", error);
+      }
+    };
+
+    const getCourses = async (page:number, size:number=50): Promise<void> => {
         try {
-              
-              let filteredCourses = allCourses;
-              let all = allCourses;
-
-
-              if(level != ''){
-                filteredCourses = all.filter(course =>{
-                  const number = parseInt(course.courseIdent.split("_")[1]);
-                  if(number >= parseInt(level) && number <= parseInt(level) + 1000){
-                    return number;
-                  }
-                });
-                
-                
-
-              }
-              if(filteredCourses != all){
-                all = filteredCourses;
-              }
-
-
-              if(offeredTerm != ''){
-                filteredCourses = all.filter(course =>{
-                  const terms = course.offered.toLowerCase();
-
-                  if(terms.includes(offeredTerm)){
-                    return terms;
-                  }
-
-                });
-
-              }
-
-              if(filteredCourses != all){
-                all = filteredCourses;
-              }
-
-
-              if(department != ''){
-                filteredCourses = all.filter(course =>{
-                  const dept = course.courseIdent.split("_")[0];
-
-                  if(dept == department){
-                    return dept;
-                  }
-
-                });
-              }
-
-              setCourses(filteredCourses);
-              
+            const response = await axios.get("http://localhost:8080/api/courses/page", {params: {page, size}});
+            console.log(response.data);
+            if(page === 0){
+              setCourses(response.data);
+              setPageNumber(0);
+              setHasMore(true);
+            }
+            else{
+              setCourses(prev => [...prev, ...response.data]);
+            }
+            setPageNumber(prev => prev + 1);
+            setHasMore(response.data.length === size);
             
-
-
         } catch (error) {
             console.error("Error fetching courses:", error);
         }
     };
+
+    // const applyFilter = async (): Promise<void> => {
+    //     try {
+              
+    //           let filteredCourses = allCourses;
+    //           let all = allCourses;
+
+
+    //           if(level != ''){
+    //             filteredCourses = all.filter(course =>{
+    //               const number = parseInt(course.courseIdent.split("_")[1]);
+    //               if(number >= parseInt(level) && number <= parseInt(level) + 1000){
+    //                 return number;
+    //               }
+    //             });
+                
+                
+
+    //           }
+    //           if(filteredCourses != all){
+    //             all = filteredCourses;
+    //           }
+
+
+    //           if(offeredTerm != ''){
+    //             filteredCourses = all.filter(course =>{
+    //               const terms = course.offered.toLowerCase();
+
+    //               if(terms.includes(offeredTerm)){
+    //                 return terms;
+    //               }
+
+    //             });
+
+    //           }
+
+    //           if(filteredCourses != all){
+    //             all = filteredCourses;
+    //           }
+
+
+    //           if(department != ''){
+    //             filteredCourses = all.filter(course =>{
+    //               const dept = course.courseIdent.split("_")[0];
+
+    //               if(dept == department){
+    //                 return dept;
+    //               }
+
+    //             });
+    //           }
+
+    //           setCourses(filteredCourses);
+              
+            
+
+
+    //     } catch (error) {
+    //         console.error("Error fetching courses:", error);
+    //     }
+    // };
     
 
     useEffect(() => {
-        getCourses();
+        getCourses(0);
     }, []);
 
     return (
@@ -171,7 +199,7 @@ export default function CourseCatalog() {
                                 onClick={() => {  setLevel('');
                                                   setOfferedTerm('');
                                                   setDepartment('');
-                                                  setCourses(allCourses);}} />
+                                                  getCourses(0);}} />
                     </div>
 
                 </Panel>
@@ -193,11 +221,20 @@ export default function CourseCatalog() {
                       }}/>
                 </div>
                 <div className="flex flex-col gap-4 w-full">
-                    {courses.map((course) => (
-                        <div key={course.courseIdent} className="w-full">
-                            <CourseCard course={course}/>
-                        </div>
-                    ))}
+                  {courses.map((course) => (
+                    <div key={course.courseIdent} className="w-full">
+                      <CourseCard course={course} />
+                    </div>
+                  ))}
+                  {hasMore && (
+                    <div className="flex justify-center mt-4">
+                      <Button
+                        label={`Load more`}
+                        onClick={() => getCourses(pageNumber)}
+                        className="p-button-outlined"
+                      />
+                    </div>
+                  )}
                 </div>
             </main>
         </div>
