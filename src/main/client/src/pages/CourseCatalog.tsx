@@ -17,21 +17,9 @@ export default function CourseCatalog() {
     const [searchTerm, setSearchTerm] = useState("");
     // const [credits, setCredits] = useState(0);
     const [pageNumber, setPageNumber] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(false);
+    const [filtered, setFiltered] = useState(false);
 
-    // const searchCourses = async (): Promise<void> => {
-    //     try {
-    //         const filteredCourses = allCourses.filter(course =>{
-    //               if(course.courseIdent.replace("_", " ").toLowerCase().includes(searchTerm.toLowerCase())){
-    //                 return course;
-    //               }
-    //             });
-            
-    //         setCourses(filteredCourses);
-    //     } catch (error) {
-    //         console.error("Error fetching courses:", error);
-    //     }
-    // };
 
     const searchCourses = async (): Promise<void> => {
       try {
@@ -42,11 +30,21 @@ export default function CourseCatalog() {
             console.error("Error fetching courses:", error);
       }
     };
-    const applyFilter = async (): Promise<void> => {
+    const applyFilter = async (page:number=0): Promise<void> => {
       try {
-        const response = await axios.get("http://localhost:8080/api/courses/filter", {params: {level, offeredTerm, department}});
-        setCourses(response.data);
-        setHasMore(false);
+        
+
+        const response = await axios.get("http://localhost:8080/api/courses/filter", {params: {level, offeredTerm, department, page}});
+        if(page === 0){
+          setCourses(response.data);
+        }
+        else{
+          setCourses(prev => [...prev, ...response.data]);
+        }
+        setHasMore(response.data.length === 50);
+        setFiltered(true);
+        setPageNumber(page);
+
       } catch (error) {
             console.error("Error fetching courses:", error);
       }
@@ -54,85 +52,30 @@ export default function CourseCatalog() {
 
     const getCourses = async (page:number, size:number=50): Promise<void> => {
         try {
-            const response = await axios.get("http://localhost:8080/api/courses/page", {params: {page, size}});
-            console.log(response.data);
-            if(page === 0){
-              setCourses(response.data);
-              setPageNumber(0);
-              setHasMore(true);
-            }
-            else{
-              setCourses(prev => [...prev, ...response.data]);
-            }
-            setPageNumber(prev => prev + 1);
-            setHasMore(response.data.length === size);
+
+            
+              const response = await axios.get("http://localhost:8080/api/courses/page", {params: {page, size}});
+              console.log(response.data);
+              if(page === 0){
+                setCourses(response.data);
+                
+                
+              }
+              else{
+                setCourses(prev => [...prev, ...response.data]);
+                
+              }
+              setPageNumber(page);
+              setHasMore(response.data.length === size);
+              setFiltered(false);
+            
+
             
         } catch (error) {
             console.error("Error fetching courses:", error);
         }
     };
 
-    // const applyFilter = async (): Promise<void> => {
-    //     try {
-              
-    //           let filteredCourses = allCourses;
-    //           let all = allCourses;
-
-
-    //           if(level != ''){
-    //             filteredCourses = all.filter(course =>{
-    //               const number = parseInt(course.courseIdent.split("_")[1]);
-    //               if(number >= parseInt(level) && number <= parseInt(level) + 1000){
-    //                 return number;
-    //               }
-    //             });
-                
-                
-
-    //           }
-    //           if(filteredCourses != all){
-    //             all = filteredCourses;
-    //           }
-
-
-    //           if(offeredTerm != ''){
-    //             filteredCourses = all.filter(course =>{
-    //               const terms = course.offered.toLowerCase();
-
-    //               if(terms.includes(offeredTerm)){
-    //                 return terms;
-    //               }
-
-    //             });
-
-    //           }
-
-    //           if(filteredCourses != all){
-    //             all = filteredCourses;
-    //           }
-
-
-    //           if(department != ''){
-    //             filteredCourses = all.filter(course =>{
-    //               const dept = course.courseIdent.split("_")[0];
-
-    //               if(dept == department){
-    //                 return dept;
-    //               }
-
-    //             });
-    //           }
-
-    //           setCourses(filteredCourses);
-              
-            
-
-
-    //     } catch (error) {
-    //         console.error("Error fetching courses:", error);
-    //     }
-    // };
-    
 
     useEffect(() => {
         getCourses(0);
@@ -194,11 +137,12 @@ export default function CourseCatalog() {
 
                     {/* Apply / Reset Buttons */}
                     <div className="flex justify-between mt-4">
-                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" onClick={() => { applyFilter();}} />
+                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" onClick={() => {applyFilter();}} />
                         <Button label="Reset" icon="pi pi-refresh" className="p-button-text p-button-sm"
                                 onClick={() => {  setLevel('');
                                                   setOfferedTerm('');
                                                   setDepartment('');
+                                                  setFiltered(false);
                                                   getCourses(0);}} />
                     </div>
 
@@ -230,7 +174,7 @@ export default function CourseCatalog() {
                     <div className="flex justify-center mt-4">
                       <Button
                         label={`Load more`}
-                        onClick={() => getCourses(pageNumber)}
+                        onClick={() => filtered ? applyFilter(pageNumber + 1) : getCourses(pageNumber + 1)}
                         className="p-button-outlined"
                       />
                     </div>
