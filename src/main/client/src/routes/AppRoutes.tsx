@@ -15,11 +15,8 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/catalog" element={<CourseCatalog />} />
-<<<<<<< src/main/client/src/routes/AppRoutes.tsx
         <Route path="/badges" element={<CourseBadges />} />
-=======
         <Route path="/profile" element={<Profile />} />
->>>>>>> src/main/client/src/routes/AppRoutes.tsx
       </Routes>
     </BrowserRouter>
   );
