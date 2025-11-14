@@ -69,17 +69,17 @@ export default function Profile(){
 
     const fullName = user ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() : "";
 
-    const openEdit = (section: "contact" | "profile") => {
-        setForm({
-            ...(section === "contact"
-                ? { phone: user?.phone, email: user?.email }
-                : { firstName: user?.firstName, lastName: user?.lastName, major: user?.major }),
-        });
-        setEditSection(section);
-        setEditVisible(true);
-        setError("");
-        setSuccess("");
-    };
+    // const openEdit = (section: "contact" | "profile") => {
+    //     setForm({
+    //         ...(section === "contact"
+    //             ? { phone: user?.phone, email: user?.email }
+    //             : { firstName: user?.firstName, lastName: user?.lastName, major: user?.major }),
+    //     });
+    //     setEditSection(section);
+    //     setEditVisible(true);
+    //     setError("");
+    //     setSuccess("");
+    // };
 
     const closeEdit = () => {
         setEditVisible(false);
