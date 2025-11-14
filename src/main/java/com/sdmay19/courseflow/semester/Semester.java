@@ -3,7 +3,6 @@ package com.sdmay19.courseflow.semester;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.flowchart.Flowchart;
 import com.sdmay19.courseflow.major.College;
-import com.sdmay19.courseflow.semester_requirement.SemesterRequirement;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -12,17 +11,11 @@ import java.util.List;
 @Table(name="semester")
 public class Semester {
 
-    /**
-     *   TODO - KEEP THE SEMESTER OBJECT, DON'T THINK I'LL NEED THE SEMESTER REQUIREMENTS
-     *   MAKE THE SEMESTER OBJECT SO JASON CAN CREATE THE FLOWCHART WITH ALL OF THE DIFFERENT SEMESTERS
-     *   ALLOW FOR CLASSES AND REQUIREMENT GROUPS TO BE ADDED TO THE SEMSTER OBJECT
-    **/
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     private int year;
-    private int term; // FIRST OR SECOND
+    private Term term;
     private String major;
     private String ident;
 
@@ -40,11 +33,10 @@ public class Semester {
 
     public Semester() {}
 
-    public Semester(int year, int term, String major, Flowchart flowchart, List<Course> courses) {
+    public Semester(int year, Term term, String major, Flowchart flowchart, List<Course> courses) {
         this.year = year;
         this.term = term;
         this.major = major;
-        this.ident = major + year + term; // TODO - DOES THIS WORK?
         this.courses = courses;
         this.flowchart = flowchart;
     }
@@ -52,18 +44,20 @@ public class Semester {
     // GETTERS
     public long getId() { return id; }
     public int getYear() { return year; }
-    public int getTerm() { return term; }
+    public Term getTerm() { return term; }
     public String getMajor() { return major; }
-    public String getIdent() { return ident; }
     public List<Course> getCourses() { return courses; }
     public Flowchart getFlowchart() { return flowchart; }
 
     // SETTERS
     public void setId(long id) { this.id = id; }
     public void setYear(int year) { this.year = year; }
-    public void setTerm(int term) { this.term = term; }
+    public void setTerm(Term term) { this.term = term; }
     public void setMajor(String major) { this.major = major; }
-    public void setIdent(String ident) { this.ident = ident; }
     public void setCourses(List<Course> courses) { this.courses = courses; }
     public void setFlowchart(Flowchart flowchart) { this.flowchart = flowchart; }
+
+    // HELPERS
+    public void addCourse(Course course) { this.courses.add(course); }
+    public void removeCourse(Course course) { this.courses.remove(course); }
 }
