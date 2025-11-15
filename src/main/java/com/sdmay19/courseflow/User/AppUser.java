@@ -3,6 +3,7 @@ package com.sdmay19.courseflow.User;
 import java.util.Collection;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sdmay19.courseflow.flowchart.Flowchart;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,6 +29,7 @@ public class AppUser implements UserDetails {
     private String email;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Flowchart> flowcharts;
 
     @Override

@@ -17,19 +17,19 @@ public class SemesterController {
 
     // CREATE
     @PostMapping("/create")
-    public ResponseEntity<Semester> createSemester(SemesterDTO dto) {
+    public ResponseEntity<Semester> createSemester(@RequestBody SemesterDTO dto) {
         Semester semester = semesterService.createFromDTO(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(semester);
     }
 
     // READ
-    @GetMapping("id/{id}")
+    @GetMapping("/id/{id}")
     public ResponseEntity<Semester> getSemesterById(@PathVariable long id) {
         return ResponseEntity.ok(semesterService.getById(id));
     }
 
     // UPDATE
-    @PatchMapping("update/{ident}/courses")
+    @PatchMapping("/update/{ident}/courses")
     public ResponseEntity<Semester> updateSemesterCourses(@PathVariable long semesterId, @RequestBody CourseUpdateRequest req) {
         if (req.getOperation().equals("ADD")) {
             return ResponseEntity.ok(semesterService.addCourse(semesterId, req.getCourseIdent()));
@@ -39,13 +39,13 @@ public class SemesterController {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
     }
-    @PutMapping("update/{ident}/all")
+    @PutMapping("/update/{ident}/all")
     public ResponseEntity<Semester> updateSemester(@PathVariable long semesterId, @RequestBody SemesterDTO dto) {
         return ResponseEntity.ok(semesterService.updateSemester(semesterId, dto));
     }
 
     // DELETE
-    @DeleteMapping
+    @DeleteMapping("/delete/")
     public ResponseEntity<Void> deleteSemester(@RequestBody long id) {
         semesterService.deleteById(id);
         return ResponseEntity.noContent().build();

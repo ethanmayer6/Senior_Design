@@ -110,7 +110,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         .csrf(csrf -> csrf.disable())
         .cors(Customizer.withDefaults())
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**", "/api/majors/**", "/api/requirementgroup/**", "/api/degreerequirement/**").permitAll()
+            .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**", "/api/majors/**", "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**", "/api/semester/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated()
         )

@@ -4,6 +4,7 @@ import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.course.CourseRepository;
 import com.sdmay19.courseflow.course.CourseService;
 import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
+import com.sdmay19.courseflow.exception.flowchart.FlowchartNotFoundException;
 import com.sdmay19.courseflow.exception.semester.SemesterNotFoundException;
 import com.sdmay19.courseflow.flowchart.*;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,8 @@ import java.util.Set;
 @Service
 public class SemesterService {
 
-    // TODO - ADD REST OF CRUD OPERATIONS
+    // TODO - ADD A JSON IGNORE TO RELATIONSHIP TO PREVENT RECURSIVE ISSUE
+
     private final SemesterRepository semesterRepository;
     private final FlowChartRepository flowChartRepository;
     private final CourseRepository courseRepository;
@@ -41,9 +43,9 @@ public class SemesterService {
         return new Semester(dto.getYear(), dto.getTerm(), dto.getMajor(), getFlowchart(dto), getCourses(dto));
     }
     public Flowchart getFlowchart(SemesterDTO dto) {
-        // TODO - ADD CUSTOM ERROR
+        System.out.println("THIS IS THE ID: " + dto.getFlowchartId());
         return flowChartRepository.findById(dto.getFlowchartId())
-                .orElseThrow(() -> new IllegalArgumentException("Flowchart not found"));
+                .orElseThrow(() -> new FlowchartNotFoundException("Flowchart not found"));
     }
     public List<Course> getCourses(SemesterDTO dto) {
         return courseRepository.findAllByCourseIdentIn(dto.getCourseIdents());

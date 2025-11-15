@@ -23,7 +23,7 @@ public class FlowchartController {
 
     // CREATE
     @PostMapping("/create")
-    public ResponseEntity<Flowchart> createFlowchart (FlowchartDTO dto) {
+    public ResponseEntity<Flowchart> createFlowchart(@RequestBody FlowchartDTO dto) {
         Flowchart flowchart = flowchartService.createFromDTO(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(flowchart);
     }
@@ -33,6 +33,10 @@ public class FlowchartController {
     public Flowchart getByUserId(Authentication auth) {
         AppUser user = (AppUser) auth.getPrincipal();
         return flowchartService.getByUser(user);
+    }
+    @GetMapping("/id/{id}")
+    public Flowchart getById(@PathVariable long id) {
+        return flowchartService.getById(id);
     }
     @GetMapping("/completed/{id}/{status}")
     public List<Course> getCourseByStatus(long flowchartId, Status status) {

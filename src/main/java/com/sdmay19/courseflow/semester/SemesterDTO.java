@@ -4,6 +4,7 @@ import java.util.List;
 
 public class SemesterDTO {
 
+
     private int year;
     private Term term; // FIRST OR SECOND SEMESTER
     private String major;
@@ -33,5 +34,5 @@ public class SemesterDTO {
     public void setTerm(Term term) { this.term = term; }
     public void setMajor(String major) { this.major = major; }
     public void setFlowchartId(long flowchartId) { this.flowchartId = flowchartId; }
-    public void setCourseIdents(List<String> courseIdents) {}
+    public void setCourseIdents(List<String> courseIdents) { this.courseIdents = courseIdents; }
 }
