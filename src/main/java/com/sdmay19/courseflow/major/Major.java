@@ -16,7 +16,6 @@ public class Major {
     private String name;
     private College college;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String description;
 
