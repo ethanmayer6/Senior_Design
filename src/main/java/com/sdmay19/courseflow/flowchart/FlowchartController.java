@@ -38,26 +38,34 @@ public class FlowchartController {
     public Flowchart getById(@PathVariable long id) {
         return flowchartService.getById(id);
     }
-    @GetMapping("/completed/{id}/{status}")
-    public List<Course> getCourseByStatus(long flowchartId, Status status) {
-        return flowchartService.getCourseByStatus(flowchartId, status);
+    @GetMapping("/courses/{id}/{status}")
+    public List<Course> getCourseByStatus(@PathVariable long id, @PathVariable Status status) {
+        return flowchartService.getCourseByStatus(id, status);
+    }
+    @GetMapping("/getall")
+    public List<Flowchart> getAllFlowCharts() {
+        return flowchartService.getAll();
     }
 
     // UPDATE
     @PatchMapping("/update/{id}/course")
     public Flowchart updateCourseMap(@PathVariable long id, @RequestBody CourseMapRequest req) {
-        if(req.getOperation().equals("Update")) {
+        if(req.getOperation().equals("UPDATE")) {
             flowchartService.updateCourseStatus(id, req);
         }
-        if(req.getOperation().equals("Add")) {
+        if(req.getOperation().equals("ADD")) {
             flowchartService.addCourse(id, req);
         }
-        if(req.getOperation().equals("Remove")) {
+        if(req.getOperation().equals("REMOVE")) {
             flowchartService.removeCourse(id, req);
         }
 
         Flowchart updated = flowchartService.getById(id);
         return ResponseEntity.ok(updated).getBody();
+    }
+    @PutMapping("/update/{id}")
+    public Flowchart updateFlowchart(@PathVariable long id, @RequestBody FlowchartDTO flowchartDTO) {
+        return flowchartService.update(id, flowchartDTO);
     }
 
     // DELETE

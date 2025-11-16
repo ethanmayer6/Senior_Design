@@ -17,7 +17,6 @@ public class Semester {
     private int year;
     private Term term;
     private String major;
-    private String ident;
 
     @ManyToOne
     @JoinColumn(name = "flowchart_id", nullable = false)

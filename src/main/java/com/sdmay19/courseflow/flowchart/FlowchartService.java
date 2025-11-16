@@ -7,8 +7,11 @@ import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.course.CourseRepository;
 import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
 import com.sdmay19.courseflow.exception.flowchart.FlowchartNotFoundException;
+import com.sdmay19.courseflow.exception.major.MajorNotFoundException;
 import com.sdmay19.courseflow.exception.user.UserNotFoundException;
 import com.sdmay19.courseflow.flowchart.CourseMapRequest;
+import com.sdmay19.courseflow.major.Major;
+import com.sdmay19.courseflow.major.MajorRepository;
 import com.sdmay19.courseflow.semester.CourseUpdateRequest;
 import com.sdmay19.courseflow.semester.Semester;
 import com.sdmay19.courseflow.semester.SemesterRepository;
@@ -24,15 +27,17 @@ import java.util.concurrent.Flow;
 public class FlowchartService {
 
     private final CourseRepository courseRepository;
+    private final MajorRepository majorRepository;
     private FlowChartRepository flowChartRepository;
     private SemesterRepository semesterRepository;
     private UserRepository userRepository;
 
-    public FlowchartService(FlowChartRepository flowChartRepository, SemesterRepository semesterRepository, UserRepository userRepository, CourseRepository courseRepository) {
+    public FlowchartService(FlowChartRepository flowChartRepository, SemesterRepository semesterRepository, UserRepository userRepository, CourseRepository courseRepository, MajorRepository majorRepository) {
         this.flowChartRepository = flowChartRepository;
         this.semesterRepository = semesterRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
+        this.majorRepository = majorRepository;
     }
 
     // CREATE
@@ -43,14 +48,19 @@ public class FlowchartService {
     public Flowchart buildFromDTO(FlowchartDTO dto) {
         List<Semester> semesters = getSemesters(dto);
         AppUser user = getUser(dto);
-        return new Flowchart(dto.getTotalCredits(), dto.getCreditsSatisfied(), dto.getTitle(), user, semesters, dto.getCourseStatusMap());
+        Major major = getMajor(dto);
+        return new Flowchart(dto.getTotalCredits(), dto.getCreditsSatisfied(), dto.getTitle(), user, semesters, dto.getCourseStatusMap(), major);
     }
     public List<Semester> getSemesters (FlowchartDTO dto) {
-        return semesterRepository.findAllByIdentIn(dto.getSemesterIdents());
+        return semesterRepository.findAllById(dto.getSemesterIdents());
     }
     public AppUser getUser(FlowchartDTO dto) {
         return userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User with id " + dto.getUserId() + " not found"));
+    }
+    public Major getMajor(FlowchartDTO dto) {
+        return majorRepository.findByName(dto.getMajorName())
+                .orElseThrow(() -> new MajorNotFoundException("Major with name: " + dto.getMajorName() + " not found"));
     }
 
     // READ
@@ -78,6 +88,44 @@ public class FlowchartService {
     }
 
     // UPDATE
+    public Flowchart update(long id, FlowchartDTO flowchartDTO) {
+        Flowchart flowchart = flowChartRepository.findById(id)
+                .orElseThrow(() -> new FlowchartNotFoundException("Flowchart with Id: " + id + " not found."));
+
+        if (!flowchartDTO.getMajorName().isEmpty()) {
+            // GET MAJOR
+            Major major = majorRepository.findByName(flowchartDTO.getMajorName())
+                    .orElseThrow(() -> new MajorNotFoundException("Major with " + flowchartDTO.getMajorName() + " not found."));
+            flowchart.setMajor(major);
+        }
+        if (flowchartDTO.getUserId() > 0) {
+            // GET USER
+            AppUser user = userRepository.findById(flowchartDTO.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("User with Id: " + id + " not found."));
+            flowchart.setUser(user);
+        }
+        if (!flowchartDTO.getSemesterIdents().isEmpty()) {
+            // GET SEMESTERS
+            List<Semester> semesters = semesterRepository.findAllById(flowchartDTO.getSemesterIdents());
+            if (!semesters.isEmpty()) {
+                flowchart.setSemesters(semesters);
+            }
+        }
+        if (flowchartDTO.getTotalCredits() > 0) {
+            flowchart.setTotalCredits(flowchartDTO.getTotalCredits());
+        }
+        if (flowchartDTO.getCreditsSatisfied() > 0) {
+            flowchart.setCreditsSatisfied(flowchartDTO.getCreditsSatisfied());
+        }
+        if (!flowchartDTO.getTitle().isEmpty()) {
+            flowchart.setTitle(flowchartDTO.getTitle());
+        }
+        if (!flowchartDTO.getCourseStatusMap().isEmpty())  {
+            flowchart.setCourseStatusMap(flowchartDTO.getCourseStatusMap());
+        }
+        return flowchart;
+    }
+
     @Transactional
     public void addCourse(long flowchartId, CourseMapRequest request) {
         Flowchart flowchart = getById(flowchartId);
@@ -102,7 +150,6 @@ public class FlowchartService {
         }
         map.remove(ident);
     }
-
     @Transactional
     public void updateCourseStatus(long flowchartId, CourseMapRequest request) {
         Flowchart flowchart = getById(flowchartId);
@@ -119,13 +166,18 @@ public class FlowchartService {
         }
         map.put(ident, status);
     }
+
     public Flowchart getByUser(AppUser user) {
         return flowChartRepository.findByUser(user)
                 .orElseThrow(() -> new FlowchartNotFoundException("Flowchart with user not found"));
     }
-
     // DELETE
+
     public void deleteById(long id) {
         flowChartRepository.deleteById(id);
+    }
+
+    public List<Flowchart> getAll() {
+        return flowChartRepository.findAll();
     }
 }

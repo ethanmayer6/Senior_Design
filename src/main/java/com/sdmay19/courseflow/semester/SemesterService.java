@@ -56,7 +56,16 @@ public class SemesterService {
         return semesterRepository.findById(id)
                 .orElseThrow(() -> new SemesterNotFoundException("Semester with Id: " + id + " not found."));
     }
-    
+    public List<Course> getSemesterCourses(long id) {
+        Semester semester = semesterRepository.findById(id)
+                .orElseThrow(() -> new SemesterNotFoundException("Semester with IdL " + id + " not found."));
+
+        return semester.getCourses();
+    }
+    public List<Semester> getAll() {
+        return semesterRepository.findAll();
+    }
+
     // UPDATE
     // FOR FREQUENT AND PARTIAL UPDATES
     public Semester addCourse(long semesterId, String courseIdent) {
@@ -72,6 +81,7 @@ public class SemesterService {
         flowchartService.addCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Add"));
         return semesterRepository.save(semester);
     }
+
     public Semester removeCourse(long semesterId, String courseIdent) {
         Semester semester = getById(semesterId);
         Course course = courseService.getByCourseIdent(courseIdent);
@@ -85,8 +95,8 @@ public class SemesterService {
         flowchartService.removeCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Remove") );
         return semesterRepository.save(semester);
     }
-
     // FOR THE FULL SEMESTER OBJECT
+
     public Semester updateSemester(long semesterId, SemesterDTO dto) {
         Semester semester = getById(semesterId);
 
@@ -112,10 +122,9 @@ public class SemesterService {
 
         return semesterRepository.save(semester);
     }
-
     // DELETE
+
     public void deleteById(long id) {
         semesterRepository.deleteById(id);
     }
-
 }
