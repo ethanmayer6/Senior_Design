@@ -5,10 +5,12 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface CourseRepository extends JpaRepository<Course, Long> {
+public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course> {
     Optional<Course> findByName(String name);
     Optional<Course> findByCourseIdent(String courseIdent);
     Optional<Course> findById(long id);
     List<Course> findAllByCourseIdentIn(List<String> courseIdents);
+    List<Course> findByCourseIdentContainingIgnoreCase(String searchTerm);
 }
