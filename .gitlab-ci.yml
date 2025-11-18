@@ -1,15 +1,16 @@
 stages:
   - test
-  - docker
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  key: maven-cache
+  paths:
+    - .m2/repository/
 
 test-backend:
   stage: test
   image: maven:3.9-eclipse-temurin-21
   script:
-    - mvn -B -DskipTests=false test
-
-
-docker-build:
-  stage: docker
-  script:
-    - echo "Docker stage passed"
+    - mvn -B --no-transfer-progress -DskipTests=false test
