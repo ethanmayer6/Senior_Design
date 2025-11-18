@@ -22,12 +22,78 @@ export default function Profile(){
 
     const [form, setForm] = useState<Partial<User>>({});
 
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
     const mockBadges = ["Beginner", "Contributor", "Beta Tester"];
     const mockProgress = [
         { id: 1, label: "Intro to Programming", value: 80 },
         { id: 2, label: "Data Structures", value: 50 },
         { id: 3, label: "Algorithms", value: 30 },
     ];
+
+    const onAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if(!file.type.startsWith("image/")){
+            setError("Please select a valid image file [png, jpg].");
+            return;
+        }
+
+        //File size limit 2MB
+        if(file.size > 2 * 1024 * 1024){
+            setError("File size exceeds 2MB limit.");
+            return;
+        }
+
+        setError("");
+        const url = URL.createObjectURL(file);
+        setAvatarPreview(url);
+        setForm((f) => ({ ...f, _avatarFile: file as any }));
+    };
+
+    const uploadAvatar = async () => {
+        const file = (form as any)._avatarFile as File | undefined;
+        if(!file){
+            setError("No file selected.");
+            return;
+        }
+        setUploading(true);
+        setError("");
+        try{
+            const token = localStorage.getItem("token");
+            const fd = new FormData();
+            fd.append("file", file);
+
+            const resp = await axios.post("http://localhost:8080/api/users/me/avatar", fd, {
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            const avatarUrl = resp.data?.avatarUrl;
+            if(avatarUrl){
+                setUser((u) => ({ ...(u ?? {}), avatarUrl }));
+                setSuccess("Profile picture updated.");
+                setAvatarPreview(null);
+                setForm((f) => {
+                    const copy = { ...f };
+                    delete (copy as any)._avatarFile;
+                    return copy;
+                });
+            }
+            else{
+                setError("Upload succeeded but server didn't return image URL.");
+            }
+        }
+        catch(err: any){
+            setError(err?.response?.data?.message || "Failed to upload avatar. Try again.");
+        }
+        finally{
+            setUploading(false);
+        }
+    };
 
     useEffect(() => {
         if(import.meta.env.DEV && new URLSearchParams(window.location.search).get("mock") === "true"){
@@ -68,18 +134,6 @@ export default function Profile(){
     }, []);
 
     const fullName = user ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() : "";
-
-    // const openEdit = (section: "contact" | "profile") => {
-    //     setForm({
-    //         ...(section === "contact"
-    //             ? { phone: user?.phone, email: user?.email }
-    //             : { firstName: user?.firstName, lastName: user?.lastName, major: user?.major }),
-    //     });
-    //     setEditSection(section);
-    //     setEditVisible(true);
-    //     setError("");
-    //     setSuccess("");
-    // };
 
     const closeEdit = () => {
         setEditVisible(false);
@@ -202,6 +256,19 @@ export default function Profile(){
                     <Card className="shadow-md">
                         <div className="flex flex-col items-center gap-4 p-4">
                             <Avatar label={user?.firstName?.[0] ?? "U"} size="xlarge" shape="circle" style={{ backgroundColor: "#6b7280", color: "white" }}/>
+                            <input id="avatarFile" type="file" accept="image/*" onChange={onAvatarFileChange} className="hidden" />
+                            <label htmlFor="avatarFile" className="cursor-pointer text-sm text-red-600 underline">Change photo</label>
+                            {avatarPreview && (
+                                <div className="mt-2">
+                                    <img src={avatarPreview} alt="Preview" className="w-24 h-24 object-cover rounded-full border" />
+                                    <div className="flex gap-2 mt-2">
+                                        <button className="btn btn-secondary" onClick={() => { setAvatarPreview(null); setForm((f) => { const c={...f}; delete (c as any)._avatarFile; return c; }); }}>Cancel</button>
+                                        <button className="btn btn-primary" onClick={uploading ? undefined : uploadAvatar}>
+                                            {uploading ? "Uploading..." : "Upload"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                             <h2 className="text-xl font-semibold text-gray-800">{fullName}</h2>
 
                             {/*Badges Placeholder*/}
