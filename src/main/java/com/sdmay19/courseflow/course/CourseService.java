@@ -80,11 +80,11 @@ public class CourseService {
         return courseRepository.findByCourseIdentContainingIgnoreCase(searchTerm.replace(" ", "_"));
     }
     public List<Course> filterCourse(String level, String offeredTerm, String department, int page, int size){
-        Specification<Course> spec = Specification.where(null);
+        Specification<Course> spec = Specification.allOf();
 
         if (level != null && !level.isBlank()) {
             int base = Integer.parseInt(level);
-            int upper = base + 1000; // 2000-level = [2000,3000)
+            int upper = base + 1000;
             spec = spec.and(courseNumberBetween(base, upper));
         }
         if (offeredTerm != null && !offeredTerm.isBlank()) {
@@ -93,6 +93,7 @@ public class CourseService {
         if (department != null && !department.isBlank()) {
             spec = spec.and(departmentEquals(department));
         }
+
         return courseRepository.findAll(spec, PageRequest.of(page, size)).getContent();
     }
     private Specification<Course> courseNumberBetween(int loInclusive, int hiExclusive) {
