@@ -3,16 +3,12 @@ package com.sdmay19.courseflow.User;
 import java.util.Collection;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sdmay19.courseflow.flowchart.Flowchart;
+import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
@@ -28,12 +24,13 @@ public class AppUser implements UserDetails {
     private String password;
     private String phone;
     private String major;
-
     private String role;
-
     @Column(nullable = false, unique = true)
     private String email;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Flowchart> flowcharts;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -52,7 +49,7 @@ public class AppUser implements UserDetails {
 
     public AppUser() {}
 
-    public AppUser(String firstName, String lastName, String password, String email, String phone, String major) {
+    public AppUser(String firstName, String lastName, String password, String email, String phone, String major, List<Flowchart> flowcharts) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
@@ -60,76 +57,64 @@ public class AppUser implements UserDetails {
         this.phone = phone;
         this.major = major;
         this.role = "USER";
+        this.flowcharts = flowcharts;
     }
 
+    // GETTERS
     public long getId() {
         return id;
     }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
     public String getFirstName() {
         return firstName;
     }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
     public String getLastName() {
         return lastName;
     }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
     public String getPassword() {
         return password;
     }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public String getEmail() {
         return email;
     }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getPhone() {
         return phone;
     }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
     public String getMajor() {
         return major;
     }
-
-    public void setMajor(String major) {
-        this.major = major;
-    }
-
-    
-
-    @Override
-    //idk why we need this but the class gets mad without it.
+    @Override // idk why we need this but the class gets mad without it.
     public String getUsername() {
         return email;
     }
-
-
     public String getRole() {
         return role;
     }
+    public List<Flowchart> getFlowcharts() { return flowcharts; }
+
+    // SETTERS
+    public void setId(long id) {
+        this.id = id;
+    }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    public void setMajor(String major) {
+        this.major = major;
+    }
+    public void setFlowcharts(List<Flowchart> flowcharts) { this.flowcharts = flowcharts; }
+
 
 
     public void setRole(String role) {

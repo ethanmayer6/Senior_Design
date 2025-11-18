@@ -35,6 +35,7 @@ public class JwtService {
     private static final String SECRET_KEY = "supersecretkey123456789supersecretkey123456789"; // ≥256 bits
 
     private Key getSignKey() {
+        System.out.println("SECRET KEY IN USE: " + SECRET_KEY);
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
@@ -57,11 +58,13 @@ public class JwtService {
 
     public long extractUserId(String token) {
       String subject = extractClaim(token, Claims::getSubject);
+      System.out.println("EXTRACTED SUB: " + subject);
       return Long.parseLong(subject);
   }
 
 
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+        System.out.println("Parsing token: " + token);
         final Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()

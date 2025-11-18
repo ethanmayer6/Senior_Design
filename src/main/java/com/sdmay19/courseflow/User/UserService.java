@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.sdmay19.courseflow.exception.AuthenticationFailedException;
-import com.sdmay19.courseflow.exception.UserNotFoundException;
+import com.sdmay19.courseflow.exception.user.AuthenticationFailedException;
+import com.sdmay19.courseflow.exception.user.UserNotFoundException;
 import com.sdmay19.courseflow.security.AuthResponse;
 import com.sdmay19.courseflow.security.JwtService;
 

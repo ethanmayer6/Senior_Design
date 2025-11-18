@@ -2,11 +2,15 @@ package com.sdmay19.courseflow.course;
 
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Set;
 
-public interface CourseRepository extends JpaRepository<Course, Long> {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course> {
     Optional<Course> findByName(String name);
     Optional<Course> findByCourseIdent(String courseIdent);
     Optional<Course> findById(long id);
     List<Course> findAllByCourseIdentIn(List<String> courseIdents);
+    List<Course> findByCourseIdentContainingIgnoreCase(String searchTerm);
 }

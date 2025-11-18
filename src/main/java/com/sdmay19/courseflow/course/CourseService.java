@@ -1,13 +1,19 @@
 package com.sdmay19.courseflow.course;
-import com.sdmay19.courseflow.exception.*;
+import com.sdmay19.courseflow.exception.course.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.lang.String;
-
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 
 
 @Service
@@ -67,10 +73,60 @@ public class CourseService {
     public List<Course> getAllCourse() {
         return courseRepository.findAll();
     }
-    
+    public List<Course> getPage(int page, int size) {
+        return courseRepository.findAll(PageRequest.of(page, size)).getContent();
+    }
+    public List<Course> searchCourse(String searchTerm){
+        return courseRepository.findByCourseIdentContainingIgnoreCase(searchTerm.replace(" ", "_"));
+    }
+    public List<Course> filterCourse(String level, String offeredTerm, String department, int page, int size){
+        Specification<Course> spec = Specification.allOf();
+
+        if (level != null && !level.isBlank()) {
+            int base = Integer.parseInt(level);
+            int upper = base + 1000;
+            spec = spec.and(courseNumberBetween(base, upper));
+        }
+        if (offeredTerm != null && !offeredTerm.isBlank()) {
+            spec = spec.and(offeredContains(offeredTerm));
+        }
+        if (department != null && !department.isBlank()) {
+            spec = spec.and(departmentEquals(department));
+        }
+
+        return courseRepository.findAll(spec, PageRequest.of(page, size)).getContent();
+    }
+    private Specification<Course> courseNumberBetween(int loInclusive, int hiExclusive) {
+        return (root, q, cb) -> {
+            
+            Expression<String> ident = root.<String>get("courseIdent");
+
+
+            Expression<Integer> usPos = cb.locate(ident, "_");
+
+
+            Expression<String> numStr = cb.function("substring", String.class, ident, cb.sum(usPos, 1));
+
+            return cb.between(numStr, String.valueOf(loInclusive), String.valueOf(hiExclusive - 1));
+
+        };
+    }
+
+    private Specification<Course> offeredContains(String term) {
+        return (root, q, cb) ->
+            cb.like(cb.lower(root.get("offered")), "%" + term.toLowerCase() + "%");
+    }
+
+    private Specification<Course> departmentEquals(String dept) {
+        return (root, q, cb) -> {
+            
+            return cb.like(root.get("courseIdent"), dept + "_%");
+        };
+    }
+
     @Transactional
-    public Course updateCourse(CourseUpdater updator) {
-        Course course = getByCourseIdent(updator.getIdent());
+    public Course updateCourse(long id, CourseUpdater updator) {
+        Course course = getById(id);
         String courseIdent = course.getCourseIdent();
 
         if(updator.getName() != null){

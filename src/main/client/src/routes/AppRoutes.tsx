@@ -4,6 +4,8 @@ import "../index.css";
 import Register from "../pages/register.tsx";
 import AdminDashboard from "../pages/AdminDashboard";
 import CourseCatalog from "../pages/CourseCatalog.tsx";
+import CourseBadges from "../pages/CourseBadges.tsx";
+import Profile from "../pages/profile.tsx";
 import Dashboard from "../pages/Dashboard.tsx";
 
 export default function AppRoutes() {
@@ -14,6 +16,8 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/catalog" element={<CourseCatalog />} />
+        <Route path="/badges" element={<CourseBadges />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>

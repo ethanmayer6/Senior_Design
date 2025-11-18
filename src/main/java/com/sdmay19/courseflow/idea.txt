@@ -1,0 +1,5 @@
+- Flowchart will initiallly Start empty with the 16 Semesters Displayed
+- Users will be able to drag classes into the flowchart and it will show progress bars on side completing
+when a corresponding class
+- When a degree requirement houses a requirement group, display that name as one node and allow the user to select
+the classe(s) they would like

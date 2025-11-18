@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,15 +52,27 @@ public class CourseController {
     public ResponseEntity<List<Course>> getAll() {
         return ResponseEntity.ok(courseService.getAllCourse());
     }
+    @GetMapping("/page")
+    public ResponseEntity<List<Course>> getPage(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
+        return ResponseEntity.ok(courseService.getPage(page, size));
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<Course>> searchCourse(@RequestParam String searchTerm){
+        return ResponseEntity.ok(courseService.searchCourse(searchTerm));
+    }
+    @GetMapping("/filter")
+    public ResponseEntity<List<Course>> filterCourse(@RequestParam(required = false) String level, @RequestParam(required = false) String offeredTerm, @RequestParam(required = false) String department, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
+        return ResponseEntity.ok(courseService.filterCourse(level, offeredTerm, department, page, size));
+    }
 
     // UPDATE
-    @PutMapping
-    public ResponseEntity<Course> update(@RequestBody CourseUpdater updates) {
-        return ResponseEntity.ok(courseService.updateCourse(updates));
+    @PutMapping("update/{id}")
+    public ResponseEntity<Course> update(@PathVariable long id, @RequestBody CourseUpdater updates) {
+        return ResponseEntity.ok(courseService.updateCourse(id, updates));
     }
 
     // DELETE
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
         courseService.deleteById(id);
         return ResponseEntity.noContent().build();

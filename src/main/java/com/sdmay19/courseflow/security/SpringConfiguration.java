@@ -105,12 +105,12 @@ public class SpringConfiguration implements WebMvcConfigurer {
 
     @Bean
 @SneakyThrows
-public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
         .cors(Customizer.withDefaults())
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**","/api/progressReport/upload", "/api/progressReport/flowchart" ).permitAll()
+            .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**", "/api/majors/**", "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**", "/api/semester/**", "/api/progressReport/upload", "/api/progressReport/flowchart" ).permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated()
         )

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: "currentColor";
+        stroke:"currentColor";
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="38.11 52.43 38.11 91.57 72 111.14 105.89 91.57 105.89 52.43 72 32.86 38.11 52.43"/>
+</svg>

@@ -24,3 +24,5 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         </Card>
     );
 }
+
+
