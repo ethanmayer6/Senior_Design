@@ -105,7 +105,7 @@ public class SpringConfiguration implements WebMvcConfigurer {
 
     @Bean
 @SneakyThrows
-public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
         .cors(Customizer.withDefaults())

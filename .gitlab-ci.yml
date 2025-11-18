@@ -1,13 +1,17 @@
 stages:
   - test
-  - docker
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  key: maven-cache
+  paths:
+    - .m2/repository/
 
 test-backend:
   stage: test
+  image: maven:3.9-eclipse-temurin-21
   script:
-    - echo "Test stage passed"
-
-docker-build:
-  stage: docker
-  script:
-    - echo "Docker stage passed"
+    # Disable the frontend profile so npm is NOT called
+    - mvn -B --no-transfer-progress -P'!frontend' -DskipTests=false test
