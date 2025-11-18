@@ -88,6 +88,27 @@ public class RequirementGroupService {
         return requirementGroupRepository.save(requirementGroup);
     }
 
+    @Transactional
+    public RequirementGroup linkCoursesToExistingGroup(long groupId, List<String> courseIdents) {
+        
+        RequirementGroup group = requirementGroupRepository.findById(groupId)
+            .orElseThrow(() -> new RequirementGroupNotFoundException("Requirement group with id " + groupId + " not found"));
+
+        List<Course> courses = courseRepository.findAllByCourseIdentIn(courseIdents);
+
+        if (courses.isEmpty()) {
+            throw new RequirementGroupNotFoundException("No matching courses found for idents: " + courseIdents);
+        }
+
+        for (Course c : courses) {
+            if (!group.getCourses().contains(c)) {
+                group.getCourses().add(c);
+            }
+        }
+
+        return requirementGroupRepository.save(group);
+    }
+
     // Delete
     @Transactional
     public void deleteById(long id) {
