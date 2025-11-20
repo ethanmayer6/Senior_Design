@@ -1,8 +1,12 @@
 package com.sdmay19.courseflow.User;
 
 import java.util.List;
+import java.util.Map;
 
+import com.sdmay19.courseflow.File.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +16,7 @@ import com.sdmay19.courseflow.security.AuthResponse;
 import com.sdmay19.courseflow.security.JwtService;
 
 import jakarta.transaction.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -30,6 +35,9 @@ public class UserService {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private FileStorageService fileStorageService;
 
     // CREATE SERVICE - still need to add spring security
     public AppUser register(AppUser user) {
@@ -70,6 +78,11 @@ public class UserService {
     }
     public boolean isEmailAvailable(String email) {
         return userRepository.findByEmail(email).isEmpty();
+    }
+
+    public String getProfilePic(Long id) {
+        AppUser user = getUserById(id);
+        return user.getProfilePictureUrl();
     }
 
     public List<AppUser> getAllUsers() {
@@ -149,5 +162,23 @@ public class UserService {
             return false;
         }
         return true;
+    }
+
+    public ResponseEntity<?> uploadProfilePicture(Long id, MultipartFile file) {
+        try {
+            AppUser user = userRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            String url = fileStorageService.saveProfilePicture(file, id);
+            user.setProfilePictureUrl(url);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of("profilePictureUrl", url));
+
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Upload failed: " + e.getMessage());
+        }
     }
 }
