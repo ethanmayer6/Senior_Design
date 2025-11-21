@@ -5,8 +5,13 @@ import com.sdmay19.courseflow.semester.Semester;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface FlowChartRepository extends JpaRepository<Flowchart, Long> {
 
     Optional<Flowchart> findByUser(AppUser user);
+
+    List<Flowchart> findAllByUser(AppUser user);
+
+    void deleteAllByUser(AppUser user);
 }

@@ -1,7 +1,14 @@
 package com.sdmay19.courseflow.importer;
 
+import com.sdmay19.courseflow.User.AppUser;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.course.CourseRepository;
+import com.sdmay19.courseflow.flowchart.Flowchart;
+import com.sdmay19.courseflow.flowchart.FlowchartService;
+import com.sdmay19.courseflow.flowchart.Status;
+import com.sdmay19.courseflow.major.Major;
+import com.sdmay19.courseflow.major.MajorRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,42 +19,52 @@ public class AcademicProgressService {
 
     private final AcademicProgressParser parser;
     private final CourseRepository courseRepository;
+    private final FlowchartService flowchartService;
+    private final MajorRepository majorRepository;
 
-    public AcademicProgressService(AcademicProgressParser parser, CourseRepository courseRepository) {
+    @Autowired
+    public AcademicProgressService(
+            AcademicProgressParser parser,
+            CourseRepository courseRepository,
+            FlowchartService flowchartService,
+            MajorRepository majorRepository) {
         this.parser = parser;
         this.courseRepository = courseRepository;
+        this.flowchartService = flowchartService;
+        this.majorRepository = majorRepository;
     }
-
 
     // ----------------------------------------------------------------------
     // 1. PROCESS PROGRESS REPORT → map rows into our normalized format
     // ----------------------------------------------------------------------
     public StudentProgressResult processProgress(MultipartFile file) {
         try {
-            List<AcademicProgressParser.ParsedRow> parsed =
-                    parser.parse(file.getInputStream());
+            List<AcademicProgressParser.ParsedRow> parsed = parser.parse(file.getInputStream());
 
             List<MappedCourse> isuCourses = new ArrayList<>();
             List<MappedCourse> transferCourses = new ArrayList<>();
             List<String> unmatchedCourses = new ArrayList<>();
 
             for (var row : parsed) {
-                String normalized = normalizeCourseCode(row.courseCode());
-                Course catalogCourse = courseRepository
-                        .findByCourseIdent(normalized)
-                        .orElse(null);
+                // parser already returns a normalized ident, like "SE_1010"
+                String ident = row.courseCode();
 
-                if (catalogCourse == null) {
+                Optional<Course> optCourse = courseRepository.findByCourseIdent(ident);
+
+                if (optCourse.isEmpty()) {
+                    System.out.println("[WARN] Could not match course ident from progress: '"
+                            + row.courseCode() + "' (normalized: '" + ident + "')");
                     unmatchedCourses.add(row.courseCode());
                     continue;
                 }
 
+                Course catalogCourse = optCourse.get();
+
                 MappedCourse mapped = new MappedCourse(
                         catalogCourse.getCourseIdent(),
                         catalogCourse.getName(),
-                        row.academicPeriod(),   // FALL2022 or null
-                        catalogCourse.getCredits()
-                );
+                        row.academicPeriod(), // e.g. "FALL2022" or null
+                        catalogCourse.getCredits());
 
                 if (row.academicPeriod() != null) {
                     isuCourses.add(mapped);
@@ -56,6 +73,11 @@ public class AcademicProgressService {
                 }
             }
 
+            System.out.println("[INFO] Parsed progress: "
+                    + isuCourses.size() + " ISU courses, "
+                    + transferCourses.size() + " transfer courses, "
+                    + unmatchedCourses.size() + " unmatched.");
+
             return new StudentProgressResult(isuCourses, transferCourses, unmatchedCourses);
 
         } catch (Exception e) {
@@ -63,24 +85,19 @@ public class AcademicProgressService {
         }
     }
 
-
     // ----------------------------------------------------------------------
-    // 2. BUILD FLOWCHART GRAPH (only relevant courses)
+    // 2. BUILD FLOWCHART GRAPH (minimal projection used by ReactFlow, if needed)
     // ----------------------------------------------------------------------
     public FlowchartResult buildFlowchartFromProgress(MultipartFile file) {
 
-        // 2.1 parse progress
-        var parsed = processProgress(file);
+        StudentProgressResult parsed = processProgress(file);
 
-        // 2.2 list of completed course IDs
-        List<String> completed = new ArrayList<>(
-                parsed.isuCourses().stream().map(MappedCourse::courseCode).toList()
-        );
-        completed.addAll(
-                parsed.transferCourses().stream().map(MappedCourse::courseCode).toList()
-        );
+        // completed = all matched courses (ISU + transfer)
+        List<String> completed = new ArrayList<>();
+        completed.addAll(parsed.isuCourses().stream().map(MappedCourse::courseCode).toList());
+        completed.addAll(parsed.transferCourses().stream().map(MappedCourse::courseCode).toList());
 
-        // 2.3 relevant courses (completed + all their prerequisites)
+        // relevant courses = completed + all prereq ancestors
         Set<Course> relevant = new HashSet<>();
 
         // add completed courses
@@ -88,14 +105,14 @@ public class AcademicProgressService {
             courseRepository.findByCourseIdent(code).ifPresent(relevant::add);
         }
 
-        // recursively add all ancestors (prereqs of prereqs)
+        // recursively add all prerequisites of those courses
         Deque<String> stack = new ArrayDeque<>(completed);
-
         while (!stack.isEmpty()) {
             String code = stack.pop();
 
-            var courseOpt = courseRepository.findByCourseIdent(code);
-            if (courseOpt.isEmpty()) continue;
+            Optional<Course> courseOpt = courseRepository.findByCourseIdent(code);
+            if (courseOpt.isEmpty())
+                continue;
 
             Course c = courseOpt.get();
             relevant.add(c);
@@ -103,76 +120,131 @@ public class AcademicProgressService {
             for (String pre : c.getPrerequisites()) {
                 boolean alreadyIncluded = relevant.stream()
                         .anyMatch(x -> x.getCourseIdent().equals(pre));
-
                 if (!alreadyIncluded) {
                     stack.push(pre);
                 }
             }
         }
 
-        // ❌ NO unlocked descendants here (this prevented the huge graph)
-
-        // 2.4 build edges only among relevant courses
+        // build edges only among relevant courses
         List<String[]> edges = new ArrayList<>();
-
         for (Course c : relevant) {
             for (String pre : c.getPrerequisites()) {
-                // ensure prereq exists in catalog — skip unmatched prereqs
-                var preOpt = courseRepository.findByCourseIdent(pre);
-                if (preOpt.isEmpty()) {
+                Optional<Course> preOpt = courseRepository.findByCourseIdent(pre);
+                if (preOpt.isEmpty())
                     continue;
-                }
-            
-                boolean prereqIncluded =
-                        relevant.stream().anyMatch(r -> r.getCourseIdent().equals(pre));
-            
+
+                boolean prereqIncluded = relevant.stream()
+                        .anyMatch(r -> r.getCourseIdent().equals(pre));
                 if (prereqIncluded) {
-                    edges.add(new String[]{pre, c.getCourseIdent()});
+                    edges.add(new String[] { pre, c.getCourseIdent() });
                 }
             }
         }
 
-        // 2.5 academic periods mapping (courseIdent -> PERIOD)
+        // academic periods map (courseIdent -> PERIOD)
         Map<String, String> periods = new HashMap<>();
         parsed.isuCourses().forEach(mc -> periods.put(mc.courseCode(), mc.academicPeriod()));
         parsed.transferCourses().forEach(mc -> periods.put(mc.courseCode(), mc.academicPeriod()));
 
-        // 2.6 return DTO
+        System.out.println("[INFO] buildFlowchartFromProgress: relevant=" + relevant.size()
+                + ", edges=" + edges.size());
+
         return new FlowchartResult(
                 new ArrayList<>(relevant),
                 edges,
                 completed,
-                periods   // FIXED: correct variable passed here
-        );
+                periods);
     }
 
-
     // ----------------------------------------------------------------------
-    // NORMALIZE COURSE CODE: "Com S 228" → "COMS_2280"
+    // 3. CREATE & SAVE FLOWCHART ENTITY FOR USER
     // ----------------------------------------------------------------------
-    private String normalizeCourseCode(String raw) {
-        if (raw == null || raw.isBlank()) return raw;
+    public Flowchart createFlowchartFromProgress(MultipartFile file, AppUser user) {
+        // Step 1 — process the transcript
+        StudentProgressResult parsed = processProgress(file);
 
-        raw = raw.trim().replaceAll("\\s+", " ");
+        // Step 2 — courseStatusMap (all matched courses are COMPLETED for now)
+        Map<String, Status> statusMap = new HashMap<>();
 
-        String[] parts = raw.split(" ");
-        if (parts.length < 2) return raw;
+        parsed.isuCourses().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
+        parsed.transferCourses().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
 
-        String dept = parts[0].toUpperCase();
-        String number = parts[1].toUpperCase();
+        // Step 3 — group courses by academic period
+        Map<String, List<Course>> coursesByPeriod = new HashMap<>();
 
-        String base = number.replaceAll("[^0-9]", "");
-        String suffix = number.replaceAll("[0-9]", "");
+        // helper for grouping
+        java.util.function.BiConsumer<MappedCourse, String> addToPeriod = (mc, defaultPeriod) -> {
 
-        if (base.length() == 3) {
-            base = base + "0"; // 228 → 2280
+            String period = normalizePeriod(mc.academicPeriod(), defaultPeriod);
+
+            courseRepository.findByCourseIdent(mc.courseCode())
+                    .ifPresent(course -> {
+                        coursesByPeriod
+                                .computeIfAbsent(period, k -> new ArrayList<>())
+                                .add(course);
+                    });
+        };
+
+        parsed.isuCourses().forEach(mc -> addToPeriod.accept(mc, "NO_PERIOD"));
+        parsed.transferCourses().forEach(mc -> addToPeriod.accept(mc, "TRANSFER"));
+
+        // Step 4 — compute credits from *all* grouped courses
+        int totalCredits = coursesByPeriod.values().stream()
+                .flatMap(List::stream)
+                .mapToInt(Course::getCredits)
+                .sum();
+
+        int satisfiedCredits = totalCredits; // everything in transcript is "completed" for now
+
+        System.out.println("[INFO] createFlowchartFromProgress: periods="
+                + coursesByPeriod.size() + ", totalCredits=" + totalCredits);
+
+        // Step 5 — get user's major
+        String userMajorName = user.getMajor();
+        if (userMajorName == null || userMajorName.isBlank()) {
+            throw new RuntimeException("User has no major set.");
         }
 
-        String finalNumber = base + suffix;
+        Major major = majorRepository.findByName(userMajorName)
+                .orElseThrow(() -> new RuntimeException(
+                        "Major not found in database: " + userMajorName));
 
-        return dept + "_" + finalNumber;
+        // Step 6 — delegate to FlowchartService to actually build & save semesters +
+        // flowchart
+        return flowchartService.createFromProgress(
+                user,
+                major,
+                statusMap,
+                coursesByPeriod);
     }
 
+    private String normalizePeriod(String raw, String defaultPeriod) {
+        if (raw == null || raw.isBlank()) {
+            return defaultPeriod; // NO_PERIOD or TRANSFER
+        }
+
+        raw = raw.trim().toUpperCase().replace(" ", "");
+
+        // Handle correct formats: FALL2022, SPRING2021, SUMMER2020, WINTER2023
+        if (raw.matches("(FALL|SPRING|SUMMER|WINTER)[0-9]{4}")) {
+            return raw;
+        }
+
+        // Handle shorthand formats like FALL21 → FALL2021
+        if (raw.matches("(FALL|SPRING|SUMMER|WINTER)[0-9]{2}")) {
+            String year2 = raw.substring(raw.length() - 2);
+            return raw.substring(0, raw.length() - 2) + "20" + year2;
+        }
+
+        // Transfer courses always go to TRANSFER
+        if (raw.contains("TRANSFER")) {
+            return "TRANSFER";
+        }
+
+        // Anything else is invalid → put into default bucket
+        return defaultPeriod;
+    }
 
     // ----------------------------------------------------------------------
     // DTO RECORDS
@@ -181,19 +253,19 @@ public class AcademicProgressService {
             String courseCode,
             String courseName,
             String academicPeriod,
-            int credits
-    ) {}
+            int credits) {
+    }
 
     public record StudentProgressResult(
             List<MappedCourse> isuCourses,
             List<MappedCourse> transferCourses,
-            List<String> unmatchedCourses
-    ) {}
+            List<String> unmatchedCourses) {
+    }
 
     public record FlowchartResult(
             List<Course> courses,
             List<String[]> edges,
             List<String> completedCourses,
-            Map<String, String> academicPeriods
-    ) {}
+            Map<String, String> academicPeriods) {
+    }
 }

@@ -1,17 +1,12 @@
-import { useState } from "react";
-import axios from "axios";
-import { FileUpload } from "primereact/fileupload";
-import type { FileUploadSelectEvent } from "primereact/fileupload";
-import type { FlowchartResult } from "../types/flowchartResult";
+// src/main/client/src/components/ImportProgressReport.tsx
+import { useState } from 'react';
+import axios from 'axios';
+import { FileUpload } from 'primereact/fileupload';
+import type { FileUploadSelectEvent } from 'primereact/fileupload';
 
-export default function ImportProgressReport({
-  onFlowchartReady,
-}: {
-  onFlowchartReady: (data: FlowchartResult) => void;
-}) {
+export default function ImportProgressReport({ onImported }: { onImported: () => void }) {
   const [loading, setLoading] = useState(false);
 
-  // Called when the user selects a file
   const onSelect = async (e: FileUploadSelectEvent) => {
     const file = e.files?.[0];
     if (!file) return;
@@ -19,15 +14,20 @@ export default function ImportProgressReport({
     setLoading(true);
 
     const form = new FormData();
-    form.append("file", file);
+    form.append('file', file);
+
+    const token = localStorage.getItem('token');
 
     try {
-      const res = await axios.post(
-        "http://localhost:8080/api/progressReport/flowchart",
-        form
-      );
+      await axios.post('http://localhost:8080/api/progressReport/flowchart', form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-      onFlowchartReady(res.data);
+      // tell parent to reload flowchart
+      onImported();
     } catch (err) {
       console.error(err);
     }
@@ -36,21 +36,19 @@ export default function ImportProgressReport({
   };
 
   return (
-    <div className="p-4 w-full flex justify-center">
-      <div className="w-full max-w-xl">
-        <FileUpload
-          name="file"
-          accept=".xlsx"
-          mode="basic"
-          auto
-          chooseLabel={loading ? "Processing..." : "Upload Progress Report"}
-          disabled={loading}
-          customUpload
-          uploadHandler={() => {}} // unused because we use onSelect
-          onSelect={onSelect}
-          className="w-full"
-        />
-      </div>
+    <div className="p-4 justify-center w-full max-w-xl">
+      <FileUpload
+        name="file"
+        accept=".xlsx"
+        mode="basic"
+        auto
+        chooseLabel={loading ? 'Processing...' : 'Upload Progress Report'}
+        disabled={loading}
+        customUpload
+        uploadHandler={() => {}}
+        onSelect={onSelect}
+        className="w-full"
+      />
     </div>
   );
 }

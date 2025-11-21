@@ -1,11 +1,8 @@
-// ---------------------------------------------
-// Imports
-// ---------------------------------------------
-import { useEffect, useCallback, memo } from "react";
+// src/components/Flowchart.tsx
+import { useEffect, memo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -15,36 +12,23 @@ import ReactFlow, {
   type Edge,
   type NodeProps,
   type Connection,
-} from "reactflow";
+} from 'reactflow';
 
-import "reactflow/dist/style.css";
-import type { FlowchartResult } from "../types/flowchartResult";
-
-interface Course {
-  id: number;
-  name: string;
-  courseIdent: string;
-  credits: number;
-  prerequisites: string[];
-  description: string;
-  offered: string;
-}
+import 'reactflow/dist/style.css';
+import type { Flowchart as FlowchartEntity } from '../api/flowchartApi';
 
 type CourseData = { label: string; cls: string; title?: string };
 type SemesterData = { title: string };
 
-// ---------------------------------------------
-// Node Types
-// ---------------------------------------------
 const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
   <div
     title={data.title}
     className={[
-      "w-16 h-16 rounded-full",
-      "flex items-center justify-center text-center",
-      "font-semibold text-xs shadow-sm cursor-default",
+      'w-14 h-14 rounded-full',
+      'flex items-center justify-center text-center',
+      'font-semibold text-xs shadow-sm cursor-default select-none',
       data.cls,
-    ].join(" ")}
+    ].join(' ')}
   >
     {data.label}
     <Handle type="target" position={Position.Top} className="opacity-0" />
@@ -55,7 +39,7 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
   <div
     className="rounded-xl border border-gray-400 bg-gray-50 p-2 shadow-sm"
-    style={{ width: 600, height: 180 }}
+    style={{ width: 600, height: 120 }}
   >
     <div className="text-sm font-bold text-gray-700 mb-1">{data.title}</div>
   </div>
@@ -66,152 +50,126 @@ const nodeTypes = {
   semester: SemesterNode,
 };
 
-// ---------------------------------------------
-// Constants
-// ---------------------------------------------
-const X_SPACING = 150;
-const Y_SPACING = 250;
+const X_SPACING = 50;
+const Y_SPACING = 150;
 
-// Department colors
 const deptClasses: Record<string, string> = {
-  COMS: "bg-sky-500 text-white",
-  SE: "bg-rose-500 text-white",
-  CPRE: "bg-orange-400 text-white",
-  MATH: "bg-pink-400 text-white",
-  PHYS: "bg-green-400 text-white",
-  ENGL: "bg-yellow-300 text-black",
-  STAT: "bg-purple-500 text-white",
-  CHEM: "bg-emerald-400 text-white",
-  ECON: "bg-cyan-400 text-white",
-  LIB: "bg-blue-400 text-white",
-  IE: "bg-amber-500 text-white",
-  SPCM: "bg-amber-300 text-black",
-  ART: "bg-indigo-400 text-white",
-  DEFAULT: "bg-gray-400 text-white",
+  COMS: 'bg-sky-500 text-white',
+  SE: 'bg-rose-500 text-white',
+  CPRE: 'bg-orange-400 text-white',
+  MATH: 'bg-pink-400 text-white',
+  PHYS: 'bg-green-400 text-white',
+  ENGL: 'bg-yellow-300 text-black',
+  STAT: 'bg-purple-500 text-white',
+  CHEM: 'bg-emerald-400 text-white',
+  ECON: 'bg-cyan-400 text-white',
+  LIB: 'bg-blue-400 text-white',
+  IE: 'bg-amber-500 text-white',
+  SPCM: 'bg-amber-300 text-black',
+  ART: 'bg-indigo-400 text-white',
+  DEFAULT: 'bg-gray-400 text-white',
 };
 
-// ---------------------------------------------
-// Semester Parsing → numeric rank
-// ---------------------------------------------
-function parseAcademicPeriod(period: string | null): number {
-  if (!period) return 99999;
-  const p = period.toUpperCase();
-
-  if (/SPRING/.test(p)) return Number(p.match(/20\d{2}/)![0]) * 10 + 1;
-  if (/SUMMER/.test(p)) return Number(p.match(/20\d{2}/)![0]) * 10 + 2;
-  if (/FALL/.test(p)) return Number(p.match(/20\d{2}/)![0]) * 10 + 3;
-  if (/WINTER/.test(p)) return Number(p.match(/20\d{2}/)![0]) * 10 + 4;
-
-  const year = p.match(/20\d{2}/);
-  return year ? Number(year[0]) * 10 + 5 : 99999;
+function semesterRank(year: number, term: string): number {
+  const order: Record<string, number> = {
+    SPRING: 1,
+    SUMMER: 2,
+    FALL: 3,
+  };
+  const termRank = order[term?.toUpperCase()] ?? 9;
+  return year * 10 + termRank;
 }
 
-// ---------------------------------------------
-// Component
-// ---------------------------------------------
-export default function Flowchart({
-  flowData,
-}: {
-  flowData: FlowchartResult | null;
-}) {
+export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   useEffect(() => {
-    if (!flowData) return;
-
-    const {
-      courses,
-      edges: rawEdges,
-      completedCourses,
-      academicPeriods,
-    } = flowData;
-
-    const isCompleted = (id: string) => completedCourses.includes(id);
-
-    const getNodeColor = (c: Course) => {
-      const prefix = c.courseIdent.split("_")[0];
-      const dept = deptClasses[prefix] || deptClasses.DEFAULT;
-      return isCompleted(c.courseIdent) ? "bg-green-500 text-white" : dept;
-    };
-
-    // ---------------------------------------------
-    // Group courses by semester
-    // ---------------------------------------------
-    const groups: Record<number, Course[]> = {};
-
-    courses.forEach((c) => {
-      const period = academicPeriods[c.courseIdent] ?? null;
-      const rank = parseAcademicPeriod(period);
-      if (!groups[rank]) groups[rank] = [];
-      groups[rank].push(c);
-    });
-
-    const sortedRanks = Object.keys(groups)
-      .map(Number)
-      .sort((a, b) => a - b);
+    if (!flowchart) return;
 
     const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
 
-    // ---------------------------------------------
-    // Create semester group nodes + course child nodes
-    // ---------------------------------------------
-    sortedRanks.forEach((rank, i) => {
-      const semesterId = `SEM_${rank}`;
-      const rowCourses = groups[rank];
+    const semesters = flowchart.semesters ?? [];
+    const sortedSems = [...semesters].sort(
+      (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
+    );
 
-      // Create the semester group node
+    sortedSems.forEach((sem, row) => {
+      const semId = `SEM_${sem.id}`;
+
       newNodes.push({
-        id: semesterId,
-        type: "semester",
-        position: { x: 0, y: i * Y_SPACING },
-        data: { title: `Semester ${i + 1}` },
-        style: { width: 600, height: 180 },
+        id: semId,
+        type: 'semester',
+        position: { x: 200, y: row * Y_SPACING },
+        data: { title: `${sem.term} ${sem.year}` },
+        style: { width: 600, height: 140 },
         draggable: false,
       });
 
-      // Now create child nodes inside it
-      rowCourses.forEach((c, col) => {
+      // --- Make grid layout inside each semester ---
+      const columns = 6; // max courses per row
+      const spacingX = 90;
+      const spacingY = 70;
+
+      sem.courses.forEach((c, index) => {
+        const rowIndex = Math.floor(index / columns);
+        const colIndex = index % columns;
+
+        const courseIdent = c.courseIdent;
+        const prefix = courseIdent.split('_')[0];
+        const isCompleted = flowchart.courseStatusMap?.[courseIdent] === 'COMPLETED';
+        const color = deptClasses[prefix] || deptClasses.DEFAULT;
+        const cls = isCompleted ? `${color} opacity-100` : color;
+
         newNodes.push({
-          id: c.courseIdent,
-          type: "course",
+          id: courseIdent,
+          type: 'course',
           data: {
-            label: c.courseIdent.replace("_", " "),
-            cls: getNodeColor(c),
+            label: courseIdent.replace('_', ' '),
+            cls,
             title: c.name,
           },
-          parentNode: semesterId,
-          extent: "parent",
+          parentNode: semId,
+          extent: 'parent',
           position: {
-            x: 40 + col * X_SPACING,
+            x: 50 + colIndex * spacingX,
             y: 40,
           },
         });
+
+        c.prerequisites?.forEach((p) => {
+          newEdges.push({
+            id: `${p}->${courseIdent}`,
+            source: p,
+            target: courseIdent,
+            type: 'smoothstep',
+          });
+        });
+      });
+
+      // --- Increase height based on rows ---
+      const totalRows = Math.ceil(sem.courses.length / columns);
+      const height = 40 + totalRows * spacingY + 40;
+
+      newNodes.push({
+        id: semId,
+        type: 'semester',
+        position: { x: 200, y: row * Y_SPACING },
+        data: { title: `${sem.term} ${sem.year}` },
+        style: { width: 600, height: 140 },
+        draggable: false,
       });
     });
 
-    // ---------------------------------------------
-    // Build edges normally
-    // ---------------------------------------------
-    const newEdges: Edge[] = rawEdges.map(([src, tgt]) => ({
-      id: `${src}->${tgt}`,
-      source: src,
-      target: tgt,
-      type: "smoothstep",
-      animated: false,
-    }));
-
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [flowData]);
+  }, [flowchart]);
 
-  const onConnect = useCallback(
-    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
-    []
-  );
+  const onConnect = (params: Edge | Connection) => setEdges((e) => addEdge(params, e));
 
   return (
-    <div className="h-[90vh] w-full border rounded">
+    <div className="flex h-[85vh] w-[100vh] border rounded">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -222,7 +180,6 @@ export default function Flowchart({
         fitView
         fitViewOptions={{ padding: 0.2 }}
       >
-        <MiniMap />
         <Controls />
         <Background gap={12} />
       </ReactFlow>

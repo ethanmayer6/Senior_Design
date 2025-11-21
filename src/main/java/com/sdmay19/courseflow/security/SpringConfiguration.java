@@ -61,17 +61,17 @@ import lombok.SneakyThrows;
 @Configuration
 public class SpringConfiguration implements WebMvcConfigurer {
 
-
     // SERVING FRONTENT BUILD
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         this.serveDirectory(registry, "/", "classpath:/static/");
     }
+
     private void serveDirectory(ResourceHandlerRegistry registry, String endpoint, String location) {
         // 1
         String[] endpointPatterns = endpoint.endsWith("/")
-                ? new String[]{endpoint.substring(0, endpoint.length() - 1), endpoint, endpoint + "**"}
-                : new String[]{endpoint, endpoint + "/", endpoint + "/**"};
+                ? new String[] { endpoint.substring(0, endpoint.length() - 1), endpoint, endpoint + "**" }
+                : new String[] { endpoint, endpoint + "/", endpoint + "/**" };
         registry
                 // 2
                 .addResourceHandler(endpointPatterns)
@@ -80,7 +80,8 @@ public class SpringConfiguration implements WebMvcConfigurer {
                 // 3
                 .addResolver(new PathResourceResolver() {
                     @Override
-                    public Resource resolveResource(HttpServletRequest request, String requestPath, List<? extends Resource> locations, ResourceResolverChain chain) {
+                    public Resource resolveResource(HttpServletRequest request, String requestPath,
+                            List<? extends Resource> locations, ResourceResolverChain chain) {
                         Resource resource = super.resolveResource(request, requestPath, locations, chain);
                         if (nonNull(resource)) {
                             return resource;
@@ -102,39 +103,40 @@ public class SpringConfiguration implements WebMvcConfigurer {
     @Autowired
     private JwtAuthenticationFilter jwtAuthFilter;
 
+    @Bean
+    @SneakyThrows
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login",
+                                "/api/users/check-email", "/api/courses/**", "/api/majors/**",
+                                "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**",
+                                "/api/semester/**", "/api/progressReport/**")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults())
+                .userDetailsService(userDetailsService())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
 
     @Bean
-@SneakyThrows
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-        .csrf(csrf -> csrf.disable())
-        .cors(Customizer.withDefaults())
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**", "/api/majors/**", "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**", "/api/semester/**", "/api/progressReport/upload", "/api/progressReport/flowchart" ).permitAll()
-            .requestMatchers("/api/admin/**").hasRole("ADMIN")
-            .anyRequest().authenticated()
-        )
-        .httpBasic(Customizer.withDefaults())
-        .userDetailsService(userDetailsService())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
-    return http.build();
-}
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173")); // ✅ your React app
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // allows Authorization header & cookies
 
-
-@Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of("http://localhost:5173")); // ✅ your React app
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("*"));
-    config.setAllowCredentials(true); // allows Authorization header & cookies
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", config);
-    return source;
-}
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 
     // IN MEMORY USER TO PROMPT SPRING SECURITY
     @Bean
@@ -147,7 +149,5 @@ public CorsConfigurationSource corsConfigurationSource() {
         System.out.println("Loaded test user: username/password");
         return new InMemoryUserDetailsManager(user);
     }
-
-
 
 }
