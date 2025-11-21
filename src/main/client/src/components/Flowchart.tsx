@@ -50,7 +50,6 @@ const nodeTypes = {
   semester: SemesterNode,
 };
 
-const X_SPACING = 50;
 const Y_SPACING = 150;
 
 const deptClasses: Record<string, string> = {
@@ -110,10 +109,8 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
       // --- Make grid layout inside each semester ---
       const columns = 6; // max courses per row
       const spacingX = 90;
-      const spacingY = 70;
 
       sem.courses.forEach((c, index) => {
-        const rowIndex = Math.floor(index / columns);
         const colIndex = index % columns;
 
         const courseIdent = c.courseIdent;
@@ -147,10 +144,6 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
           });
         });
       });
-
-      // --- Increase height based on rows ---
-      const totalRows = Math.ceil(sem.courses.length / columns);
-      const height = 40 + totalRows * spacingY + 40;
 
       newNodes.push({
         id: semId,
