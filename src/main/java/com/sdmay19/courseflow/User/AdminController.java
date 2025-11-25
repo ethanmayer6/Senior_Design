@@ -19,56 +19,54 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-
     @Autowired
     private ObjectMapper objectMapper;
 
-  @Autowired
-  UserService userService;
-  
+    @Autowired
+    UserService userService;
 
-  @GetMapping("/users")
-  public ResponseEntity<List<AppUser>> getAllUsers() {
-    return ResponseEntity.ok(userService.getAllUsers());
-  }
-
-  @GetMapping("/user/{id}")
-  public ResponseEntity<AppUser> getUser(@PathVariable Long id) {
-      AppUser user = userService.getUserById(id);
-      return ResponseEntity.ok(user);
-  }
-
-  @PutMapping("/user")
-  public ResponseEntity<AppUser> updateUser(@RequestBody Map<String, Object> body) {
-      long id = ((Number) body.get("id")).longValue();
-      UserUpdator updates = objectMapper.convertValue(body, UserUpdator.class);
-      userService.updateUser(id, updates);
-      AppUser user = userService.getUserById(id);
-      return ResponseEntity.ok(user);
-  }
-
-
-  @PutMapping("/setRole")
-  public ResponseEntity<AppUser> setRole(@RequestBody Map<String, Object> body) {
-    long id = getIdFromBody(body);
-    String newRole = (String) body.get("role");
-    userService.setRole(id, newRole);
-    AppUser user = userService.getUserById(id);
-    return ResponseEntity.ok(user);
-  }
-
-  @DeleteMapping("/user")
-    public ResponseEntity<Void> delete(@RequestBody Map<String, Object> body) {
-      long id = getIdFromBody(body);
-      userService.deleteById(id); 
-      return ResponseEntity.noContent().build();
+    @GetMapping("/users")
+    public ResponseEntity<List<AppUser>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-  // HELPER METHODS
-  private long getIdFromBody(Map<String, Object> body) {
-    Number idNumber = (Number) body.get("id");
-    long id = idNumber.longValue();
-    return id;
-  }
+    @GetMapping("/user/{id}")
+    public ResponseEntity<AppUser> getUser(@PathVariable Long id) {
+        AppUser user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/user")
+    public ResponseEntity<AppUser> updateUser(@RequestBody Map<String, Object> body) {
+        long id = ((Number) body.get("id")).longValue();
+        UserUpdator updates = objectMapper.convertValue(body, UserUpdator.class);
+        userService.updateUser(id, updates);
+        AppUser user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
+    }
+
+
+    @PutMapping("/setRole")
+    public ResponseEntity<AppUser> setRole(@RequestBody Map<String, Object> body) {
+        long id = getIdFromBody(body);
+        String newRole = (String) body.get("role");
+        userService.setRole(id, newRole);
+        AppUser user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
+    }
+
+    @DeleteMapping("/user")
+    public ResponseEntity<Void> delete(@RequestBody Map<String, Object> body) {
+        long id = getIdFromBody(body);
+        userService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // HELPER METHODS
+    private long getIdFromBody(Map<String, Object> body) {
+        Number idNumber = (Number) body.get("id");
+        long id = idNumber.longValue();
+        return id;
+    }
 
 }

@@ -24,6 +24,14 @@ public class RequirementGroupController {
         RequirementGroup saved = requirementGroupService.createFromDTO(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+    
+    @PostMapping("/{groupId}/linkcourses")
+    public RequirementGroup linkCourses(
+        @PathVariable long groupId,
+        @RequestBody List<String> courseIdents
+    ) {
+        return requirementGroupService.linkCoursesToExistingGroup(groupId, courseIdents);
+    }
 
     // READ
     @GetMapping("/ident/{id}")

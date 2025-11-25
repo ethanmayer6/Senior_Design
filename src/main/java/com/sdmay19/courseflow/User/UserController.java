@@ -6,15 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.web.bind.annotation.*;
 
 import com.sdmay19.courseflow.security.AuthResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -39,19 +35,27 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
+    @PostMapping("/{id}/profile-picture")
+    public ResponseEntity<?> uploadProfilePicture(@PathVariable Long id,  @RequestParam("file") MultipartFile file) {
+        return userService.uploadProfilePicture(id, file);
+    }
 
     @GetMapping("/check-email")
     public ResponseEntity<Map<String, Boolean>> checkEmailAvailability(@org.springframework.web.bind.annotation.RequestParam String email) {
         boolean isAvailable = userService.isEmailAvailable(email);
         return ResponseEntity.ok(Map.of("available", isAvailable));
     }
-
     // READ
     @GetMapping("/me")
     public ResponseEntity<AppUser> getMe(Authentication auth) {
-      AppUser u = (AppUser) auth.getPrincipal();
-      return ResponseEntity.ok(u);
+        AppUser u = (AppUser) auth.getPrincipal();
+        return ResponseEntity.ok(u);
     }
+    @GetMapping("/{id}/picture")
+    public ResponseEntity<String> getPicture(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getProfilePic(id));
+    }
+
     // UPDATE
     @PutMapping("/me")
     public ResponseEntity<AppUser> updateUser(Authentication auth, @RequestBody UserUpdator updates) {
