@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
+import { Badge } from "../components/Badge";
+import type { Course } from "../types/course";
 import Header from "../components/header";
 import type { User } from "../types/user";
 import { Card } from "primereact/card";
@@ -11,6 +14,8 @@ import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
 
 export default function Profile(){
+    
+    {/* Initializations */}
     const [user, setUser] = useState<Partial<User> | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -29,13 +34,17 @@ export default function Profile(){
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
-    const mockBadges = ["Beginner", "Contributor", "Beta Tester"];
+    const [badgeCourses, setBadgeCourses] = useState<Course[]>([]);
+    const [badgesLoading, setBadgesLoading] = useState(false);
+
     const mockProgress = [
         { id: 1, label: "Intro to Programming", value: 80 },
         { id: 2, label: "Data Structures", value: 50 },
         { id: 3, label: "Algorithms", value: 30 },
     ];
 
+
+    {/* Profile Picture Setup */}
     const resolveProfileUrl = (url?: string | null) => {
         if(!url) return undefined;
         if(url.startsWith("http://") || url.startsWith("https://")){
@@ -113,6 +122,27 @@ export default function Profile(){
         }
     };
 
+    {/* Badges */}
+    const fetchBadgeCourses = async () => {
+        setBadgesLoading(true);
+        try{
+            const resp = await axios.get("http://localhost:8080/api/courses/all");
+            const list: Course[] = resp.data ?? [];
+            setBadgeCourses(list.slice(0, 5)); //Mock: take first 5 courses as badges
+        }
+        catch(err){
+            console.error("Failed to load badge courses", err);
+        }
+        finally{
+            setBadgesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBadgeCourses();
+    }, []);
+
+    {/* Setup mock user */}
     useEffect(() => {
         if(import.meta.env.DEV && new URLSearchParams(window.location.search).get("mock") === "true"){
             setUser({
@@ -298,18 +328,32 @@ export default function Profile(){
                             
                             <h2 className="text-xl font-semibold text-gray-800">{fullName}</h2>
 
-                            {/*Badges Placeholder*/}
+                            {/*Badges*/}
                             <div className="w-full">
                                 <h3 className="text-sm font-medium text-gray-600 mb-2">Badges</h3>
                                 <div className="overflow-x-auto">
-                                    <div className="flex gap-3 py-2">
-                                        {mockBadges.map((b, idx) => (
-                                            <div key={idx} className="min-w-[120px] flex-shrink-0 bg-white border rounded-md shadow-sm px-3 py-3 flex flex-col items-center justify-center" role="group" aria-label={`Badge ${b}`}>
-                                                <div className="text-sm font-semibold text-gray-700">{b}</div>
-                                                <div className="text-xs text-gray-400 mt-1">Earned</div>
+                                   <div className="flex gap-3 py-2">
+                                    {badgesLoading ? (
+                                        <div className="text-sm text-gray-500">Loading badges...</div>
+                                    ) : badgeCourses.length === 0 ? (
+                                        <div className="text-sm text-gray-500">No badges yet.</div>
+                                    ) : (
+                                        badgeCourses.map((c) => (
+                                            <div
+                                                key={c.courseIdent}
+                                                className="min-w-[120px] flex-shrink-0 bg-white border rounded-md shadow-sm px-3 py-3 flex flex-col items-center justify-center"
+                                                role="group"
+                                                aria-label={`Badge ${c.name}`}
+                                            >
+                                                <Badge course={c} size={96} />
+                                                <div className="text-xs text-gray-600 mt-2 text-center max-w-[100px] break-words">{c.name}</div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        ))
+                                    )}
+                                   </div>
+                                </div>
+                                <div className="mt-2">
+                                    <Link to="/badges" className="text-sm text-blue-600 underline">View all badges</Link>
                                 </div>
                             </div>
 
