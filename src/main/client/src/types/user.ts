@@ -7,4 +7,5 @@ export type User = {
   password: string;
   phone: string;
   major: string;
+  profilePictureUrl?: string;
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import Header from "../components/header";
 import type { User } from "../types/user";
@@ -24,6 +24,10 @@ export default function Profile(){
 
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [avatarDialogVisible, setAvatarDialogVisible] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
     const mockBadges = ["Beginner", "Contributor", "Beta Tester"];
     const mockProgress = [
@@ -31,6 +35,14 @@ export default function Profile(){
         { id: 2, label: "Data Structures", value: 50 },
         { id: 3, label: "Algorithms", value: 30 },
     ];
+
+    const resolveProfileUrl = (url?: string | null) => {
+        if(!url) return undefined;
+        if(url.startsWith("http://") || url.startsWith("https://")){
+            return url;
+        }
+        return `http://localhost:8080${url}`;
+    };
 
     const onAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -50,12 +62,17 @@ export default function Profile(){
         const url = URL.createObjectURL(file);
         setAvatarPreview(url);
         setForm((f) => ({ ...f, _avatarFile: file as any }));
+        setSelectedFileName(file.name);
     };
 
     const uploadAvatar = async () => {
         const file = (form as any)._avatarFile as File | undefined;
         if(!file){
             setError("No file selected.");
+            return;
+        }
+        if(!user?.id){
+            setError("User id not available.");
             return;
         }
         setUploading(true);
@@ -65,16 +82,16 @@ export default function Profile(){
             const fd = new FormData();
             fd.append("file", file);
 
-            const resp = await axios.post("http://localhost:8080/api/users/me/avatar", fd, {
+            const resp = await axios.post(`http://localhost:8080/api/users/${user.id}/profile-picture`, fd, {
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     "Content-Type": "multipart/form-data",
                 },
             });
 
-            const avatarUrl = resp.data?.avatarUrl;
-            if(avatarUrl){
-                setUser((u) => ({ ...(u ?? {}), avatarUrl }));
+            const profilePictureUrl = resp.data?.profilePictureUrl;
+            if(profilePictureUrl){
+                setUser((u) => ({ ...(u ?? {}), profilePictureUrl }));
                 setSuccess("Profile picture updated.");
                 setAvatarPreview(null);
                 setForm((f) => {
@@ -82,6 +99,7 @@ export default function Profile(){
                     delete (copy as any)._avatarFile;
                     return copy;
                 });
+                setAvatarDialogVisible(false);
             }
             else{
                 setError("Upload succeeded but server didn't return image URL.");
@@ -139,6 +157,18 @@ export default function Profile(){
         setEditVisible(false);
         setEditSection("none");
         setForm({});
+    };
+
+    const closeAvatarDialog = () => {
+        setAvatarDialogVisible(false);
+        setAvatarPreview(null);
+        setForm((f) => {
+            const copy = {...f};
+            delete (copy as any)._avatarFile;
+            return copy;
+        });
+        setError("");
+        setSuccess("");
     };
 
     const onFormChange = (key: keyof User, value: any) => {
@@ -255,20 +285,17 @@ export default function Profile(){
                 <div className="w-full max-w-md px-4">
                     <Card className="shadow-md">
                         <div className="flex flex-col items-center gap-4 p-4">
-                            <Avatar label={user?.firstName?.[0] ?? "U"} size="xlarge" shape="circle" style={{ backgroundColor: "#6b7280", color: "white" }}/>
-                            <input id="avatarFile" type="file" accept="image/*" onChange={onAvatarFileChange} className="hidden" />
-                            <label htmlFor="avatarFile" className="cursor-pointer text-sm text-red-600 underline">Change photo</label>
-                            {avatarPreview && (
-                                <div className="mt-2">
-                                    <img src={avatarPreview} alt="Preview" className="w-24 h-24 object-cover rounded-full border" />
-                                    <div className="flex gap-2 mt-2">
-                                        <button className="btn btn-secondary" onClick={() => { setAvatarPreview(null); setForm((f) => { const c={...f}; delete (c as any)._avatarFile; return c; }); }}>Cancel</button>
-                                        <button className="btn btn-primary" onClick={uploading ? undefined : uploadAvatar}>
-                                            {uploading ? "Uploading..." : "Upload"}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <Avatar 
+                                image={ resolveProfileUrl(user?.profilePictureUrl ?? null) }
+                                label={user?.firstName?.[0] ?? "U"} 
+                                size="xlarge" 
+                                shape="circle" 
+                                style={{ backgroundColor: "#6b7280", color: "white" }}
+                            />
+                            <div className="pt-2">
+                                <Button className="p-button-link p-button-plain text-sm text-red-600 underline" label="Change photo" onClick={() => { setAvatarDialogVisible(true); setError(""); setSuccess(""); }} />
+                            </div>
+                            
                             <h2 className="text-xl font-semibold text-gray-800">{fullName}</h2>
 
                             {/*Badges Placeholder*/}
@@ -326,6 +353,33 @@ export default function Profile(){
                     </Card>
                 </div>
             </main>
+
+            {/*Avatar Upload Dialog*/}
+            <Dialog header="Change Photo" visible={avatarDialogVisible} style={{ width: "420px" }} onHide={closeAvatarDialog} modal>
+                <div className="flex flex-col gap-3 items-center">
+                    <div>
+                        <img
+                            src={ avatarPreview ?? resolveProfileUrl(user?.profilePictureUrl ?? null) ?? undefined }
+                            alt="Avatar Preview"
+                            className="w-24 h-24 object-cover rounded-full border"
+                        />
+                    </div>
+                    <div className="w-full">
+                        <input ref={fileInputRef} id="avatarFileInput" type="file" accept="image/*" onChange={onAvatarFileChange} className="hidden" />
+                        <div className="text-xs text-gray-500 mt-1">Max 2MB. PNG/JPG/GIF supported.</div>
+                        
+                        <Button label="Choose file" onClick={() => fileInputRef.current?.click()} className="p-button-secondary" />
+                        {selectedFileName && <div className="text-sm">{selectedFileName}</div>}
+
+                        <div className="flex justify-end gap-2 w-full">
+                            <Button label="Cancel" className="p-button-secondary" onClick={closeAvatarDialog} />
+                            <Button label={uploading ? "Uploading..." : "Upload"} onClick={uploading ? undefined : uploadAvatar} />
+                        </div>
+                    </div>
+                    {error && <div className="text-red-600 mt-2">{error}</div>}
+                    {success && <div className="text-green-600 mt-2">{success}</div>}
+                </div>
+            </Dialog>
 
             {/*Edit Dialog*/}
             <Dialog header="Edit Profile" visible={editVisible} style={{ width: "420px" }} onHide={closeEdit} modal>
