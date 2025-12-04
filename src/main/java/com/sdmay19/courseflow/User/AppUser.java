@@ -46,10 +46,12 @@ public class AppUser implements UserDetails {
     @Override
     public boolean isEnabled() { return true; }
 
+    private String profilePictureUrl; // store path or URL
+
 
     public AppUser() {}
 
-    public AppUser(String firstName, String lastName, String password, String email, String phone, String major, List<Flowchart> flowcharts) {
+    public AppUser(String firstName, String lastName, String password, String email, String phone, String major, List<Flowchart> flowcharts, String profilePictureUrl) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
@@ -58,6 +60,7 @@ public class AppUser implements UserDetails {
         this.major = major;
         this.role = "USER";
         this.flowcharts = flowcharts;
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     // GETTERS
@@ -90,6 +93,7 @@ public class AppUser implements UserDetails {
         return role;
     }
     public List<Flowchart> getFlowcharts() { return flowcharts; }
+    public String getProfilePictureUrl() { return profilePictureUrl; }
 
     // SETTERS
     public void setId(long id) {
@@ -114,6 +118,7 @@ public class AppUser implements UserDetails {
         this.major = major;
     }
     public void setFlowcharts(List<Flowchart> flowcharts) { this.flowcharts = flowcharts; }
+    public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
 
 
 
