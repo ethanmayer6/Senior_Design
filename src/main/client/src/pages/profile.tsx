@@ -1,49 +1,44 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Header from "../components/Header.tsx";
-import type { User } from "../types/user";
-import { Card } from "primereact/card";
-import { InputText } from "primereact/inputtext";
-import { InputMask } from "primereact/inputmask";
-import { Button } from "primereact/button";
-import { Avatar } from "primereact/avatar";
-import { Dialog } from "primereact/dialog";
-import { Divider } from "primereact/divider";
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import Header from '../components/header.tsx';
+import type { User } from '../types/user';
+import { Card } from 'primereact/card';
+import { InputText } from 'primereact/inputtext';
+import { InputMask } from 'primereact/inputmask';
+import { Button } from 'primereact/button';
+import { Avatar } from 'primereact/avatar';
+import { Dialog } from 'primereact/dialog';
+import { Divider } from 'primereact/divider';
 
 export default function Profile() {
   const [user, setUser] = useState<Partial<User> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const [editVisible, setEditVisible] = useState(false);
-  const [editSection, setEditSection] = useState<
-    "none" | "contact" | "profile"
-  >("none");
+  const [editSection, setEditSection] = useState<'none' | 'contact' | 'profile'>('none');
 
   const [form, setForm] = useState<Partial<User>>({});
 
-  const mockBadges = ["Beginner", "Contributor", "Beta Tester"];
+  const mockBadges = ['Beginner', 'Contributor', 'Beta Tester'];
   const mockProgress = [
-    { id: 1, label: "Intro to Programming", value: 80 },
-    { id: 2, label: "Data Structures", value: 50 },
-    { id: 3, label: "Algorithms", value: 30 },
+    { id: 1, label: 'Intro to Programming', value: 80 },
+    { id: 2, label: 'Data Structures', value: 50 },
+    { id: 3, label: 'Algorithms', value: 30 },
   ];
 
   useEffect(() => {
-    if (
-      import.meta.env.DEV &&
-      new URLSearchParams(window.location.search).get("mock") === "true"
-    ) {
+    if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('mock') === 'true') {
       setUser({
         id: 1,
-        role: "student",
-        firstName: "Dev",
-        lastName: "User",
-        email: "dev.user@example.com",
-        phone: "(555) 123-4567",
-        major: "Computer Science",
+        role: 'student',
+        firstName: 'Dev',
+        lastName: 'User',
+        email: 'dev.user@example.com',
+        phone: '(555) 123-4567',
+        major: 'Computer Science',
       });
       setLoading(false);
       return;
@@ -51,18 +46,15 @@ export default function Profile() {
 
     const fetchProfile = async () => {
       setLoading(true);
-      setError("");
+      setError('');
       try {
-        const token = localStorage.getItem("token");
-        const resp = await axios.get("http://localhost:8080/api/users/me", {
+        const token = localStorage.getItem('token');
+        const resp = await axios.get('http://localhost:8080/api/users/me', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         setUser(resp.data);
       } catch (err: any) {
-        setError(
-          err?.response?.data?.message ||
-            "Failed to load profile. Please try again."
-        );
+        setError(err?.response?.data?.message || 'Failed to load profile. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -70,9 +62,7 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  const fullName = user
-    ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
-    : "";
+  const fullName = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '';
 
   // const openEdit = (section: "contact" | "profile") => {
   //     setForm({
@@ -88,7 +78,7 @@ export default function Profile() {
 
   const closeEdit = () => {
     setEditVisible(false);
-    setEditSection("none");
+    setEditSection('none');
     setForm({});
   };
 
@@ -113,59 +103,51 @@ export default function Profile() {
     if (!user) return;
 
     //Email & Phone validation
-    if (editSection === "contact") {
+    if (editSection === 'contact') {
       //Email regex
-      const email = form.email ?? "";
+      const email = form.email ?? '';
       const emailRegex = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
       if (!emailRegex.test(email)) {
-        setError("Please enter a valid email address.");
+        setError('Please enter a valid email address.');
         return;
       }
 
       //Phone regex
-      const phone = form.phone ?? "";
+      const phone = form.phone ?? '';
       const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
       if (!phoneRegex.test(phone)) {
-        setError(
-          "Please enter a valid phone number in the format (123) 456-7890."
-        );
+        setError('Please enter a valid phone number in the format (123) 456-7890.');
         return;
       }
     }
 
     const updates = buildUpdates();
     if (Object.keys(updates).length === 0) {
-      setError("No changes to save.");
+      setError('No changes to save.');
       return;
     }
     setSaving(true);
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
     try {
-      const token = localStorage.getItem("token");
-      const resp = await axios.put(
-        "http://localhost:8080/api/users/me",
-        updates,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        }
-      );
+      const token = localStorage.getItem('token');
+      const resp = await axios.put('http://localhost:8080/api/users/me', updates, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (resp.status === 200) {
         setUser((u) => ({ ...(u ?? {}), ...updates }));
-        setSuccess("Profile updated.");
+        setSuccess('Profile updated.');
         closeEdit();
       } else if (resp.data) {
         setUser(resp.data);
-        setSuccess("Profile updated.");
+        setSuccess('Profile updated.');
         closeEdit();
       } else {
-        setSuccess("Profile updated.");
+        setSuccess('Profile updated.');
         closeEdit();
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || "Failed to update profile. Try again."
-      );
+      setError(err?.response?.data?.message || 'Failed to update profile. Try again.');
     } finally {
       setSaving(false);
     }
@@ -191,8 +173,8 @@ export default function Profile() {
   }
 
   const formatPhone = (phone?: string | null) => {
-    if (!phone) return "";
-    const digits = phone.replace(/\D/g, "");
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
     if (digits.length === 10) {
       const a = digits.slice(0, 3);
       const b = digits.slice(3, 6);
@@ -211,20 +193,16 @@ export default function Profile() {
           <Card className="shadow-md">
             <div className="flex flex-col items-center gap-4 p-4">
               <Avatar
-                label={user?.firstName?.[0] ?? "U"}
+                label={user?.firstName?.[0] ?? 'U'}
                 size="xlarge"
                 shape="circle"
-                style={{ backgroundColor: "#6b7280", color: "white" }}
+                style={{ backgroundColor: '#6b7280', color: 'white' }}
               />
-              <h2 className="text-xl font-semibold text-gray-800">
-                {fullName}
-              </h2>
+              <h2 className="text-xl font-semibold text-gray-800">{fullName}</h2>
 
               {/*Badges Placeholder*/}
               <div className="w-full">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">
-                  Badges
-                </h3>
+                <h3 className="text-sm font-medium text-gray-600 mb-2">Badges</h3>
                 <div className="overflow-x-auto">
                   <div className="flex gap-3 py-2">
                     {mockBadges.map((b, idx) => (
@@ -234,9 +212,7 @@ export default function Profile() {
                         role="group"
                         aria-label={`Badge ${b}`}
                       >
-                        <div className="text-sm font-semibold text-gray-700">
-                          {b}
-                        </div>
+                        <div className="text-sm font-semibold text-gray-700">{b}</div>
                         <div className="text-xs text-gray-400 mt-1">Earned</div>
                       </div>
                     ))}
@@ -246,19 +222,12 @@ export default function Profile() {
 
               {/*Progress placeholder*/}
               <div className="w-full mt-3">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">
-                  Progress
-                </h3>
+                <h3 className="text-sm font-medium text-gray-600 mb-2">Progress</h3>
                 <div className="max-h-44 overflow-y-auto space-y-3 pr-2">
                   {mockProgress.map((p) => (
-                    <div
-                      key={p.id}
-                      className="bg-white border rounded-md shadow-sm p-3"
-                    >
+                    <div key={p.id} className="bg-white border rounded-md shadow-sm p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium text-gray-700">
-                          {p.label}
-                        </div>
+                        <div className="text-sm font-medium text-gray-700">{p.label}</div>
                         <div className="text-xs text-gray-500">{p.value}%</div>
                       </div>
                     </div>
@@ -292,10 +261,10 @@ export default function Profile() {
                   label="Edit Profile"
                   className="w-full p-button-danger"
                   onClick={() => {
-                    setEditSection("none");
+                    setEditSection('none');
                     setEditVisible(true);
-                    setError("");
-                    setSuccess("");
+                    setError('');
+                    setSuccess('');
                   }}
                 />
               </div>
@@ -308,85 +277,65 @@ export default function Profile() {
       <Dialog
         header="Edit Profile"
         visible={editVisible}
-        style={{ width: "420px" }}
+        style={{ width: '420px' }}
         onHide={closeEdit}
         modal
       >
         <div>
           {/*Section selector*/}
-          {editSection === "none" && (
+          {editSection === 'none' && (
             <div className="flex flex-col gap-3">
-              <Button
-                label="Contact Info"
-                onClick={() => setEditSection("contact")}
-              />
-              <Button
-                label="Profile Info"
-                onClick={() => setEditSection("profile")}
-              />
+              <Button label="Contact Info" onClick={() => setEditSection('contact')} />
+              <Button label="Profile Info" onClick={() => setEditSection('profile')} />
             </div>
           )}
 
           {/*Contact Info Form*/}
-          {editSection === "contact" && (
+          {editSection === 'contact' && (
             <div className="flex flex-col gap-3">
               <label className="text-sm text-gray-600">Email</label>
               <InputText
-                value={form.email ?? ""}
+                value={form.email ?? ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onFormChange("email", e.target.value)
+                  onFormChange('email', e.target.value)
                 }
               />
               <label className="text-sm text-gray-600">Phone</label>
               <InputMask
                 mask="(999) 999-9999"
-                value={form.phone ?? ""}
-                onChange={(e: any) => onFormChange("phone", e.value ?? "")}
+                value={form.phone ?? ''}
+                onChange={(e: any) => onFormChange('phone', e.value ?? '')}
               />
               <Divider />
               <div className="flex justify-end gap-2">
-                <Button
-                  label="Cancel"
-                  className="p-button-secondary"
-                  onClick={closeEdit}
-                />
-                <Button
-                  label={saving ? "Saving..." : "Save"}
-                  onClick={handleSave}
-                />
+                <Button label="Cancel" className="p-button-secondary" onClick={closeEdit} />
+                <Button label={saving ? 'Saving...' : 'Save'} onClick={handleSave} />
               </div>
             </div>
           )}
 
           {/*Profile Info Form*/}
-          {editSection === "profile" && (
+          {editSection === 'profile' && (
             <div className="flex flex-col gap-3">
               <label className="text-sm text-gray-600">First Name</label>
               <InputText
-                value={form.firstName ?? ""}
-                onChange={(e) => onFormChange("firstName", e.target.value)}
+                value={form.firstName ?? ''}
+                onChange={(e) => onFormChange('firstName', e.target.value)}
               />
               <label className="text-sm text-gray-600">Last Name</label>
               <InputText
-                value={form.lastName ?? ""}
-                onChange={(e) => onFormChange("lastName", e.target.value)}
+                value={form.lastName ?? ''}
+                onChange={(e) => onFormChange('lastName', e.target.value)}
               />
               <label className="text-sm text-gray-600">Major</label>
               <InputText
-                value={form.major ?? ""}
-                onChange={(e) => onFormChange("major", e.target.value)}
+                value={form.major ?? ''}
+                onChange={(e) => onFormChange('major', e.target.value)}
               />
               <Divider />
               <div className="flex justify-end gap-2">
-                <Button
-                  label="Cancel"
-                  className="p-button-secondary"
-                  onClick={closeEdit}
-                />
-                <Button
-                  label={saving ? "Saving..." : "Save"}
-                  onClick={handleSave}
-                />
+                <Button label="Cancel" className="p-button-secondary" onClick={closeEdit} />
+                <Button label={saving ? 'Saving...' : 'Save'} onClick={handleSave} />
               </div>
             </div>
           )}

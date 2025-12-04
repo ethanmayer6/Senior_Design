@@ -4,7 +4,7 @@ import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import axios from 'axios';
-import Header from '../components/Header.tsx';
+import Header from '../components/header.tsx';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {

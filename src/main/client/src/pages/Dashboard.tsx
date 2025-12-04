@@ -4,7 +4,7 @@ import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import { getUserFlowchart } from '../api/flowchartApi';
 import type { Flowchart as FlowchartType } from '../api/flowchartApi';
-import Header from '../components/Header';
+import Header from '../components/header';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Button } from 'primereact/button';
 
