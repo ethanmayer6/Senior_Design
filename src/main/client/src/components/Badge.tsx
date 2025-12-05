@@ -19,15 +19,15 @@ import DesignSVG6 from "../assets/badge-design-6star.svg?react";
 function digitToRibbonColor(digit: string): string {
   switch (digit) {
     case "1":
-      return "#b07c41ff"; // 
+      return "#b07c41ff"; //
     case "2":
-      return "#bdc1c5ff"; // 
+      return "#bdc1c5ff"; //
     case "3":
-      return "#f0cd31ff"; // 
+      return "#f0cd31ff"; //
     case "4":
-      return "#08a4ddff"; // 
+      return "#08a4ddff"; //
     case "5":
-      return "#780adfff"; // 
+      return "#780adfff"; //
     default:
       return "#ff0000ff"; // fallback red
   }
@@ -39,7 +39,7 @@ function stringToColor(str: string): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  const h = (Math.abs(hash) % 360);
+  const h = Math.abs(hash) % 360;
   const s = 70 + (Math.abs(hash) % 20);
   const l = 70 + (Math.abs(hash) % 10);
 
@@ -76,20 +76,17 @@ const ribbonMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   "2": RibbonSVG3,
 };
 
-
 // ------------------------
 // Extract badge colors from a Course
 // ------------------------
-export function getBadgeColors(course: Course) {
+function getBadgeColors(course: Course) {
   const [prefix = "XX", code = "0000"] = course.courseIdent.split("_");
   const firstDigit = code.slice(0, 1);
   const thirdDigit = code.slice(2, 3);
-  const lastThree = code.slice(1,4);
+  const lastThree = code.slice(1, 4);
   const index = parseInt(thirdDigit) % 3; // 0, 1, or 2
   const SelectedRibbonSVG = ribbonMap[index] || RibbonSVG1;
   const SelectedDesignSVG = designMap[firstDigit] || DesignSVG1;
-
-
 
   return {
     designColor: stringToColor(lastThree),
@@ -120,59 +117,58 @@ export const Badge: React.FC<BadgeProps> = ({
   strokeWidth = 2,
   size = 96, // default pixel size
 }) => {
-  const { designColor, medalColor, ribbonColor, medalOuterColor, SelectedRibbonSVG, SelectedDesignSVG, } = getBadgeColors(course);
+  const {
+    designColor,
+    medalColor,
+    ribbonColor,
+    medalOuterColor,
+    SelectedRibbonSVG,
+    SelectedDesignSVG,
+  } = getBadgeColors(course);
   const numericSize = Number(size) || 96;
   return (
-        <svg
-          viewBox="0 30 128 160"
-          width={numericSize}
-          height={(numericSize / 128) * 160} // keep the aspect ratio
-          className="transition-transform duration-500 hover:scale-120 hover:rotate-3"
-        >
-          {/* Ribbon (bottom layer) */}
-          <g
-            transform="translate(0, 30)"
-          >
-            <SelectedRibbonSVG
-              fill={ribbonColor}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-            />
-          </g>
+    <svg
+      viewBox="0 30 128 160"
+      width={numericSize}
+      height={(numericSize / 128) * 160} // keep the aspect ratio
+      className="transition-transform duration-500 hover:scale-120 hover:rotate-3"
+    >
+      {/* Ribbon (bottom layer) */}
+      <g transform="translate(0, 30)">
+        <SelectedRibbonSVG
+          fill={ribbonColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+        />
+      </g>
 
-            {/* Medal (middle layer) */}
-          <g
-            transform="translate(0, 30)"
-          >
-            <MedalOuterSVG
-              fill={medalOuterColor}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-            />
-          </g>
+      {/* Medal (middle layer) */}
+      <g transform="translate(0, 30)">
+        <MedalOuterSVG
+          fill={medalOuterColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+        />
+      </g>
 
-          {/* Medal (middle layer) */}
-          <g
-            transform="translate(0, 30)"
-          >
-            <MedalSVG
-              fill={medalColor}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-            />
-          </g>
+      {/* Medal (middle layer) */}
+      <g transform="translate(0, 30)">
+        <MedalSVG
+          fill={medalColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+        />
+      </g>
 
-          {/* Design (top center) */}
-          <g
-            transform="translate(12, 30)"
-          >
-            <SelectedDesignSVG
-              fill={designColor}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              width="80%"
-            />
-          </g>
-        </svg>     
+      {/* Design (top center) */}
+      <g transform="translate(12, 30)">
+        <SelectedDesignSVG
+          fill={designColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          width="80%"
+        />
+      </g>
+    </svg>
   );
 };

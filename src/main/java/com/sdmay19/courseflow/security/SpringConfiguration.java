@@ -72,11 +72,12 @@ public class SpringConfiguration implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/profile-pictures/**")
                 .addResourceLocations("file:" + uploadDir + "/");
     }
+
     private void serveDirectory(ResourceHandlerRegistry registry, String endpoint, String location) {
         // 1
         String[] endpointPatterns = endpoint.endsWith("/")
-                ? new String[]{endpoint.substring(0, endpoint.length() - 1), endpoint, endpoint + "**"}
-                : new String[]{endpoint, endpoint + "/", endpoint + "/**"};
+                ? new String[] { endpoint.substring(0, endpoint.length() - 1), endpoint, endpoint + "**" }
+                : new String[] { endpoint, endpoint + "/", endpoint + "/**" };
         registry
                 // 2
                 .addResourceHandler(endpointPatterns)
@@ -85,7 +86,8 @@ public class SpringConfiguration implements WebMvcConfigurer {
                 // 3
                 .addResolver(new PathResourceResolver() {
                     @Override
-                    public Resource resolveResource(HttpServletRequest request, String requestPath, List<? extends Resource> locations, ResourceResolverChain chain) {
+                    public Resource resolveResource(HttpServletRequest request, String requestPath,
+                            List<? extends Resource> locations, ResourceResolverChain chain) {
                         Resource resource = super.resolveResource(request, requestPath, locations, chain);
                         if (nonNull(resource)) {
                             return resource;
@@ -107,25 +109,27 @@ public class SpringConfiguration implements WebMvcConfigurer {
     @Autowired
     private JwtAuthenticationFilter jwtAuthFilter;
 
-
     @Bean
     @SneakyThrows
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login", "/api/users/check-email", "/api/courses/**", "/api/majors/**", "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**", "/api/semester/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            .httpBasic(Customizer.withDefaults())
-            .userDetailsService(userDetailsService())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login",
+                                "/api/users/check-email", "/api/courses/**", "/api/majors/**",
+                                "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**",
+                                "/api/semester/**", "/api/progressReport/**")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults())
+                .userDetailsService(userDetailsService())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -139,7 +143,6 @@ public class SpringConfiguration implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 
     // IN MEMORY USER TO PROMPT SPRING SECURITY
     @Bean
