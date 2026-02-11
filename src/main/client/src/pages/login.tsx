@@ -33,8 +33,8 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(response.data));
       localStorage.setItem('token', response.data.token.trim());
 
-      // Redirect to dashboard
-      navigate('/dashboard'); // <-- ADD THIS
+      // Redirect to CourseFlow home
+      navigate('/courseflow');
     } catch (err) {
       console.error('❌ Login failed:', err);
     }

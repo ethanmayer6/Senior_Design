@@ -8,6 +8,7 @@ import CourseBadges from '../pages/CourseBadges.tsx';
 import Profile from '../pages/profile.tsx';
 import Landing from '../pages/landing.tsx';
 import Dashboard from '../pages/Dashboard.tsx';
+import CourseflowHome from '../pages/CourseflowHome.tsx';
 
 export default function AppRoutes() {
   return (
@@ -17,6 +18,7 @@ export default function AppRoutes() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/courseflow" element={<CourseflowHome />} />
         <Route path="/catalog" element={<CourseCatalog />} />
         <Route path="/badges" element={<CourseBadges />} />
         <Route path="/profile" element={<Profile />} />

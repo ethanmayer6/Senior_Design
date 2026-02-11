@@ -8,7 +8,7 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm fixed top-0 left-0 w-full flex justify-between items-center z-20">
-      <Link to="/dashboard" className="flex items-center gap-2 ml-2 mt-2 mb-2">
+      <Link to="/courseflow" className="flex items-center gap-2 ml-2 mt-2 mb-2">
         <img src="/logo.png" alt="CourseFlow Logo" className="w-[200px]" />
       </Link>
 
