@@ -26,19 +26,7 @@ export default function Header() {
             to="/profile"
             className="block text-gray-800 hover:text-red-600 transition duration-200"
           >
-            <i className="pi pi-id-card"></i> Account
-          </Link>
-          <Link
-            to="/settings"
-            className="block text-gray-800 hover:text-red-600 transition duration-200 mt-2"
-          >
-            <i className="pi pi-cog"></i> Settings
-          </Link>
-          <Link
-            to="/login"
-            className="block text-gray-800 hover:text-red-600 transition duration-200 mt-2"
-          >
-            <i className="pi pi-sign-in"></i> Login
+            <i className="pi pi-id-card"></i> Profile
           </Link>
         </OverlayPanel>
       </div>
