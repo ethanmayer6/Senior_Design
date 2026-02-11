@@ -97,9 +97,9 @@ export default function Register() {
           localStorage.setItem('token', loginData.token.trim());
 
           // ---------------------------------------------------
-          // 4. Redirect to dashboard
+          // 4. Redirect to CourseFlow home
           // ---------------------------------------------------
-          navigate('/dashboard');
+          navigate('/courseflow');
         } catch (err) {
           setError('Registration succeeded, but automatic login failed.');
         }
