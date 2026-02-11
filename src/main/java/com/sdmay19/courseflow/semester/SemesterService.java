@@ -74,9 +74,6 @@ public class SemesterService {
         if (course == null) {
             throw new CourseNotFoundException("Failed to remove course " + courseIdent + " From Semester. Course not found.");
         }
-        if (semester == null) {
-            throw new SemesterNotFoundException("Failed to find semester " + semesterId);
-        }
         semester.addCourse(course);
         flowchartService.addCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Add"));
         return semesterRepository.save(semester);
@@ -87,9 +84,6 @@ public class SemesterService {
         Course course = courseService.getByCourseIdent(courseIdent);
         if (course == null) {
             throw new CourseNotFoundException("Failed to remove course " + courseIdent + " From Semester. Course not found.");
-        }
-        if (semester == null) {
-            throw new SemesterNotFoundException("Failed to find semester " + semesterId);
         }
         semester.removeCourse(course);
         flowchartService.removeCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Remove") );
@@ -106,16 +100,15 @@ public class SemesterService {
         if (termSet.contains(dto.getTerm())) {
             semester.setTerm(dto.getTerm());
         }
-        if (!dto.getMajor().isEmpty()) {
+        if (dto.getMajor() != null && !dto.getMajor().isBlank()) {
             semester.setMajor(dto.getMajor());
         }
         if (dto.getFlowchartId() > 0) {
-            // TODO - ADD CUSTOM FLOWCHART ERROR
             Flowchart flowchart = flowChartRepository.findById(dto.getFlowchartId())
-                    .orElseThrow();
+                    .orElseThrow(() -> new FlowchartNotFoundException("Flowchart with id: " + dto.getFlowchartId() + " not found."));
             semester.setFlowchart(flowchart);
         }
-        if (!dto.getCourseIdents().isEmpty()) {
+        if (dto.getCourseIdents() != null && !dto.getCourseIdents().isEmpty()) {
             List<Course> courses = courseRepository.findAllByCourseIdentIn(dto.getCourseIdents());
             semester.setCourses(courses);
         }

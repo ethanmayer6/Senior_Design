@@ -41,14 +41,14 @@ public class GlobalExceptionHandler {
 
     // COURSE
     @ExceptionHandler(CourseNotFoundException.class)
-    public ResponseEntity<Object> handleCourseNotFoundException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleCourseNotFoundException(CourseNotFoundException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
     @ExceptionHandler(CourseCreationException.class)
-    public ResponseEntity<Object> handleCourseCreationException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleCourseCreationException(CourseCreationException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
@@ -57,14 +57,14 @@ public class GlobalExceptionHandler {
 
     // REQUIREMENT
     @ExceptionHandler(RequirementGroupCreationException.class)
-    public ResponseEntity<Object> handleRequirementGroupCreationException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleRequirementGroupCreationException(RequirementGroupCreationException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(RequirementGroupNotFoundException.class)
-    public ResponseEntity<Object> handleRequirementGroupNotFoundException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleRequirementGroupNotFoundException(RequirementGroupNotFoundException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
@@ -73,14 +73,14 @@ public class GlobalExceptionHandler {
 
     // DEGREE
     @ExceptionHandler(DegreeRequirementCreationException.class)
-    public ResponseEntity<Object> handleDegreeRequirementCreationException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleDegreeRequirementCreationException(DegreeRequirementCreationException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(DegreeRequirementNotFoundException.class)
-    public ResponseEntity<Object> handleDegreeRequirementNotFoundException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleDegreeRequirementNotFoundException(DegreeRequirementNotFoundException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
@@ -89,7 +89,7 @@ public class GlobalExceptionHandler {
 
     // MAJOR
     @ExceptionHandler(MajorCreationException.class)
-    public ResponseEntity<Object> handleMajorCreationException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleMajorCreationException(MajorCreationException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
@@ -98,7 +98,7 @@ public class GlobalExceptionHandler {
 
     // SEMESTER
     @ExceptionHandler(SemesterNotFoundException.class)
-    public ResponseEntity<Object> handleSemesterNotFoundException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleSemesterNotFoundException(SemesterNotFoundException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
@@ -107,7 +107,7 @@ public class GlobalExceptionHandler {
 
     // FLOWCHART
     @ExceptionHandler(FlowchartNotFoundException.class)
-    public ResponseEntity<Object> handleFlowchartNotFoundException(AuthenticationFailedException e) {
+    public ResponseEntity<Object> handleFlowchartNotFoundException(FlowchartNotFoundException e) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", e.getMessage());
