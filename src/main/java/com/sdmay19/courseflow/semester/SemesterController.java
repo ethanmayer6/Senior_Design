@@ -4,7 +4,6 @@ package com.sdmay19.courseflow.semester;
 import com.sdmay19.courseflow.course.Course;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -51,14 +50,14 @@ public class SemesterController {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
     }
-    @PutMapping("/update/{ident}/all")
-    public ResponseEntity<Semester> updateSemester(@PathVariable long semesterId, @RequestBody SemesterDTO dto) {
+    @PutMapping("/update/{id}/all")
+    public ResponseEntity<Semester> updateSemester(@PathVariable("id") long semesterId, @RequestBody SemesterDTO dto) {
         return ResponseEntity.ok(semesterService.updateSemester(semesterId, dto));
     }
 
     // DELETE
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteSemester(@RequestBody long id) {
+    public ResponseEntity<Void> deleteSemester(@PathVariable long id) {
         semesterService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
