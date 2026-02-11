@@ -36,29 +36,8 @@ export default function CourseflowHome() {
       <Header />
 
       <main className="pt-24 px-4 pb-10 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl gap-6">
-          <aside className="hidden md:block w-64 shrink-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm h-fit sticky top-28">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Quick Actions</p>
-
-            <Link
-              to="/profile"
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-            >
-              <i className="pi pi-cog mr-2 text-red-500"></i>
-              Settings
-            </Link>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-            >
-              <i className="pi pi-sign-out mr-2 text-red-500"></i>
-              Log out
-            </button>
-          </aside>
-
-          <section className="flex-1">
+        <div className="mx-auto grid max-w-7xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <section className="mx-auto w-full max-w-5xl">
             <div className="rounded-2xl border border-red-100 bg-white/90 p-6 shadow-sm sm:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500">Welcome</p>
               <h1 className="mt-2 text-3xl font-bold text-gray-900 sm:text-4xl">CourseFlow Home</h1>
@@ -85,7 +64,7 @@ export default function CourseflowHome() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid max-w-5xl gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {featureLinks.map((feature) => (
                 <Link
                   key={feature.to}
@@ -101,6 +80,27 @@ export default function CourseflowHome() {
               ))}
             </div>
           </section>
+
+          <aside className="hidden h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:sticky lg:top-28 lg:block">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Quick Actions</p>
+
+            <Link
+              to="/profile"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-cog mr-2 text-red-500"></i>
+              Settings
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-sign-out mr-2 text-red-500"></i>
+              Log out
+            </button>
+          </aside>
         </div>
       </main>
     </div>
