@@ -3,6 +3,7 @@ import { useEffect, memo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -24,9 +25,9 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
   <div
     title={data.title}
     className={[
-      'w-14 h-14 rounded-full',
+      'h-[4.5rem] w-[4.5rem] rounded-full',
       'flex items-center justify-center text-center',
-      'font-semibold text-xs shadow-sm cursor-default select-none',
+      'px-1 font-semibold text-[11px] leading-tight shadow-sm cursor-default select-none',
       data.cls,
     ].join(' ')}
   >
@@ -38,10 +39,10 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
 
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
   <div
-    className="rounded-xl border border-gray-400 bg-gray-50 p-2 shadow-sm"
-    style={{ width: 600, height: 120 }}
+    className="rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm"
+    style={{ width: 760, height: 150 }}
   >
-    <div className="text-sm font-bold text-gray-700 mb-1">{data.title}</div>
+    <div className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">{data.title}</div>
   </div>
 ));
 
@@ -50,7 +51,14 @@ const nodeTypes = {
   semester: SemesterNode,
 };
 
-const Y_SPACING = 150;
+const SEMESTER_WIDTH = 760;
+const COURSE_PER_ROW = 8;
+const COURSE_GAP_X = 84;
+const COURSE_GAP_Y = 94;
+const INNER_PADDING_X = 38;
+const INNER_PADDING_Y = 38;
+const MIN_SEMESTER_HEIGHT = 150;
+const Y_SPACING = 42;
 
 const deptClasses: Record<string, string> = {
   COMS: 'bg-sky-500 text-white',
@@ -94,30 +102,33 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
       (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
     );
 
-    sortedSems.forEach((sem, row) => {
+    let currentY = 0;
+    sortedSems.forEach((sem) => {
       const semId = `SEM_${sem.id}`;
+      const rowsNeeded = Math.max(1, Math.ceil(sem.courses.length / COURSE_PER_ROW));
+      const semesterHeight = Math.max(
+        MIN_SEMESTER_HEIGHT,
+        INNER_PADDING_Y + rowsNeeded * COURSE_GAP_Y
+      );
 
       newNodes.push({
         id: semId,
         type: 'semester',
-        position: { x: 200, y: row * Y_SPACING },
+        position: { x: 80, y: currentY },
         data: { title: `${sem.term} ${sem.year}` },
-        style: { width: 600, height: 140 },
+        style: { width: SEMESTER_WIDTH, height: semesterHeight },
         draggable: false,
       });
 
-      // --- Make grid layout inside each semester ---
-      const columns = 6; // max courses per row
-      const spacingX = 90;
-
       sem.courses.forEach((c, index) => {
-        const colIndex = index % columns;
+        const colIndex = index % COURSE_PER_ROW;
+        const rowIndex = Math.floor(index / COURSE_PER_ROW);
 
         const courseIdent = c.courseIdent;
         const prefix = courseIdent.split('_')[0];
         const isCompleted = flowchart.courseStatusMap?.[courseIdent] === 'COMPLETED';
         const color = deptClasses[prefix] || deptClasses.DEFAULT;
-        const cls = isCompleted ? `${color} opacity-100` : color;
+        const cls = isCompleted ? `${color} ring-2 ring-emerald-300` : `${color} opacity-95`;
 
         newNodes.push({
           id: courseIdent,
@@ -130,8 +141,8 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
           parentNode: semId,
           extent: 'parent',
           position: {
-            x: 50 + colIndex * spacingX,
-            y: 40,
+            x: INNER_PADDING_X + colIndex * COURSE_GAP_X,
+            y: INNER_PADDING_Y + rowIndex * COURSE_GAP_Y,
           },
         });
 
@@ -141,18 +152,13 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
             source: p,
             target: courseIdent,
             type: 'smoothstep',
+            animated: !isCompleted,
+            style: { stroke: '#64748b', strokeWidth: 1.5 },
           });
         });
       });
 
-      newNodes.push({
-        id: semId,
-        type: 'semester',
-        position: { x: 200, y: row * Y_SPACING },
-        data: { title: `${sem.term} ${sem.year}` },
-        style: { width: 600, height: 140 },
-        draggable: false,
-      });
+      currentY += semesterHeight + Y_SPACING;
     });
 
     setNodes(newNodes);
@@ -162,7 +168,7 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
   const onConnect = (params: Edge | Connection) => setEdges((e) => addEdge(params, e));
 
   return (
-    <div className="flex h-[85vh] w-[100vh] border rounded">
+    <div className="h-[80vh] min-h-[560px] w-full max-w-[980px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -171,10 +177,18 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.18 }}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
+        proOptions={{ hideAttribution: true }}
       >
+        <MiniMap
+          zoomable
+          pannable
+          nodeColor={(node: Node) => (node.type === 'semester' ? '#cbd5e1' : '#60a5fa')}
+          className="!bg-white"
+        />
         <Controls />
-        <Background gap={12} />
+        <Background gap={14} color="#e2e8f0" />
       </ReactFlow>
     </div>
   );
