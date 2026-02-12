@@ -2,8 +2,15 @@
 import { useEffect, useState } from 'react';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
-import { getUserFlowchart, updateSemesterCourses } from '../api/flowchartApi';
+import {
+  getFlowchartInsights,
+  getFlowchartRequirementCoverage,
+  getUserFlowchart,
+  updateSemesterCourses,
+} from '../api/flowchartApi';
 import type { Course as FlowchartCourse, Flowchart as FlowchartType } from '../api/flowchartApi';
+import type { FlowchartInsights } from '../api/flowchartApi';
+import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Button } from 'primereact/button';
@@ -33,6 +40,9 @@ export default function Dashboard() {
   const [removeCourseError, setRemoveCourseError] = useState<string | null>(null);
   const [removeCourseSuccess, setRemoveCourseSuccess] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<FlowchartCourse | null>(null);
+  const [insights, setInsights] = useState<FlowchartInsights | null>(null);
+  const [requirementCoverage, setRequirementCoverage] = useState<FlowchartRequirementCoverage | null>(null);
+  const [showRequirementCoverage, setShowRequirementCoverage] = useState(false);
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -67,12 +77,20 @@ export default function Dashboard() {
 
   const reloadFlowchart = async (failMessage: string) => {
     try {
-      const fc = await getUserFlowchart();
+      const [fc, insightData, coverageData] = await Promise.all([
+        getUserFlowchart(),
+        getFlowchartInsights(),
+        getFlowchartRequirementCoverage(),
+      ]);
       setFlowchart(fc);
+      setInsights(insightData);
+      setRequirementCoverage(coverageData);
       return fc;
     } catch (e) {
       console.error('Failed to load flowchart:', e);
       setFlowchart(null);
+      setInsights(null);
+      setRequirementCoverage(null);
       setError(failMessage);
       return null;
     }
@@ -293,8 +311,8 @@ export default function Dashboard() {
               <div className="flex h-full w-full max-w-[1320px] flex-col gap-4 xl:flex-row">
                 <div className="min-w-0 flex-1">
                   <div className="mb-4 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between text-sm font-medium text-slate-700">
-                      <span>Degree Progress</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium text-slate-700">
+                      <span>Degree Progress & Planning Insights</span>
                       <span>
                         {progressCompleted} / {progressTotal} credits ({progressPercent}%)
                       </span>
@@ -311,15 +329,93 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                       <span>{inProgressCount} course(s) currently in progress</span>
                       <span className="inline-flex items-center gap-2">
                         <span className="inline-block h-2.5 w-2.5 rounded-full ring-2 ring-emerald-300 bg-emerald-500" />
                         Completed
-                        <span className="inline-block h-2.5 w-2.5 rounded-full ring-2 ring-amber-300 bg-amber-500 ml-2" />
+                        <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-amber-300 bg-amber-500" />
                         In progress
                       </span>
                     </div>
+
+                    {insights && (
+                      <>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-700 lg:grid-cols-4">
+                          <div className="rounded-md bg-slate-50 px-3 py-2">
+                            <div className="text-slate-500">Applied</div>
+                            <div className="font-semibold text-slate-900">
+                              {insights.appliedCredits} / {insights.totalCredits}
+                            </div>
+                          </div>
+                          <div className="rounded-md bg-slate-50 px-3 py-2">
+                            <div className="text-slate-500">Remaining</div>
+                            <div className="font-semibold text-slate-900">{insights.remainingCredits}</div>
+                          </div>
+                          <div className="rounded-md bg-slate-50 px-3 py-2">
+                            <div className="text-slate-500">Projected Grad</div>
+                            <div className="font-semibold text-slate-900">{insights.projectedGraduationTerm}</div>
+                          </div>
+                          <div className="rounded-md bg-slate-50 px-3 py-2">
+                            <div className="text-slate-500">Terms Left</div>
+                            <div className="font-semibold text-slate-900">{insights.estimatedTermsToGraduate}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs">
+                          {insights.riskFlags.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {insights.riskFlags.map((flag) => (
+                                <span
+                                  key={flag}
+                                  className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-800"
+                                >
+                                  {flag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">
+                              No immediate risk flags detected.
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {requirementCoverage && requirementCoverage.totalRequirements > 0 && (
+                      <div className="mt-3 border-t border-slate-200 pt-3">
+                        <button
+                          type="button"
+                          className="flex w-full flex-wrap items-center justify-between gap-2 text-left text-xs text-slate-600"
+                          onClick={() => setShowRequirementCoverage((value) => !value)}
+                        >
+                          <span className="font-semibold text-slate-700">
+                            Requirement Coverage {showRequirementCoverage ? '(hide)' : '(show)'}
+                          </span>
+                          <span>
+                            {requirementCoverage.satisfiedRequirements} satisfied,{' '}
+                            {requirementCoverage.inProgressRequirements} in progress,{' '}
+                            {requirementCoverage.unmetRequirements} unmet
+                          </span>
+                        </button>
+                        {showRequirementCoverage && (
+                          <div className="mt-2 flex flex-col gap-1.5">
+                            {requirementCoverage.requirements.map((item) => (
+                              <div
+                                key={item.name}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-xs"
+                              >
+                                <span className="font-medium text-slate-700">{item.name}</span>
+                                <span className="text-slate-600">
+                                  {item.completedCredits} completed + {item.inProgressCredits} in progress /{' '}
+                                  {item.requiredCredits}
+                                  {item.remainingCredits > 0 ? ` (${item.remainingCredits} left)` : ' (done)'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Flowchart flowchart={flowchart} onCourseSelect={setSelectedCourse} />
                 </div>

@@ -4,18 +4,21 @@ import com.sdmay19.courseflow.User.AppUser;
 import com.sdmay19.courseflow.User.UserRepository;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.course.CourseRepository;
+import com.sdmay19.courseflow.degree_requirement.DegreeRequirement;
 import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
 import com.sdmay19.courseflow.exception.flowchart.FlowchartNotFoundException;
 import com.sdmay19.courseflow.exception.major.MajorNotFoundException;
 import com.sdmay19.courseflow.exception.user.UserNotFoundException;
 import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.major.MajorRepository;
+import com.sdmay19.courseflow.requirement_group.RequirementGroup;
 import com.sdmay19.courseflow.semester.Semester;
 import com.sdmay19.courseflow.semester.SemesterRepository;
 import com.sdmay19.courseflow.semester.Term;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -97,6 +100,26 @@ public class FlowchartService {
             Map<String, List<Course>> coursesByAcademicPeriod,
             int totalCredits,
             int satisfiedCredits) {
+        return createFromProgress(
+                user,
+                major,
+                courseStatusMap,
+                coursesByAcademicPeriod,
+                totalCredits,
+                satisfiedCredits,
+                new HashMap<>(),
+                new HashMap<>());
+    }
+
+    public Flowchart createFromProgress(
+            AppUser user,
+            Major major,
+            Map<String, Status> courseStatusMap,
+            Map<String, List<Course>> coursesByAcademicPeriod,
+            int totalCredits,
+            int satisfiedCredits,
+            Map<String, Integer> requirementRemainingMap,
+            Map<String, String> requirementStatusMap) {
 
         Flowchart flowchart = new Flowchart(
                 totalCredits,
@@ -106,6 +129,10 @@ public class FlowchartService {
                 new ArrayList<>(),
                 courseStatusMap,
                 major);
+        flowchart.setRequirementRemainingMap(
+                requirementRemainingMap == null ? new HashMap<>() : new HashMap<>(requirementRemainingMap));
+        flowchart.setRequirementStatusMap(
+                requirementStatusMap == null ? new HashMap<>() : new HashMap<>(requirementStatusMap));
 
         List<Semester> semesterEntities = new ArrayList<>();
 
@@ -382,6 +409,251 @@ public class FlowchartService {
         return selected;
     }
 
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartInsightsResponse getInsightsByUser(AppUser user) {
+        Flowchart flowchart = getByUser(user);
+        return buildInsights(flowchart);
+    }
+
+    public FlowchartInsightsResponse buildInsights(Flowchart flowchart) {
+        int completedCredits = Math.max(0, flowchart.getCreditsSatisfied());
+        int totalCredits = Math.max(0, flowchart.getTotalCredits());
+
+        Set<String> countedInProgress = new HashSet<>();
+        int inProgressCredits = 0;
+        int inProgressCourseCount = 0;
+
+        List<Semester> semesters = flowchart.getSemesters() == null ? List.of() : flowchart.getSemesters();
+        for (Semester semester : semesters) {
+            List<Course> courses = semester.getCourses() == null ? List.of() : semester.getCourses();
+            for (Course course : courses) {
+                if (course == null || course.getCourseIdent() == null) {
+                    continue;
+                }
+                String ident = normalizeCourseIdent(course.getCourseIdent());
+                if (ident.isBlank() || countedInProgress.contains(ident)) {
+                    continue;
+                }
+                Status status = getStatusForCourse(flowchart.getCourseStatusMap(), course.getCourseIdent());
+                if (status == Status.IN_PROGRESS) {
+                    countedInProgress.add(ident);
+                    inProgressCourseCount++;
+                    inProgressCredits += Math.max(0, course.getCredits());
+                }
+            }
+        }
+
+        int appliedCredits = completedCredits + inProgressCredits;
+        int remainingCredits = Math.max(0, totalCredits - appliedCredits);
+        int unfulfilledCourseCount = countStatus(flowchart.getCourseStatusMap(), Status.UNFULFILLED);
+
+        int avgCompletedCreditsPerTerm = estimateCompletedCreditsPerTerm(flowchart);
+        int estimatedTermsToGraduate = remainingCredits == 0
+                ? 0
+                : (int) Math.ceil((double) remainingCredits / Math.max(1, avgCompletedCreditsPerTerm));
+        String projectedGraduationTerm = projectGraduationTerm(flowchart, estimatedTermsToGraduate);
+
+        List<String> riskFlags = new ArrayList<>();
+        if (inProgressCredits == 0 && remainingCredits > 0) {
+            riskFlags.add("No in-progress credits are currently mapped.");
+        }
+        if (inProgressCredits > 18) {
+            riskFlags.add("In-progress load is above 18 credits.");
+        }
+        if (estimatedTermsToGraduate > 8) {
+            riskFlags.add("Projected graduation is more than 8 terms away.");
+        }
+        if (unfulfilledCourseCount > 12) {
+            riskFlags.add("Large number of unfulfilled courses remain.");
+        }
+
+        return new FlowchartInsightsResponse(
+                completedCredits,
+                inProgressCredits,
+                appliedCredits,
+                totalCredits,
+                remainingCredits,
+                inProgressCourseCount,
+                unfulfilledCourseCount,
+                estimatedTermsToGraduate,
+                projectedGraduationTerm,
+                riskFlags);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByUser(AppUser user) {
+        Flowchart flowchart = getByUser(user);
+        return buildRequirementCoverage(flowchart);
+    }
+
+    public FlowchartRequirementCoverageResponse buildRequirementCoverage(Flowchart flowchart) {
+        Major major = flowchart.getMajor();
+        List<DegreeRequirement> degreeRequirements = major == null || major.getDegreeRequirements() == null
+                ? List.of()
+                : major.getDegreeRequirements();
+
+        List<FlowchartRequirementCoverageResponse.RequirementCoverageItem> items = new ArrayList<>();
+
+        for (DegreeRequirement requirement : degreeRequirements) {
+            if (requirement == null) {
+                continue;
+            }
+
+            Map<String, Course> requirementCourses = new LinkedHashMap<>();
+
+            if (requirement.getCourses() != null) {
+                for (Course course : requirement.getCourses()) {
+                    addRequirementCourse(requirementCourses, course);
+                }
+            }
+            int completedCredits = 0;
+            int inProgressCredits = 0;
+            List<String> completedCourses = new ArrayList<>();
+            List<String> inProgressCourses = new ArrayList<>();
+            Set<String> countedCourses = new HashSet<>();
+
+            for (Course course : requirementCourses.values()) {
+                String normalized = normalizeCourseIdent(course.getCourseIdent());
+                if (normalized.isBlank() || countedCourses.contains(normalized)) {
+                    continue;
+                }
+                Status status = getStatusForCourse(flowchart.getCourseStatusMap(), course.getCourseIdent());
+                if (status == Status.COMPLETED) {
+                    completedCredits += Math.max(0, course.getCredits());
+                    completedCourses.add(course.getCourseIdent());
+                    countedCourses.add(normalized);
+                } else if (status == Status.IN_PROGRESS) {
+                    inProgressCredits += Math.max(0, course.getCredits());
+                    inProgressCourses.add(course.getCourseIdent());
+                    countedCourses.add(normalized);
+                }
+            }
+
+            // Apply requirement-group credit caps so electives/groups do not overcount.
+            if (requirement.getRequirementGroups() != null) {
+                for (RequirementGroup group : requirement.getRequirementGroups()) {
+                    if (group == null || group.getCourses() == null || group.getCourses().isEmpty()) {
+                        continue;
+                    }
+                    int groupRequired = group.getSatisfyingCredits();
+                    if (groupRequired <= 0) {
+                        groupRequired = group.getCourses().stream().mapToInt(c -> Math.max(0, c.getCredits())).sum();
+                    }
+
+                    int groupCompleted = 0;
+                    int groupInProgress = 0;
+                    List<String> groupCompletedCourses = new ArrayList<>();
+                    List<String> groupInProgressCourses = new ArrayList<>();
+
+                    for (Course course : group.getCourses()) {
+                        if (course == null || course.getCourseIdent() == null) {
+                            continue;
+                        }
+                        String normalized = normalizeCourseIdent(course.getCourseIdent());
+                        if (normalized.isBlank() || countedCourses.contains(normalized)) {
+                            continue;
+                        }
+                        Status status = getStatusForCourse(flowchart.getCourseStatusMap(), course.getCourseIdent());
+                        if (status == Status.COMPLETED) {
+                            groupCompleted += Math.max(0, course.getCredits());
+                            groupCompletedCourses.add(course.getCourseIdent());
+                        } else if (status == Status.IN_PROGRESS) {
+                            groupInProgress += Math.max(0, course.getCredits());
+                            groupInProgressCourses.add(course.getCourseIdent());
+                        }
+                    }
+
+                    int completedUsed = Math.min(groupCompleted, groupRequired);
+                    int inProgressUsed = Math.min(groupInProgress, Math.max(0, groupRequired - completedUsed));
+
+                    if (completedUsed > 0) {
+                        completedCredits += completedUsed;
+                        for (String ident : groupCompletedCourses) {
+                            countedCourses.add(normalizeCourseIdent(ident));
+                            completedCourses.add(ident);
+                        }
+                    }
+                    if (inProgressUsed > 0) {
+                        inProgressCredits += inProgressUsed;
+                        for (String ident : groupInProgressCourses) {
+                            countedCourses.add(normalizeCourseIdent(ident));
+                            inProgressCourses.add(ident);
+                        }
+                    }
+                }
+            }
+
+            int requiredCredits = requirement.getSatisfyingCredits();
+            if (requiredCredits <= 0) {
+                int directRequired = requirementCourses.values().stream().mapToInt(c -> Math.max(0, c.getCredits())).sum();
+                int groupRequired = 0;
+                if (requirement.getRequirementGroups() != null) {
+                    for (RequirementGroup group : requirement.getRequirementGroups()) {
+                        if (group == null) {
+                            continue;
+                        }
+                        if (group.getSatisfyingCredits() > 0) {
+                            groupRequired += group.getSatisfyingCredits();
+                        } else if (group.getCourses() != null) {
+                            groupRequired += group.getCourses().stream().mapToInt(c -> Math.max(0, c.getCredits())).sum();
+                        }
+                    }
+                }
+                requiredCredits = directRequired + groupRequired;
+            }
+
+            int appliedCredits = Math.min(requiredCredits, completedCredits + inProgressCredits);
+            int remainingCredits = Math.max(0, requiredCredits - appliedCredits);
+
+            String status;
+            if (completedCredits >= requiredCredits) {
+                status = "SATISFIED";
+            } else if (appliedCredits > 0) {
+                status = "IN_PROGRESS";
+            } else {
+                status = "UNMET";
+            }
+
+            items.add(new FlowchartRequirementCoverageResponse.RequirementCoverageItem(
+                    requirement.getName(),
+                    requiredCredits,
+                    completedCredits,
+                    inProgressCredits,
+                    remainingCredits,
+                    status,
+                    completedCourses,
+                    inProgressCourses));
+        }
+
+        items.sort((a, b) -> {
+            int statusDiff = Integer.compare(requirementStatusRank(a.getStatus()), requirementStatusRank(b.getStatus()));
+            if (statusDiff != 0) {
+                return statusDiff;
+            }
+            return Integer.compare(b.getRemainingCredits(), a.getRemainingCredits());
+        });
+
+        int satisfied = 0;
+        int inProgress = 0;
+        int unmet = 0;
+        for (FlowchartRequirementCoverageResponse.RequirementCoverageItem item : items) {
+            if ("SATISFIED".equals(item.getStatus())) {
+                satisfied++;
+            } else if ("IN_PROGRESS".equals(item.getStatus())) {
+                inProgress++;
+            } else {
+                unmet++;
+            }
+        }
+
+        return new FlowchartRequirementCoverageResponse(
+                items.size(),
+                satisfied,
+                inProgress,
+                unmet,
+                items);
+    }
+
     // ---------------------------------------------------------------------
     // DELETE
     // ---------------------------------------------------------------------
@@ -413,5 +685,141 @@ public class FlowchartService {
 
     public List<Flowchart> getAll() {
         return flowChartRepository.findAll();
+    }
+
+    private String normalizeCourseIdent(String ident) {
+        if (ident == null) {
+            return "";
+        }
+        return ident.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private Status getStatusForCourse(Map<String, Status> statusMap, String courseIdent) {
+        if (statusMap == null || statusMap.isEmpty()) {
+            return null;
+        }
+
+        String normalizedTarget = normalizeCourseIdent(courseIdent);
+        for (Map.Entry<String, Status> entry : statusMap.entrySet()) {
+            if (normalizeCourseIdent(entry.getKey()).equals(normalizedTarget)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private int countStatus(Map<String, Status> statusMap, Status target) {
+        if (statusMap == null || statusMap.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (Status status : statusMap.values()) {
+            if (status == target) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int estimateCompletedCreditsPerTerm(Flowchart flowchart) {
+        Map<String, Integer> completedByTerm = new HashMap<>();
+        List<Semester> semesters = flowchart.getSemesters() == null ? List.of() : flowchart.getSemesters();
+        for (Semester semester : semesters) {
+            List<Course> courses = semester.getCourses() == null ? List.of() : semester.getCourses();
+            int completedCredits = 0;
+            for (Course course : courses) {
+                if (course == null || course.getCourseIdent() == null) {
+                    continue;
+                }
+                Status status = getStatusForCourse(flowchart.getCourseStatusMap(), course.getCourseIdent());
+                if (status == Status.COMPLETED) {
+                    completedCredits += Math.max(0, course.getCredits());
+                }
+            }
+            if (completedCredits > 0) {
+                String termKey = semester.getYear() + "-" + (semester.getTerm() == null ? "UNKNOWN" : semester.getTerm().name());
+                completedByTerm.put(termKey, completedCredits);
+            }
+        }
+
+        if (completedByTerm.isEmpty()) {
+            return 15;
+        }
+        int total = 0;
+        for (Integer credits : completedByTerm.values()) {
+            total += credits;
+        }
+        return Math.max(1, total / completedByTerm.size());
+    }
+
+    private String projectGraduationTerm(Flowchart flowchart, int termsToAdd) {
+        Semester base = latestSemester(flowchart);
+        int year = base == null ? LocalDate.now().getYear() : base.getYear();
+        Term term = base == null ? inferCurrentTerm(LocalDate.now().getMonthValue()) : base.getTerm();
+        if (term == null) {
+            term = inferCurrentTerm(LocalDate.now().getMonthValue());
+        }
+
+        for (int i = 0; i < termsToAdd; i++) {
+            if (term == Term.SPRING) {
+                term = Term.SUMMER;
+            } else if (term == Term.SUMMER) {
+                term = Term.FALL;
+            } else {
+                term = Term.SPRING;
+                year += 1;
+            }
+        }
+        return term.name() + " " + year;
+    }
+
+    private Semester latestSemester(Flowchart flowchart) {
+        List<Semester> semesters = flowchart.getSemesters();
+        if (semesters == null || semesters.isEmpty()) {
+            return null;
+        }
+        Semester latest = null;
+        int bestRank = Integer.MIN_VALUE;
+        for (Semester semester : semesters) {
+            if (semester == null || semester.getYear() <= 0 || semester.getTerm() == null) {
+                continue;
+            }
+            int rank = semesterRank(semester.getYear(), semester.getTerm());
+            if (rank > bestRank) {
+                bestRank = rank;
+                latest = semester;
+            }
+        }
+        return latest;
+    }
+
+    private Term inferCurrentTerm(int month) {
+        if (month <= 5) {
+            return Term.SPRING;
+        }
+        if (month <= 8) {
+            return Term.SUMMER;
+        }
+        return Term.FALL;
+    }
+
+    private void addRequirementCourse(Map<String, Course> map, Course course) {
+        if (course == null || course.getCourseIdent() == null) {
+            return;
+        }
+        String normalized = normalizeCourseIdent(course.getCourseIdent());
+        if (!normalized.isBlank()) {
+            map.putIfAbsent(normalized, course);
+        }
+    }
+
+    private int requirementStatusRank(String status) {
+        if ("UNMET".equals(status)) {
+            return 0;
+        }
+        if ("IN_PROGRESS".equals(status)) {
+            return 1;
+        }
+        return 2;
     }
 }

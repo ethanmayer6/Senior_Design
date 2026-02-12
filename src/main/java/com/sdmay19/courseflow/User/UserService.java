@@ -113,6 +113,31 @@ public class UserService {
                 .toList();
     }
 
+    public UserPreferencesResponse getPreferences(long id) {
+        AppUser user = getUserById(id);
+        return toPreferencesResponse(user);
+    }
+
+    public UserPreferencesResponse updatePreferences(long id, UserPreferencesUpdateRequest updates) {
+        AppUser user = getUserById(id);
+
+        if (updates.getDarkMode() != null) {
+            user.setDarkMode(updates.getDarkMode());
+        }
+        if (updates.getThemePreset() != null && !updates.getThemePreset().isBlank()) {
+            user.setThemePreset(updates.getThemePreset().trim().toLowerCase());
+        }
+        if (updates.getFontScale() != null && !updates.getFontScale().isBlank()) {
+            user.setFontScale(updates.getFontScale().trim().toLowerCase());
+        }
+        if (updates.getReducedMotion() != null) {
+            user.setReducedMotion(updates.getReducedMotion());
+        }
+
+        userRepository.save(user);
+        return toPreferencesResponse(user);
+    }
+
     // UPDATE SERVICES
     public AppUser updateUser(long id, UserUpdator updates) {
       AppUser user = getUserById(id);
@@ -212,6 +237,22 @@ public class UserService {
 
     private void normalizeUserForAuth(AppUser user) {
         user.setEmail(normalizeEmail(user.getEmail()));
+        if (user.getDarkMode() == null) user.setDarkMode(false);
+        if (user.getThemePreset() == null || user.getThemePreset().isBlank()) user.setThemePreset("default");
+        if (user.getFontScale() == null || user.getFontScale().isBlank()) user.setFontScale("medium");
+        if (user.getReducedMotion() == null) user.setReducedMotion(false);
+    }
+
+    private UserPreferencesResponse toPreferencesResponse(AppUser user) {
+        boolean darkMode = Boolean.TRUE.equals(user.getDarkMode());
+        boolean reducedMotion = Boolean.TRUE.equals(user.getReducedMotion());
+        String themePreset = (user.getThemePreset() == null || user.getThemePreset().isBlank())
+                ? "default"
+                : user.getThemePreset().trim().toLowerCase();
+        String fontScale = (user.getFontScale() == null || user.getFontScale().isBlank())
+                ? "medium"
+                : user.getFontScale().trim().toLowerCase();
+        return new UserPreferencesResponse(darkMode, themePreset, fontScale, reducedMotion);
     }
 
     public ResponseEntity<?> uploadProfilePicture(Long id, MultipartFile file) {

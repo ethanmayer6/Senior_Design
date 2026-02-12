@@ -13,6 +13,69 @@ body,
   background-color: #ffffff;
 }
 
+.theme-default {
+  --cf-accent: #ef4444;
+  --cf-accent-soft: #fee2e2;
+}
+
+.theme-ocean {
+  --cf-accent: #0ea5e9;
+  --cf-accent-soft: #dbeafe;
+}
+
+.theme-forest {
+  --cf-accent: #22c55e;
+  --cf-accent-soft: #dcfce7;
+}
+
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 18px;
+}
+
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+.theme-ocean .text-red-500,
+.theme-forest .text-red-500 {
+  color: var(--cf-accent) !important;
+}
+
+.theme-ocean .bg-red-50,
+.theme-forest .bg-red-50 {
+  background-color: var(--cf-accent-soft) !important;
+}
+
+.theme-ocean .hover\:bg-red-50:hover,
+.theme-forest .hover\:bg-red-50:hover {
+  background-color: var(--cf-accent-soft) !important;
+}
+
+.theme-ocean .hover\:border-red-300:hover,
+.theme-forest .hover\:border-red-300:hover {
+  border-color: var(--cf-accent) !important;
+}
+
+.theme-ocean .border-red-100,
+.theme-ocean .border-red-200,
+.theme-forest .border-red-100,
+.theme-forest .border-red-200 {
+  border-color: color-mix(in srgb, var(--cf-accent) 35%, white) !important;
+}
+
 .dark-mode body,
 .dark-mode #root {
   background-color: #0f172a;

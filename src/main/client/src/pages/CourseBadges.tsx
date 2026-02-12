@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "../components/Badge";
 import type { Course } from "../types/course";
-import { getUserFlowchart } from "../api/flowchartApi";
-import { createStatusLookup, normalizeStatus, resolveCourseStatus } from "../utils/flowchartStatus";
+import api from "../api/axiosClient";
 
 export default function CourseBadges() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -14,27 +13,8 @@ export default function CourseBadges() {
       setLoading(true);
       setError(null);
       try {
-        const flowchart = await getUserFlowchart();
-
-        if (!flowchart) {
-          setCourses([]);
-          return;
-        }
-        const statusLookup = createStatusLookup(flowchart.courseStatusMap);
-        const uniqueCompleted = new Map<string, Course>();
-
-        (flowchart.semesters ?? []).forEach((semester) => {
-          (semester.courses ?? []).forEach((course) => {
-            const status = resolveCourseStatus(statusLookup, course.courseIdent);
-            if (normalizeStatus(status) !== "COMPLETED") return;
-            if (!course.courseIdent) return;
-            if (!uniqueCompleted.has(course.courseIdent)) {
-              uniqueCompleted.set(course.courseIdent, course as Course);
-            }
-          });
-        });
-
-        setCourses(Array.from(uniqueCompleted.values()));
+        const response = await api.get<Course[]>("/badges/me");
+        setCourses(response.data ?? []);
       } catch (err) {
         console.error("Error loading badges:", err);
         setError("Failed to load badges. Please refresh and try again.");

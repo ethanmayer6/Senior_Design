@@ -64,6 +64,20 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsersByUsername(username, currentUser.getId()));
     }
 
+    @GetMapping("/preferences")
+    public ResponseEntity<UserPreferencesResponse> getPreferences(Authentication auth) {
+        AppUser currentUser = (AppUser) auth.getPrincipal();
+        return ResponseEntity.ok(userService.getPreferences(currentUser.getId()));
+    }
+
+    @PutMapping("/preferences")
+    public ResponseEntity<UserPreferencesResponse> updatePreferences(
+            Authentication auth,
+            @RequestBody UserPreferencesUpdateRequest updates) {
+        AppUser currentUser = (AppUser) auth.getPrincipal();
+        return ResponseEntity.ok(userService.updatePreferences(currentUser.getId(), updates));
+    }
+
     // UPDATE
     @PutMapping("/me")
     public ResponseEntity<AppUser> updateUser(Authentication auth, @RequestBody UserUpdator updates) {

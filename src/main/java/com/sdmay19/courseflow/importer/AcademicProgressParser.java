@@ -19,7 +19,10 @@ public class AcademicProgressParser {
     public record ParsedRow(
             String courseCode,
             String courseTitle,
-            String academicPeriod // "FALL2022" or null
+            String academicPeriod, // "FALL2022" or null
+            String requirementName,
+            String requirementStatus,
+            Integer requirementRemaining
     ) {
     }
 
@@ -31,7 +34,14 @@ public class AcademicProgressParser {
 
     public record ParsedReport(
             List<ParsedRow> rows,
-            ParsedCredits credits) {
+            ParsedCredits credits,
+            List<ParsedRequirement> requirements) {
+    }
+
+    public record ParsedRequirement(
+            String name,
+            String status,
+            Integer remainingCredits) {
     }
 
     /**
@@ -39,6 +49,7 @@ public class AcademicProgressParser {
      */
     public ParsedReport parse(InputStream excelStream) {
         List<ParsedRow> results = new ArrayList<>();
+        Map<String, ParsedRequirement> requirementSnapshots = new LinkedHashMap<>();
         ParsedCredits parsedCredits = new ParsedCredits(null, null, null);
 
         try (Workbook workbook = new XSSFWorkbook(excelStream)) {
@@ -46,8 +57,14 @@ public class AcademicProgressParser {
             int creditsDefinedCol = -1;
             int creditsInProgressCol = -1;
             int creditsSatisfyingCol = -1;
+            int requirementCol = -1;
+            int statusCol = -1;
+            int remainingCol = -1;
+            int satisfiedWithCol = 3;
+            int academicPeriodCol = 4;
 
             for (Row row : sheet) {
+                boolean isHeaderRow = false;
                 for (Cell cell : row) {
                     String value = getString(cell);
                     if (value == null || value.isBlank()) {
@@ -57,11 +74,32 @@ public class AcademicProgressParser {
                     String normalized = value.trim().toUpperCase();
                     if (normalized.equals("CREDITS DEFINED")) {
                         creditsDefinedCol = cell.getColumnIndex();
+                        isHeaderRow = true;
                     } else if (normalized.equals("CREDITS IN PROGRESS")) {
                         creditsInProgressCol = cell.getColumnIndex();
+                        isHeaderRow = true;
                     } else if (normalized.equals("CREDITS SATISFYING")) {
                         creditsSatisfyingCol = cell.getColumnIndex();
+                        isHeaderRow = true;
+                    } else if (normalized.equals("REQUIREMENT")) {
+                        requirementCol = cell.getColumnIndex();
+                        isHeaderRow = true;
+                    } else if (normalized.equals("STATUS")) {
+                        statusCol = cell.getColumnIndex();
+                        isHeaderRow = true;
+                    } else if (normalized.equals("REMAINING")) {
+                        remainingCol = cell.getColumnIndex();
+                        isHeaderRow = true;
+                    } else if (normalized.equals("SATISFIED WITH")) {
+                        satisfiedWithCol = cell.getColumnIndex();
+                        isHeaderRow = true;
+                    } else if (normalized.equals("ACADEMIC PERIOD")) {
+                        academicPeriodCol = cell.getColumnIndex();
+                        isHeaderRow = true;
                     }
+                }
+                if (isHeaderRow) {
+                    continue;
                 }
 
                 if (isTotalAcademicRow(row)) {
@@ -89,8 +127,18 @@ public class AcademicProgressParser {
                     }
                 }
 
-                Cell satisfiedWithCell = row.getCell(3); // Column D
-                Cell academicPeriodCell = row.getCell(4); // Column E
+                String requirementName = requirementCol >= 0 ? getString(row.getCell(requirementCol)) : null;
+                String requirementStatus = statusCol >= 0 ? normalizeRequirementStatus(getString(row.getCell(statusCol))) : null;
+                Integer requirementRemaining = remainingCol >= 0 ? getNumeric(row.getCell(remainingCol)) : null;
+
+                if (requirementName != null && !requirementName.isBlank()) {
+                    String key = requirementName.trim();
+                    ParsedRequirement existing = requirementSnapshots.get(key);
+                    requirementSnapshots.put(key, mergeRequirement(existing, key, requirementStatus, requirementRemaining));
+                }
+
+                Cell satisfiedWithCell = row.getCell(satisfiedWithCol);
+                Cell academicPeriodCell = row.getCell(academicPeriodCol);
 
                 if (satisfiedWithCell == null)
                     continue;
@@ -118,14 +166,20 @@ public class AcademicProgressParser {
                 String academicPeriod = normalizeTerm(getString(academicPeriodCell));
 
                 // Add parsed result
-                results.add(new ParsedRow(courseCode, courseTitle, academicPeriod));
+                results.add(new ParsedRow(
+                        courseCode,
+                        courseTitle,
+                        academicPeriod,
+                        requirementName,
+                        requirementStatus,
+                        requirementRemaining));
             }
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse academic progress report Excel file", e);
         }
 
-        return new ParsedReport(results, parsedCredits);
+        return new ParsedReport(results, parsedCredits, new ArrayList<>(requirementSnapshots.values()));
     }
 
     /**
@@ -215,6 +269,69 @@ public class AcademicProgressParser {
         String season = m.group(2).toUpperCase();
 
         return season + year; // "SPRING2025"
+    }
+
+    private String normalizeRequirementStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String upper = raw.trim().toUpperCase(Locale.ROOT);
+        if (upper.contains("IN PROGRESS")) {
+            return "IN_PROGRESS";
+        }
+        if (upper.contains("SATISF")) {
+            return "SATISFIED";
+        }
+        if (upper.contains("NOT SATISF")) {
+            return "UNMET";
+        }
+        return upper.replaceAll("[\\s-]+", "_");
+    }
+
+    private ParsedRequirement mergeRequirement(ParsedRequirement existing, String name, String status, Integer remaining) {
+        if (existing == null) {
+            return new ParsedRequirement(name, status, remaining);
+        }
+
+        String mergedStatus = chooseRequirementStatus(existing.status(), status);
+        Integer mergedRemaining = chooseRemaining(existing.remainingCredits(), remaining);
+        return new ParsedRequirement(name, mergedStatus, mergedRemaining);
+    }
+
+    private String chooseRequirementStatus(String current, String next) {
+        if (next == null || next.isBlank()) {
+            return current;
+        }
+        if (current == null || current.isBlank()) {
+            return next;
+        }
+        int currentRank = requirementStatusRank(current);
+        int nextRank = requirementStatusRank(next);
+        return nextRank < currentRank ? next : current;
+    }
+
+    private Integer chooseRemaining(Integer current, Integer next) {
+        if (current == null) {
+            return next;
+        }
+        if (next == null) {
+            return current;
+        }
+        return Math.min(current, next);
+    }
+
+    private int requirementStatusRank(String status) {
+        String normalized = normalizeRequirementStatus(status);
+        if ("IN_PROGRESS".equals(normalized)) {
+            return 0;
+        }
+        if ("UNMET".equals(normalized)) {
+            return 1;
+        }
+        if ("SATISFIED".equals(normalized)) {
+            return 2;
+        }
+        return 3;
     }
 
     /**

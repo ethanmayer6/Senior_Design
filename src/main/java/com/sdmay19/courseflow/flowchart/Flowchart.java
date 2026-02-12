@@ -40,6 +40,18 @@ public class Flowchart {
     @Column(name = "status")
     private Map<String, Status> courseStatusMap;
 
+    @ElementCollection
+    @CollectionTable(name = "flowchart_requirement_remaining", joinColumns = @JoinColumn(name = "flowchart_id"))
+    @MapKeyColumn(name = "requirement_name")
+    @Column(name = "remaining_credits")
+    private Map<String, Integer> requirementRemainingMap;
+
+    @ElementCollection
+    @CollectionTable(name = "flowchart_requirement_status", joinColumns = @JoinColumn(name = "flowchart_id"))
+    @MapKeyColumn(name = "requirement_name")
+    @Column(name = "status")
+    private Map<String, String> requirementStatusMap;
+
     public Flowchart() {
     }
 
@@ -92,6 +104,14 @@ public class Flowchart {
         return major;
     }
 
+    public Map<String, Integer> getRequirementRemainingMap() {
+        return requirementRemainingMap;
+    }
+
+    public Map<String, String> getRequirementStatusMap() {
+        return requirementStatusMap;
+    }
+
     // SETTERS
     public void setId(long id) {
         this.id = id;
@@ -123,5 +143,13 @@ public class Flowchart {
 
     public void setMajor(Major major) {
         this.major = major;
+    }
+
+    public void setRequirementRemainingMap(Map<String, Integer> requirementRemainingMap) {
+        this.requirementRemainingMap = requirementRemainingMap;
+    }
+
+    public void setRequirementStatusMap(Map<String, String> requirementStatusMap) {
+        this.requirementStatusMap = requirementStatusMap;
     }
 }

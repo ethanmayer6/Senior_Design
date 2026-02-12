@@ -4,6 +4,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  MarkerType,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -94,6 +95,31 @@ const deptClasses: Record<string, string> = {
   DEFAULT: 'bg-gray-400 text-white',
 };
 
+function normalizeCourseIdent(ident: string | undefined | null): string {
+  return String(ident ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function extractPrereqs(course: FlowchartCourse): string[] {
+  const explicit = Array.isArray(course.prerequisites) ? course.prerequisites.filter(Boolean) : [];
+  if (explicit.length > 0) return explicit;
+
+  const prereqText = String(course.prereq_txt ?? '').toUpperCase();
+  if (!prereqText) return [];
+
+  const prereqs: string[] = [];
+  const re = /\b([A-Z]{2,8}(?:\s+[A-Z]{1,3})?)\s*[-_]?\s*(\d{4})\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(prereqText)) !== null) {
+    const prefix = String(match[1] ?? '').replace(/[^A-Z]/g, '');
+    const number = String(match[2] ?? '');
+    if (prefix && number) prereqs.push(`${prefix}_${number}`);
+  }
+  return prereqs;
+}
+
 function semesterRank(year: number, term: string): number {
   const order: Record<string, number> = {
     SPRING: 1,
@@ -119,15 +145,22 @@ export default function Flowchart({
 
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
+    const edgeIds = new Set<string>();
     const statusLookup = createStatusLookup(flowchart.courseStatusMap);
     const semesters = Array.isArray(flowchart.semesters) ? flowchart.semesters : [];
     const sortedSems = [...semesters].sort(
       (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
     );
+    const courseNodeRefsByIdent = new Map<
+      string,
+      Array<{ nodeId: string; semRank: number }>
+    >();
+    const targetNodeRefs: Array<{ nodeId: string; semRank: number; course: FlowchartCourse }> = [];
 
     let currentY = 0;
     sortedSems.forEach((sem) => {
       const semId = `SEM_${sem.id}`;
+      const semRank = semesterRank(sem.year, sem.term);
       const semesterCourses = Array.isArray(sem.courses) ? sem.courses : [];
       const uniqueSemesterCourses = semesterCourses.filter((c, idx, arr) => {
         const ident = c?.courseIdent;
@@ -150,7 +183,6 @@ export default function Flowchart({
       });
 
       let placedCount = 0;
-      const courseNodeIdByIdent = new Map<string, string>();
       uniqueSemesterCourses.forEach((c) => {
         if (!c) return;
         const colIndex = placedCount % COURSE_PER_ROW;
@@ -187,25 +219,47 @@ export default function Flowchart({
             y: INNER_PADDING_Y + rowIndex * COURSE_GAP_Y,
           },
         });
-        courseNodeIdByIdent.set(courseIdent, nodeId);
+        const normalizedIdent = normalizeCourseIdent(courseIdent);
+        if (normalizedIdent) {
+          if (!courseNodeRefsByIdent.has(normalizedIdent)) {
+            courseNodeRefsByIdent.set(normalizedIdent, []);
+          }
+          courseNodeRefsByIdent.get(normalizedIdent)?.push({ nodeId, semRank });
+        }
+        targetNodeRefs.push({ nodeId, semRank, course: c });
         placedCount++;
-
-        const prereqs = Array.isArray(c.prerequisites) ? c.prerequisites : [];
-        prereqs.forEach((p) => {
-          const prereqNodeId = courseNodeIdByIdent.get(p);
-          if (!prereqNodeId) return;
-          newEdges.push({
-            id: `${prereqNodeId}->${nodeId}`,
-            source: prereqNodeId,
-            target: nodeId,
-            type: 'smoothstep',
-            animated: !isCompleted,
-            style: { stroke: '#64748b', strokeWidth: 1.5 },
-          });
-        });
       });
 
       currentY += semesterHeight + Y_SPACING;
+    });
+
+    targetNodeRefs.forEach(({ nodeId, semRank, course }) => {
+      const prereqs = extractPrereqs(course);
+      prereqs.forEach((prereqIdent) => {
+        const normalizedPrereq = normalizeCourseIdent(prereqIdent);
+        const normalizedTarget = normalizeCourseIdent(course.courseIdent);
+        if (!normalizedPrereq || normalizedPrereq === normalizedTarget) return;
+
+        const candidates = (courseNodeRefsByIdent.get(normalizedPrereq) ?? [])
+          .filter((candidate) => candidate.semRank <= semRank)
+          .sort((a, b) => b.semRank - a.semRank);
+        const prereqNode = candidates[0];
+        if (!prereqNode) return;
+
+        const edgeId = `${prereqNode.nodeId}->${nodeId}`;
+        if (edgeIds.has(edgeId)) return;
+        edgeIds.add(edgeId);
+
+        newEdges.push({
+          id: edgeId,
+          source: prereqNode.nodeId,
+          target: nodeId,
+          type: 'smoothstep',
+          animated: false,
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
+          style: { stroke: '#64748b', strokeWidth: 1.8 },
+        });
+      });
     });
 
     setNodes(newNodes);

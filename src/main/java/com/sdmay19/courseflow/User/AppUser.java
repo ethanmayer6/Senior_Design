@@ -29,6 +29,10 @@ public class AppUser implements UserDetails {
     private String role;
     @Column(nullable = false, unique = true)
     private String email;
+    private Boolean darkMode;
+    private String themePreset;
+    private String fontScale;
+    private Boolean reducedMotion;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -63,6 +67,10 @@ public class AppUser implements UserDetails {
         this.role = "USER";
         this.flowcharts = flowcharts;
         this.profilePictureUrl = profilePictureUrl;
+        this.darkMode = false;
+        this.themePreset = "default";
+        this.fontScale = "medium";
+        this.reducedMotion = false;
     }
 
     // GETTERS
@@ -94,6 +102,10 @@ public class AppUser implements UserDetails {
     public String getRole() {
         return role;
     }
+    public Boolean getDarkMode() { return darkMode; }
+    public String getThemePreset() { return themePreset; }
+    public String getFontScale() { return fontScale; }
+    public Boolean getReducedMotion() { return reducedMotion; }
     public List<Flowchart> getFlowcharts() { return flowcharts; }
     public String getProfilePictureUrl() { return profilePictureUrl; }
 
@@ -119,6 +131,10 @@ public class AppUser implements UserDetails {
     public void setMajor(String major) {
         this.major = major;
     }
+    public void setDarkMode(Boolean darkMode) { this.darkMode = darkMode; }
+    public void setThemePreset(String themePreset) { this.themePreset = themePreset; }
+    public void setFontScale(String fontScale) { this.fontScale = fontScale; }
+    public void setReducedMotion(Boolean reducedMotion) { this.reducedMotion = reducedMotion; }
     public void setFlowcharts(List<Flowchart> flowcharts) { this.flowcharts = flowcharts; }
     public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
 

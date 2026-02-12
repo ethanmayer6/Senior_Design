@@ -40,6 +40,18 @@ public class FlowchartController {
         return FlowchartResponse.from(flowchart);
     }
 
+    @GetMapping("/user/insights")
+    public FlowchartInsightsResponse getMyFlowchartInsights(Authentication auth) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        return flowchartService.getInsightsByUser(user);
+    }
+
+    @GetMapping("/user/requirements/coverage")
+    public FlowchartRequirementCoverageResponse getMyRequirementCoverage(Authentication auth) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        return flowchartService.getRequirementCoverageByUser(user);
+    }
+
     @GetMapping("/id/{id}")
     public Flowchart getById(@PathVariable long id) {
         return flowchartService.getById(id);
@@ -61,7 +73,9 @@ public class FlowchartController {
             String courseIdent,
             int credits,
             Set<String> prerequisites,
+            String prereq_txt,
             String description,
+            String hours,
             String offered) {
         static CourseResponse from(Course c) {
             return new CourseResponse(
@@ -70,7 +84,9 @@ public class FlowchartController {
                     c.getCourseIdent(),
                     c.getCredits(),
                     c.getPrerequisites(),
+                    c.getPrereq_txt(),
                     c.getDescription(),
+                    c.getHours(),
                     c.getOffered());
         }
     }

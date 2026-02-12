@@ -3,6 +3,7 @@ package com.sdmay19.courseflow.semester;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.course.CourseRepository;
 import com.sdmay19.courseflow.course.CourseService;
+import com.sdmay19.courseflow.exception.course.CourseCreationException;
 import com.sdmay19.courseflow.exception.course.CourseNotFoundException;
 import com.sdmay19.courseflow.exception.flowchart.FlowchartNotFoundException;
 import com.sdmay19.courseflow.exception.semester.SemesterNotFoundException;
@@ -11,7 +12,11 @@ import org.springframework.stereotype.Service;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class SemesterService {
@@ -74,6 +79,19 @@ public class SemesterService {
         if (course == null) {
             throw new CourseNotFoundException("Failed to remove course " + courseIdent + " From Semester. Course not found.");
         }
+        String normalizedIdent = normalizeCourseIdent(course.getCourseIdent());
+        List<Course> semesterCourses = semester.getCourses() == null ? List.of() : semester.getCourses();
+        boolean alreadyInSemester = semesterCourses.stream()
+                .filter(c -> c != null && c.getCourseIdent() != null)
+                .map(Course::getCourseIdent)
+                .map(this::normalizeCourseIdent)
+                .anyMatch(existing -> existing.equals(normalizedIdent));
+        if (alreadyInSemester) {
+            throw new CourseCreationException("Course " + course.getCourseIdent() + " already exists in this semester.");
+        }
+
+        validatePrerequisites(semester, course);
+
         semester.addCourse(course);
         flowchartService.addCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Add"));
         return semesterRepository.save(semester);
@@ -119,5 +137,75 @@ public class SemesterService {
 
     public void deleteById(long id) {
         semesterRepository.deleteById(id);
+    }
+
+    private void validatePrerequisites(Semester semester, Course course) {
+        Set<String> prerequisites = extractPrerequisites(course);
+        if (prerequisites.isEmpty()) {
+            return;
+        }
+
+        Map<String, Status> statusMap = semester.getFlowchart().getCourseStatusMap();
+        Set<String> satisfiedIdents = new HashSet<>();
+        if (statusMap != null) {
+            for (Map.Entry<String, Status> entry : statusMap.entrySet()) {
+                if (entry.getValue() == Status.COMPLETED || entry.getValue() == Status.IN_PROGRESS) {
+                    satisfiedIdents.add(normalizeCourseIdent(entry.getKey()));
+                }
+            }
+        }
+
+        Set<String> missingPrereqs = new HashSet<>();
+        for (String prereq : prerequisites) {
+            String normalizedPrereq = normalizeCourseIdent(prereq);
+            if (!normalizedPrereq.isBlank() && !satisfiedIdents.contains(normalizedPrereq)) {
+                missingPrereqs.add(prereq);
+            }
+        }
+
+        if (!missingPrereqs.isEmpty()) {
+            throw new CourseCreationException(
+                    "Cannot add " + course.getCourseIdent() + ". Missing prerequisites: " + String.join(", ", missingPrereqs));
+        }
+    }
+
+    private Set<String> extractPrerequisites(Course course) {
+        Set<String> result = new HashSet<>();
+
+        if (course.getPrerequisites() != null) {
+            for (String prereq : course.getPrerequisites()) {
+                if (prereq != null && !prereq.isBlank()) {
+                    result.add(prereq.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_"));
+                }
+            }
+        }
+
+        // Fallback for courses where structured prerequisite ids are not populated.
+        if (!result.isEmpty()) {
+            return result;
+        }
+
+        String prereqText = course.getPrereq_txt();
+        if (prereqText == null || prereqText.isBlank()) {
+            return result;
+        }
+
+        Matcher matcher = Pattern.compile("\\b([A-Z]{2,8}(?:\\s+[A-Z]{1,3})?)\\s*[-_]?\\s*(\\d{4})\\b")
+                .matcher(prereqText.toUpperCase(Locale.ROOT));
+        while (matcher.find()) {
+            String rawPrefix = matcher.group(1) == null ? "" : matcher.group(1);
+            String prefix = rawPrefix.replaceAll("[^A-Z]", "");
+            if (!prefix.isBlank()) {
+                result.add(prefix + "_" + matcher.group(2));
+            }
+        }
+        return result;
+    }
+
+    private String normalizeCourseIdent(String ident) {
+        if (ident == null) {
+            return "";
+        }
+        return ident.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 }

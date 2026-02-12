@@ -76,6 +76,38 @@ export interface SemesterCourseUpdateRequest {
   courseIdent: string;
 }
 
+export interface FlowchartInsights {
+  completedCredits: number;
+  inProgressCredits: number;
+  appliedCredits: number;
+  totalCredits: number;
+  remainingCredits: number;
+  inProgressCourseCount: number;
+  unfulfilledCourseCount: number;
+  estimatedTermsToGraduate: number;
+  projectedGraduationTerm: string;
+  riskFlags: string[];
+}
+
+export interface RequirementCoverageItem {
+  name: string;
+  requiredCredits: number;
+  completedCredits: number;
+  inProgressCredits: number;
+  remainingCredits: number;
+  status: "SATISFIED" | "IN_PROGRESS" | "UNMET" | string;
+  completedCourses: string[];
+  inProgressCourses: string[];
+}
+
+export interface FlowchartRequirementCoverage {
+  totalRequirements: number;
+  satisfiedRequirements: number;
+  inProgressRequirements: number;
+  unmetRequirements: number;
+  requirements: RequirementCoverageItem[];
+}
+
 /**
  * Get the flowchart for the currently authenticated user.
  * Backend derives the user from the JWT, so no params needed.
@@ -168,4 +200,28 @@ export async function updateSemesterCourses(
 ) {
   const res = await api.patch(`/semester/update/${semesterId}/courses`, payload);
   return res.data;
+}
+
+export async function getFlowchartInsights(): Promise<FlowchartInsights | null> {
+  try {
+    const res = await api.get<FlowchartInsights>("/flowchart/user/insights");
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getFlowchartRequirementCoverage(): Promise<FlowchartRequirementCoverage | null> {
+  try {
+    const res = await api.get<FlowchartRequirementCoverage>("/flowchart/user/requirements/coverage");
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
 }
