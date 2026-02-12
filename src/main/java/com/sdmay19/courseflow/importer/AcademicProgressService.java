@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -179,7 +180,7 @@ public class AcademicProgressService {
         // Step 1 — process the transcript
         StudentProgressResult parsed = processProgress(file);
 
-        // Step 2 — courseStatusMap (all matched courses are COMPLETED for now)
+        // Step 2 — courseStatusMap (derived from academic period vs current term)
         Map<String, MappedCourse> dedupedByCourse = new HashMap<>();
         List<MappedCourse> allMapped = new ArrayList<>();
         allMapped.addAll(parsed.transferCourses());
@@ -193,7 +194,10 @@ public class AcademicProgressService {
         }
 
         Map<String, Status> statusMap = new HashMap<>();
-        dedupedByCourse.values().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
+        dedupedByCourse.values().forEach(mc -> {
+            String normalizedPeriod = normalizePeriod(mc.academicPeriod(), "TRANSFER");
+            statusMap.put(mc.courseCode(), inferStatusFromPeriod(normalizedPeriod));
+        });
 
         // Step 3 — group courses by academic period
         Map<String, List<Course>> coursesByPeriod = new HashMap<>();
@@ -325,6 +329,45 @@ public class AcademicProgressService {
             termRank = 3;
         } else if (upper.contains("WINTER")) {
             termRank = 0;
+        }
+
+        return year * 10 + termRank;
+    }
+
+    private Status inferStatusFromPeriod(String period) {
+        if (period == null || period.isBlank()) {
+            return Status.COMPLETED;
+        }
+        if ("TRANSFER".equals(period)) {
+            return Status.COMPLETED;
+        }
+        if ("NO_PERIOD".equals(period)) {
+            return Status.COMPLETED;
+        }
+
+        int coursePeriodRank = periodRank(period);
+        int currentPeriodRank = currentPeriodRank(LocalDate.now());
+
+        if (coursePeriodRank == currentPeriodRank) {
+            return Status.IN_PROGRESS;
+        }
+        if (coursePeriodRank < currentPeriodRank) {
+            return Status.COMPLETED;
+        }
+        return Status.UNFULFILLED;
+    }
+
+    private int currentPeriodRank(LocalDate now) {
+        int month = now.getMonthValue();
+        int year = now.getYear();
+        int termRank;
+
+        if (month >= 1 && month <= 5) {
+            termRank = 1; // SPRING
+        } else if (month >= 6 && month <= 8) {
+            termRank = 2; // SUMMER
+        } else {
+            termRank = 3; // FALL
         }
 
         return year * 10 + termRank;

@@ -3,9 +3,9 @@ export type Course = {
   name: string;
   courseIdent: string;
   credits: number;
-  prereq_txt: string;
+  prereq_txt?: string;
   prerequisites: string[]; // Set<String>
   description: string;
-  hours: string;
+  hours?: string;
   offered: string;
 };

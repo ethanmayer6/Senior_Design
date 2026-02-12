@@ -21,6 +21,12 @@ const featureLinks = [
     to: '/badges',
     icon: 'pi pi-star',
   },
+  {
+    title: 'Student Search',
+    description: 'Search for existing student accounts by username so you can quickly find peers.',
+    to: '/student-search',
+    icon: 'pi pi-users',
+  },
 ];
 
 export default function CourseflowHome() {
@@ -47,7 +53,7 @@ export default function CourseflowHome() {
 
               <div className="mt-6 flex gap-3 md:hidden">
                 <Link
-                  to="/profile"
+                  to="/settings"
                   className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
                 >
                   <i className="pi pi-cog mr-2 text-red-500"></i>
@@ -85,7 +91,7 @@ export default function CourseflowHome() {
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Quick Actions</p>
 
             <Link
-              to="/profile"
+              to="/settings"
               className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
             >
               <i className="pi pi-cog mr-2 text-red-500"></i>

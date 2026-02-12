@@ -1,166 +1,219 @@
-import { useEffect, useState } from 'react';
-import Header from '../components/header.tsx';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Header from '../components/header';
 import type { User } from '../types/user';
+import api from '../api/axiosClient';
 import { Card } from 'primereact/card';
+import { Avatar } from 'primereact/avatar';
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputMask } from 'primereact/inputmask';
-import { Button } from 'primereact/button';
-import { Avatar } from 'primereact/avatar';
-import { Dialog } from 'primereact/dialog';
-import { Divider } from 'primereact/divider';
 import { Dropdown } from 'primereact/dropdown';
-import api from '../api/axiosClient';
+import { Password } from 'primereact/password';
+
+type ProfileUser = Partial<User> & {
+  id?: number;
+  profilePictureUrl?: string;
+};
 
 export default function Profile() {
-  const [user, setUser] = useState<Partial<User> | null>(null);
+  const [user, setUser] = useState<ProfileUser | null>(null);
+  const [majorOptions, setMajorOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [editVisible, setEditVisible] = useState(false);
-  const [editSection, setEditSection] = useState<'none' | 'contact' | 'profile'>('none');
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  const [editContactVisible, setEditContactVisible] = useState(false);
+  const [editPasswordVisible, setEditPasswordVisible] = useState(false);
 
-  const [form, setForm] = useState<Partial<User>>({});
-  const [majorOptions, setMajorOptions] = useState<string[]>([]);
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', major: '' });
+  const [contactForm, setContactForm] = useState({ phone: '' });
+  const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
 
-  const mockBadges = ['Beginner', 'Contributor', 'Beta Tester'];
-  const mockProgress = [
-    { id: 1, label: 'Intro to Programming', value: 80 },
-    { id: 2, label: 'Data Structures', value: 50 },
-    { id: 3, label: 'Algorithms', value: 30 },
-  ];
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const initials = useMemo(() => {
+    if (!user) return 'U';
+    const first = user.firstName?.[0] ?? '';
+    const last = user.lastName?.[0] ?? '';
+    return `${first}${last}`.toUpperCase() || 'U';
+  }, [user]);
+
+  const fullName = useMemo(() => {
+    if (!user) return '';
+    return `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || 'Unnamed User';
+  }, [user]);
 
   useEffect(() => {
-    if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('mock') === 'true') {
-      setUser({
-        id: 1,
-        role: 'student',
-        firstName: 'Dev',
-        lastName: 'User',
-        email: 'dev.user@example.com',
-        phone: '(555) 123-4567',
-        major: 'Computer Science',
-      });
-      setLoading(false);
-      return;
-    }
-
-    const fetchProfile = async () => {
+    const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const resp = await api.get('/users/me');
-        setUser(resp.data);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to load profile. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    const fetchMajors = async () => {
-      try {
-        const res = await api.get('/majors/getall');
-        const names = (res.data || [])
+        const [profileRes, majorsRes] = await Promise.all([
+          api.get('/users/me'),
+          api.get('/majors/getall'),
+        ]);
+
+        setUser(profileRes.data);
+        const names = (majorsRes.data || [])
           .map((m: any) => m?.name)
           .filter((name: unknown): name is string => typeof name === 'string' && name.length > 0)
           .sort((a: string, b: string) => a.localeCompare(b));
         setMajorOptions(names);
-      } catch {
-        setError('Failed to load majors.');
+      } catch (err: any) {
+        setError(err?.response?.data?.message || 'Failed to load profile.');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProfile();
-    fetchMajors();
+    load();
   }, []);
 
-  const fullName = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '';
-
-  // const openEdit = (section: "contact" | "profile") => {
-  //     setForm({
-  //         ...(section === "contact"
-  //             ? { phone: user?.phone, email: user?.email }
-  //             : { firstName: user?.firstName, lastName: user?.lastName, major: user?.major }),
-  //     });
-  //     setEditSection(section);
-  //     setEditVisible(true);
-  //     setError("");
-  //     setSuccess("");
-  // };
-
-  const closeEdit = () => {
-    setEditVisible(false);
-    setEditSection('none');
-    setForm({});
-  };
-
-  const onFormChange = (key: keyof User, value: any) => {
-    setForm((f) => ({ ...f, [key]: value }));
-  };
-
-  const buildUpdates = () => {
-    if (!user) return {};
-    const updates: Partial<User> = {};
-    Object.entries(form).forEach(([k, v]) => {
-      const key = k as keyof User;
-      const current = user[key];
-      if (v !== undefined && v !== null && String(v) !== String(current)) {
-        updates[key] = v as any;
-      }
-    });
-    return updates;
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-
-    //Email & Phone validation
-    if (editSection === 'contact') {
-      //Email regex
-      const email = form.email ?? '';
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
-      if (!emailRegex.test(email)) {
-        setError('Please enter a valid email address.');
-        return;
-      }
-
-      //Phone regex
-      const phone = form.phone ?? '';
-      const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
-      if (!phoneRegex.test(phone)) {
-        setError('Please enter a valid phone number in the format (123) 456-7890.');
-        return;
-      }
+  const formatPhone = (phone?: string) => {
+    if (!phone) return 'Not set';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-    if (editSection === 'profile' && form.major && !majorOptions.includes(form.major)) {
+    return phone;
+  };
+
+  const openEditProfile = () => {
+    if (!user) return;
+    setProfileForm({
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
+      major: user.major ?? '',
+    });
+    setError('');
+    setSuccess('');
+    setEditProfileVisible(true);
+  };
+
+  const openEditContact = () => {
+    if (!user) return;
+    setContactForm({ phone: user.phone ?? '' });
+    setError('');
+    setSuccess('');
+    setEditContactVisible(true);
+  };
+
+  const openEditPassword = () => {
+    setPasswordForm({ password: '', confirmPassword: '' });
+    setError('');
+    setSuccess('');
+    setEditPasswordVisible(true);
+  };
+
+  const saveProfile = async () => {
+    if (!user) return;
+    if (profileForm.major && !majorOptions.includes(profileForm.major)) {
       setError('Please select a valid major from the list.');
       return;
     }
 
-    const updates = buildUpdates();
+    const updates: Record<string, string> = {};
+    if (profileForm.firstName !== (user.firstName ?? '')) updates.firstName = profileForm.firstName;
+    if (profileForm.lastName !== (user.lastName ?? '')) updates.lastName = profileForm.lastName;
+    if (profileForm.major !== (user.major ?? '')) updates.major = profileForm.major;
+
     if (Object.keys(updates).length === 0) {
       setError('No changes to save.');
       return;
     }
+
     setSaving(true);
     setError('');
     setSuccess('');
     try {
-      const resp = await api.put('/users/me', updates);
-      if (resp.status === 200) {
-        setUser((u) => ({ ...(u ?? {}), ...updates }));
-        setSuccess('Profile updated.');
-        closeEdit();
-      } else if (resp.data) {
-        setUser(resp.data);
-        setSuccess('Profile updated.');
-        closeEdit();
-      } else {
-        setSuccess('Profile updated.');
-        closeEdit();
-      }
+      await api.put('/users/me', updates);
+      setUser((prev) => ({ ...(prev ?? {}), ...updates }));
+      setSuccess('Profile info updated.');
+      setEditProfileVisible(false);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to update profile. Try again.');
+      setError(err?.response?.data?.message || 'Failed to update profile info.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveContact = async () => {
+    if (!user) return;
+    const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
+    if (!phoneRegex.test(contactForm.phone)) {
+      setError('Phone must be in format (123) 456-7890.');
+      return;
+    }
+
+    if (contactForm.phone === (user.phone ?? '')) {
+      setError('No changes to save.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.put('/users/me', { phone: contactForm.phone });
+      setUser((prev) => ({ ...(prev ?? {}), phone: contactForm.phone }));
+      setSuccess('Contact info updated.');
+      setEditContactVisible(false);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to update contact info.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePassword = async () => {
+    const { password, confirmPassword } = passwordForm;
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.put('/users/me', { password });
+      setSuccess('Password updated.');
+      setEditPasswordVisible(false);
+      setPasswordForm({ password: '', confirmPassword: '' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to update password.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleProfilePictureUpload = async (file: File) => {
+    if (!user?.id) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await api.post(`/users/${user.id}/profile-picture`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res?.data?.profilePictureUrl;
+      if (url) {
+        setUser((prev) => ({ ...(prev ?? {}), profilePictureUrl: url }));
+      }
+      setSuccess('Profile photo updated.');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to upload profile picture.');
     } finally {
       setSaving(false);
     }
@@ -177,188 +230,192 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-red-600">No profile available.</p>
-          <p className="text-sm text-gray-600">Try logging in again.</p>
-        </div>
+        <p className="text-red-600">No profile data available.</p>
       </div>
     );
   }
 
-  const formatPhone = (phone?: string | null) => {
-    if (!phone) return '';
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) {
-      const a = digits.slice(0, 3);
-      const b = digits.slice(3, 6);
-      const c = digits.slice(6, 10);
-      return `(${a}) ${b}-${c}`;
-    }
-    return phone;
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <Header />
+      <main className="mx-auto max-w-6xl px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+        {(error || success) && (
+          <div className="mb-4">
+            {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
+            {success && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{success}</div>}
+          </div>
+        )}
 
-      <main className="pt-24 flex items-center justify-center min-h-[calc(100vh-5rem)]">
-        <div className="w-full max-w-md px-4">
-          <Card className="shadow-md">
-            <div className="flex flex-col items-center gap-4 p-4">
-              <Avatar
-                label={user?.firstName?.[0] ?? 'U'}
-                size="xlarge"
-                shape="circle"
-                style={{ backgroundColor: '#6b7280', color: 'white' }}
-              />
-              <h2 className="text-xl font-semibold text-gray-800">{fullName}</h2>
-
-              {/*Badges Placeholder*/}
-              <div className="w-full">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Badges</h3>
-                <div className="overflow-x-auto">
-                  <div className="flex gap-3 py-2">
-                    {mockBadges.map((b, idx) => (
-                      <div
-                        key={idx}
-                        className="min-w-[120px] flex-shrink-0 bg-white border rounded-md shadow-sm px-3 py-3 flex flex-col items-center justify-center"
-                        role="group"
-                        aria-label={`Badge ${b}`}
-                      >
-                        <div className="text-sm font-semibold text-gray-700">{b}</div>
-                        <div className="text-xs text-gray-400 mt-1">Earned</div>
-                      </div>
-                    ))}
+        <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+          <Card className="shadow-sm">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                {user.profilePictureUrl ? (
+                  <Avatar image={user.profilePictureUrl} size="xlarge" shape="circle" />
+                ) : (
+                  <Avatar
+                    label={initials}
+                    size="xlarge"
+                    shape="circle"
+                    style={{ backgroundColor: '#334155', color: 'white' }}
+                  />
+                )}
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{fullName}</div>
+                  <div className="text-sm text-slate-600">{user.email}</div>
+                  <div className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                    {(user.role || 'USER').toString().toUpperCase()}
                   </div>
                 </div>
               </div>
 
-              {/*Progress placeholder*/}
-              <div className="w-full mt-3">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Progress</h3>
-                <div className="max-h-44 overflow-y-auto space-y-3 pr-2">
-                  {mockProgress.map((p) => (
-                    <div key={p.id} className="bg-white border rounded-md shadow-sm p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium text-gray-700">{p.label}</div>
-                        <div className="text-xs text-gray-500">{p.value}%</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/*User Info*/}
-              <div className="w-full mt-4">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">User</h3>
-                <div className="text-sm text-gray-800">
-                  <strong>Name: </strong>
-                  {fullName}
-                </div>
-                <div className="text-sm text-gray-800">
-                  <strong>Email: </strong>
-                  {user?.email}
-                </div>
-                <div className="text-sm text-gray-800">
-                  <strong>Phone: </strong>
-                  {formatPhone(user?.phone)}
-                </div>
-                <div className="text-sm text-gray-800">
-                  <strong>Major: </strong>
-                  {user?.major}
-                </div>
-              </div>
-
-              <div className="w-full pt-4">
-                <Button
-                  label="Edit Profile"
-                  className="w-full p-button-danger"
-                  onClick={() => {
-                    setEditSection('none');
-                    setEditVisible(true);
-                    setError('');
-                    setSuccess('');
+              <div className="flex flex-wrap gap-2">
+                <Button label="Edit Profile" icon="pi pi-user-edit" onClick={openEditProfile} />
+                <Button label="Edit Contact" icon="pi pi-phone" outlined onClick={openEditContact} />
+                <Button label="Change Password" icon="pi pi-lock" outlined onClick={openEditPassword} />
+                <Button label="Update Photo" icon="pi pi-camera" outlined onClick={handleUploadClick} disabled={saving} />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleProfilePictureUpload(file);
+                    }
+                    e.currentTarget.value = '';
                   }}
                 />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-sm">
+            <div className="space-y-3">
+              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Account</div>
+              <div className="text-sm">
+                <div className="text-slate-500">User ID</div>
+                <div className="font-medium text-slate-800">{user.id ?? 'N/A'}</div>
+              </div>
+              <div className="text-sm">
+                <div className="text-slate-500">Email (Username)</div>
+                <div className="font-medium text-slate-800">{user.email || 'N/A'}</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-sm">
+            <div className="space-y-4">
+              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Personal Info</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs text-slate-500">First Name</div>
+                  <div className="text-sm font-medium text-slate-800">{user.firstName || 'Not set'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Last Name</div>
+                  <div className="text-sm font-medium text-slate-800">{user.lastName || 'Not set'}</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-sm">
+            <div className="space-y-4">
+              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Academic & Contact</div>
+              <div>
+                <div className="text-xs text-slate-500">Major</div>
+                <div className="text-sm font-medium text-slate-800">{user.major || 'Not set'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">Phone</div>
+                <div className="text-sm font-medium text-slate-800">{formatPhone(user.phone)}</div>
               </div>
             </div>
           </Card>
         </div>
       </main>
 
-      {/*Edit Dialog*/}
-      <Dialog
-        header="Edit Profile"
-        visible={editVisible}
-        style={{ width: '420px' }}
-        onHide={closeEdit}
-        modal
-      >
-        <div>
-          {/*Section selector*/}
-          {editSection === 'none' && (
-            <div className="flex flex-col gap-3">
-              <Button label="Contact Info" onClick={() => setEditSection('contact')} />
-              <Button label="Profile Info" onClick={() => setEditSection('profile')} />
-            </div>
-          )}
-
-          {/*Contact Info Form*/}
-          {editSection === 'contact' && (
-            <div className="flex flex-col gap-3">
-              <label className="text-sm text-gray-600">Email</label>
-              <InputText
-                value={form.email ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onFormChange('email', e.target.value)
-                }
-              />
-              <label className="text-sm text-gray-600">Phone</label>
-              <InputMask
-                mask="(999) 999-9999"
-                value={form.phone ?? ''}
-                onChange={(e: any) => onFormChange('phone', e.value ?? '')}
-              />
-              <Divider />
-              <div className="flex justify-end gap-2">
-                <Button label="Cancel" className="p-button-secondary" onClick={closeEdit} />
-                <Button label={saving ? 'Saving...' : 'Save'} onClick={handleSave} />
-              </div>
-            </div>
-          )}
-
-          {/*Profile Info Form*/}
-          {editSection === 'profile' && (
-            <div className="flex flex-col gap-3">
-              <label className="text-sm text-gray-600">First Name</label>
-              <InputText
-                value={form.firstName ?? ''}
-                onChange={(e) => onFormChange('firstName', e.target.value)}
-              />
-              <label className="text-sm text-gray-600">Last Name</label>
-              <InputText
-                value={form.lastName ?? ''}
-                onChange={(e) => onFormChange('lastName', e.target.value)}
-              />
-              <label className="text-sm text-gray-600">Major</label>
-              <Dropdown
-                value={form.major ?? ''}
-                options={majorOptions}
-                onChange={(e) => onFormChange('major', e.value ?? '')}
-                placeholder="Select major"
-                filter
-              />
-              <Divider />
-              <div className="flex justify-end gap-2">
-                <Button label="Cancel" className="p-button-secondary" onClick={closeEdit} />
-                <Button label={saving ? 'Saving...' : 'Save'} onClick={handleSave} />
-              </div>
-            </div>
-          )}
+      <Dialog header="Edit Profile Info" visible={editProfileVisible} style={{ width: '28rem' }} onHide={() => setEditProfileVisible(false)} modal>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">First Name</label>
+            <InputText className="w-full" value={profileForm.firstName} onChange={(e) => setProfileForm((f) => ({ ...f, firstName: e.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Last Name</label>
+            <InputText className="w-full" value={profileForm.lastName} onChange={(e) => setProfileForm((f) => ({ ...f, lastName: e.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Major</label>
+            <Dropdown
+              className="w-full"
+              value={profileForm.major}
+              options={majorOptions}
+              onChange={(e) => setProfileForm((f) => ({ ...f, major: e.value ?? '' }))}
+              placeholder="Select major"
+              filter
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button label="Cancel" outlined onClick={() => setEditProfileVisible(false)} />
+            <Button label={saving ? 'Saving...' : 'Save'} onClick={saveProfile} disabled={saving} />
+          </div>
         </div>
+      </Dialog>
 
-        {error && <div className="text-red-600 mt-3">{error}</div>}
-        {success && <div className="text-green-600 mt-3">{success}</div>}
+      <Dialog header="Edit Contact Info" visible={editContactVisible} style={{ width: '28rem' }} onHide={() => setEditContactVisible(false)} modal>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Email (read-only)</label>
+            <InputText className="w-full" value={user.email ?? ''} disabled />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Phone</label>
+            <InputMask
+              className="w-full"
+              mask="(999) 999-9999"
+              value={contactForm.phone}
+              onChange={(e: any) => setContactForm({ phone: e.value ?? '' })}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button label="Cancel" outlined onClick={() => setEditContactVisible(false)} />
+            <Button label={saving ? 'Saving...' : 'Save'} onClick={saveContact} disabled={saving} />
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog header="Change Password" visible={editPasswordVisible} style={{ width: '28rem' }} onHide={() => setEditPasswordVisible(false)} modal>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">New Password</label>
+            <Password
+              value={passwordForm.password}
+              onChange={(e: any) => setPasswordForm((f) => ({ ...f, password: e?.target?.value ?? e?.value ?? '' }))}
+              feedback={false}
+              toggleMask={false}
+              inputClassName="w-full"
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Confirm Password</label>
+            <Password
+              value={passwordForm.confirmPassword}
+              onChange={(e: any) => setPasswordForm((f) => ({ ...f, confirmPassword: e?.target?.value ?? e?.value ?? '' }))}
+              feedback={false}
+              toggleMask={false}
+              inputClassName="w-full"
+              placeholder="Repeat new password"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button label="Cancel" outlined onClick={() => setEditPasswordVisible(false)} />
+            <Button label={saving ? 'Saving...' : 'Update'} onClick={savePassword} disabled={saving} />
+          </div>
+        </div>
       </Dialog>
     </div>
   );

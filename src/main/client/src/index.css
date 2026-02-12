@@ -13,4 +13,169 @@ body,
   background-color: #ffffff;
 }
 
+.dark-mode body,
+.dark-mode #root {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark-mode .bg-white {
+  background-color: #111827 !important;
+}
+
+.dark-mode .bg-white\/90,
+.dark-mode .bg-white\/80,
+.dark-mode .bg-white\/70 {
+  background-color: #111827 !important;
+}
+
+.dark-mode .bg-gray-50,
+.dark-mode .bg-slate-50,
+.dark-mode .bg-slate-100,
+.dark-mode .bg-red-50 {
+  background-color: #0f172a !important;
+}
+
+.dark-mode .bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, #0b1220, #0f172a, #111827) !important;
+}
+
+.dark-mode .from-red-50,
+.dark-mode .via-white,
+.dark-mode .to-slate-100 {
+  --tw-gradient-from: #0b1220 !important;
+  --tw-gradient-via: #0f172a !important;
+  --tw-gradient-to: #111827 !important;
+}
+
+.dark-mode .text-gray-900,
+.dark-mode .text-gray-800,
+.dark-mode .text-slate-900,
+.dark-mode .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+.dark-mode .text-gray-700,
+.dark-mode .text-gray-600,
+.dark-mode .text-slate-700,
+.dark-mode .text-slate-600,
+.dark-mode .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .border-gray-200,
+.dark-mode .border-slate-200,
+.dark-mode .border-red-100,
+.dark-mode .border-red-200,
+.dark-mode .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+.dark-mode .bg-red-100 {
+  background-color: #1f2937 !important;
+}
+
+.dark-mode .bg-slate-50\/90 {
+  background-color: rgba(17, 24, 39, 0.92) !important;
+}
+
+.dark-mode .shadow-sm,
+.dark-mode .shadow-md {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
+}
+
+.dark-mode .p-card,
+.dark-mode .p-panel,
+.dark-mode .p-dialog {
+  background-color: #111827 !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .p-panel .p-panel-header,
+.dark-mode .p-dialog .p-dialog-header,
+.dark-mode .p-dialog .p-dialog-content {
+  background-color: #111827 !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .p-panel .p-panel-content {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .p-panel .p-component,
+.dark-mode .p-panel label,
+.dark-mode .p-panel h1,
+.dark-mode .p-panel h2,
+.dark-mode .p-panel h3,
+.dark-mode .p-panel p,
+.dark-mode .p-panel span {
+  color: #e2e8f0 !important;
+}
+
+.dark-mode .p-radiobutton .p-radiobutton-box {
+  background-color: #111827 !important;
+  border-color: #475569 !important;
+}
+
+.dark-mode .p-radiobutton .p-radiobutton-box.p-highlight {
+  background-color: #334155 !important;
+  border-color: #64748b !important;
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea,
+.dark-mode .p-inputtext,
+.dark-mode .p-dropdown,
+.dark-mode .p-dropdown-panel,
+.dark-mode .p-dropdown-items {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .react-flow {
+  background-color: #0b1220 !important;
+}
+
+.dark-mode .react-flow__background {
+  background-color: #0b1220 !important;
+}
+
+.dark-mode .react-flow__controls {
+  box-shadow: none !important;
+}
+
+.dark-mode .react-flow__controls-button {
+  background-color: #111827 !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .react-flow__controls-button:hover {
+  background-color: #1f2937 !important;
+}
+
+.dark-mode .react-flow__minimap {
+  background-color: #111827 !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark-mode .react-flow__node-semester > div {
+  background-color: rgba(17, 24, 39, 0.92) !important;
+  border-color: #475569 !important;
+}
+
+.dark-mode .react-flow__node-semester .text-slate-700 {
+  color: #e2e8f0 !important;
+}
 

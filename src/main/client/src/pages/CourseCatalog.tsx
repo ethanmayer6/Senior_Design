@@ -2,11 +2,25 @@ import {CourseCard} from "../components/CourseCard";
 import type {Course} from "../types/course";
 import axios from "axios";
 import {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 import {Button} from "primereact/button";
 import {InputText} from "primereact/inputtext";
 import {Panel} from "primereact/panel"
 import {RadioButton} from "primereact/radiobutton";
+import {Dialog} from "primereact/dialog";
+import type {Semester} from "../api/flowchartApi";
+import {getUserFlowchart, updateSemesterCourses} from "../api/flowchartApi";
 // import { Slider } from 'primereact/slider';
+
+function semesterRank(year: number, term: string): number {
+  const order: Record<string, number> = {
+    SPRING: 1,
+    SUMMER: 2,
+    FALL: 3,
+  };
+  const termRank = order[term?.toUpperCase()] ?? 9;
+  return year * 10 + termRank;
+}
 
 export default function CourseCatalog() {
     const [courses, setCourses] = useState<Course[]>([]);
@@ -19,6 +33,30 @@ export default function CourseCatalog() {
     const [pageNumber, setPageNumber] = useState(0);
     const [hasMore, setHasMore] = useState(false);
     const [filtered, setFiltered] = useState(false);
+    const [semesters, setSemesters] = useState<Semester[]>([]);
+    const [flowchartExists, setFlowchartExists] = useState(true);
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+    const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null);
+    const [addDialogVisible, setAddDialogVisible] = useState(false);
+    const [addingCourse, setAddingCourse] = useState(false);
+    const [addToFlowchartMessage, setAddToFlowchartMessage] = useState<string | null>(null);
+    const [addToFlowchartError, setAddToFlowchartError] = useState<string | null>(null);
+    const [editDialogVisible, setEditDialogVisible] = useState(false);
+    const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+    const [updatingCourse, setUpdatingCourse] = useState(false);
+    const [deletingCourse, setDeletingCourse] = useState(false);
+    const [courseActionMessage, setCourseActionMessage] = useState<string | null>(null);
+    const [courseActionError, setCourseActionError] = useState<string | null>(null);
+    const [editCourseForm, setEditCourseForm] = useState({
+      name: "",
+      ident: "",
+      credits: "",
+      prereq_txt: "",
+      description: "",
+      hours: "",
+      offered: "",
+      prereqIdents: "",
+    });
 
 
     const searchCourses = async (): Promise<void> => {
@@ -80,6 +118,179 @@ export default function CourseCatalog() {
     useEffect(() => {
         getCourses(0);
     }, []);
+
+    useEffect(() => {
+      const loadSemesters = async () => {
+        try {
+          const flowchart = await getUserFlowchart();
+          if (!flowchart || !flowchart.semesters || flowchart.semesters.length === 0) {
+            setFlowchartExists(false);
+            setSemesters([]);
+            return;
+          }
+          const sorted = [...flowchart.semesters].sort(
+            (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
+          );
+          setFlowchartExists(true);
+          setSemesters(sorted);
+        } catch (error) {
+          console.error("Error loading semesters for flowchart:", error);
+          setFlowchartExists(false);
+          setSemesters([]);
+        }
+      };
+      loadSemesters();
+    }, []);
+
+    const openAddDialog = (course: Course) => {
+      setSelectedCourse(course);
+      setSelectedSemesterId(semesters.length ? semesters[0].id : null);
+      setAddToFlowchartMessage(null);
+      setAddToFlowchartError(null);
+      setAddDialogVisible(true);
+    };
+
+    const openEditDialog = (course: Course) => {
+      setSelectedCourse(course);
+      setEditCourseForm({
+        name: course.name ?? "",
+        ident: course.courseIdent ?? "",
+        credits: String(course.credits ?? ""),
+        prereq_txt: course.prereq_txt ?? "",
+        description: course.description ?? "",
+        hours: course.hours ?? "",
+        offered: course.offered ?? "",
+        prereqIdents: (course.prerequisites ?? []).join(", "),
+      });
+      setCourseActionMessage(null);
+      setCourseActionError(null);
+      setEditDialogVisible(true);
+    };
+
+    const openDeleteDialog = (course: Course) => {
+      setSelectedCourse(course);
+      setCourseActionMessage(null);
+      setCourseActionError(null);
+      setDeleteDialogVisible(true);
+    };
+
+    const handleConfirmAddCourse = async () => {
+      if (!selectedCourse) {
+        return;
+      }
+      if (selectedSemesterId === null) {
+        setAddToFlowchartError("Select a semester first.");
+        return;
+      }
+
+      setAddingCourse(true);
+      setAddToFlowchartMessage(null);
+      setAddToFlowchartError(null);
+      try {
+        await updateSemesterCourses(selectedSemesterId, {
+          operation: "ADD",
+          courseIdent: selectedCourse.courseIdent,
+        });
+        setAddToFlowchartMessage(`Added ${selectedCourse.courseIdent} to your flowchart.`);
+        setAddDialogVisible(false);
+      } catch (error: any) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to add course to flowchart.";
+        setAddToFlowchartError(message);
+      } finally {
+        setAddingCourse(false);
+      }
+    };
+
+    const handleSaveCourseEdits = async () => {
+      if (!selectedCourse?.id) {
+        setCourseActionError("Course ID is missing. Cannot update this course.");
+        return;
+      }
+
+      const creditsNumber =
+        editCourseForm.credits.trim() === "" ? null : Number(editCourseForm.credits);
+      if (creditsNumber !== null && Number.isNaN(creditsNumber)) {
+        setCourseActionError("Credits must be a valid number.");
+        return;
+      }
+
+      const prereqIdents = editCourseForm.prereqIdents
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      setUpdatingCourse(true);
+      setCourseActionError(null);
+      setCourseActionMessage(null);
+      try {
+        const payload = {
+          name: editCourseForm.name.trim() || null,
+          ident: editCourseForm.ident.trim().toUpperCase().replace(/\s+/g, "_") || null,
+          credits: creditsNumber,
+          prereq_txt: editCourseForm.prereq_txt.trim() || null,
+          description: editCourseForm.description.trim() || null,
+          hours: editCourseForm.hours.trim() || null,
+          offered: editCourseForm.offered.trim() || null,
+          prereqIdents,
+        };
+        const response = await axios.put(
+          `http://localhost:8080/api/courses/update/${selectedCourse.id}`,
+          payload
+        );
+
+        const updatedCourse: Course = response.data;
+        setCourses((prev) =>
+          prev.map((course) =>
+            course.id === selectedCourse.id || course.courseIdent === selectedCourse.courseIdent
+              ? { ...course, ...updatedCourse }
+              : course
+          )
+        );
+        setCourseActionMessage(`Updated ${updatedCourse.courseIdent}.`);
+        setEditDialogVisible(false);
+      } catch (error: any) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to update course.";
+        setCourseActionError(message);
+      } finally {
+        setUpdatingCourse(false);
+      }
+    };
+
+    const handleDeleteCourse = async () => {
+      if (!selectedCourse?.id) {
+        setCourseActionError("Course ID is missing. Cannot delete this course.");
+        return;
+      }
+
+      setDeletingCourse(true);
+      setCourseActionError(null);
+      setCourseActionMessage(null);
+      try {
+        await axios.delete(`http://localhost:8080/api/courses/delete/${selectedCourse.id}`);
+        setCourses((prev) =>
+          prev.filter(
+            (course) =>
+              !(course.id === selectedCourse.id || course.courseIdent === selectedCourse.courseIdent)
+          )
+        );
+        setCourseActionMessage(`Deleted ${selectedCourse.courseIdent}.`);
+        setDeleteDialogVisible(false);
+      } catch (error: any) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete course.";
+        setCourseActionError(message);
+      } finally {
+        setDeletingCourse(false);
+      }
+    };
 
     return (
         <div className="min-h-screen p-4 flex gap-4">
@@ -323,6 +534,13 @@ export default function CourseCatalog() {
 
             <main className="flex-1 flex flex-col gap-4">
                 <div className="flex flex-row gap-4">
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+                    >
+                      <i className="pi pi-arrow-left mr-2 text-red-500"></i>
+                      Back to Dashboard
+                    </Link>
                     <InputText placeholder="Search" className="w-full bg-gray-700 border border-gray-700"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -337,9 +555,35 @@ export default function CourseCatalog() {
                       }}/>
                 </div>
                 <div className="flex flex-col gap-4 w-full">
+                  {addToFlowchartMessage && (
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                      {addToFlowchartMessage}
+                    </div>
+                  )}
+                  {addToFlowchartError && (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {addToFlowchartError}
+                    </div>
+                  )}
+                  {courseActionMessage && (
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                      {courseActionMessage}
+                    </div>
+                  )}
+                  {courseActionError && (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {courseActionError}
+                    </div>
+                  )}
                   {courses.map((course) => (
                     <div key={course.courseIdent} className="w-full">
-                      <CourseCard course={course} />
+                      <CourseCard
+                        course={course}
+                        onAddToFlowchart={openAddDialog}
+                        onEditCourse={openEditDialog}
+                        onDeleteCourse={openDeleteDialog}
+                        addDisabled={!flowchartExists || semesters.length === 0}
+                      />
                     </div>
                   ))}
                   {hasMore && (
@@ -353,6 +597,155 @@ export default function CourseCatalog() {
                   )}
                 </div>
             </main>
+
+            <Dialog
+              header="Add Course To CourseFlow"
+              visible={addDialogVisible}
+              style={{ width: "28rem" }}
+              onHide={() => setAddDialogVisible(false)}
+            >
+              {!flowchartExists || semesters.length === 0 ? (
+                <div className="text-sm text-gray-700">
+                  You need an existing flowchart with semesters before adding courses from the catalog.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-sm text-slate-700">
+                    <span className="font-semibold">Course:</span>{" "}
+                    {selectedCourse?.courseIdent?.replace(/_/g, " ")}
+                  </div>
+                  <select
+                    className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                    value={selectedSemesterId ?? ""}
+                    onChange={(e) => setSelectedSemesterId(e.target.value ? Number(e.target.value) : null)}
+                    disabled={addingCourse}
+                  >
+                    {semesters.map((sem) => (
+                      <option key={sem.id} value={sem.id}>
+                        {sem.year <= 0 ? "Transfer Credit" : `${sem.term} ${sem.year}`}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    className="w-full"
+                    label={addingCourse ? "Adding..." : "Add to CourseFlow"}
+                    icon="pi pi-plus"
+                    onClick={handleConfirmAddCourse}
+                    disabled={addingCourse || !selectedCourse}
+                  />
+                </div>
+              )}
+            </Dialog>
+
+            <Dialog
+              header="Edit Course"
+              visible={editDialogVisible}
+              style={{ width: "36rem" }}
+              onHide={() => setEditDialogVisible(false)}
+            >
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Course Name</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.name}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Course Ident</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.ident}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, ident: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Credits</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.credits}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, credits: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Hours</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.hours}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, hours: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Offered</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.offered}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, offered: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Prerequisite Text</label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.prereq_txt}
+                    onChange={(e) => setEditCourseForm((f) => ({ ...f, prereq_txt: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">
+                    Prerequisite Idents (comma-separated)
+                  </label>
+                  <InputText
+                    className="w-full"
+                    value={editCourseForm.prereqIdents}
+                    onChange={(e) =>
+                      setEditCourseForm((f) => ({ ...f, prereqIdents: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Description</label>
+                  <textarea
+                    className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                    rows={4}
+                    value={editCourseForm.description}
+                    onChange={(e) =>
+                      setEditCourseForm((f) => ({ ...f, description: e.target.value }))
+                    }
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  label={updatingCourse ? "Saving..." : "Save Changes"}
+                  icon="pi pi-check"
+                  onClick={handleSaveCourseEdits}
+                  disabled={updatingCourse}
+                />
+              </div>
+            </Dialog>
+
+            <Dialog
+              header="Delete Course"
+              visible={deleteDialogVisible}
+              style={{ width: "28rem" }}
+              onHide={() => setDeleteDialogVisible(false)}
+            >
+              <div className="space-y-4">
+                <div className="text-sm text-slate-700">
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{selectedCourse?.courseIdent?.replace(/_/g, " ")}</span>?
+                </div>
+                <Button
+                  className="w-full"
+                  label={deletingCourse ? "Deleting..." : "Delete Course"}
+                  icon="pi pi-trash"
+                  severity="danger"
+                  onClick={handleDeleteCourse}
+                  disabled={deletingCourse}
+                />
+              </div>
+            </Dialog>
         </div>
     );
 };

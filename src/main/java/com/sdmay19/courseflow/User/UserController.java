@@ -56,6 +56,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getProfilePic(id));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<java.util.List<UserSearchResult>> searchUsers(
+            Authentication auth,
+            @RequestParam String username) {
+        AppUser currentUser = (AppUser) auth.getPrincipal();
+        return ResponseEntity.ok(userService.searchUsersByUsername(username, currentUser.getId()));
+    }
+
     // UPDATE
     @PutMapping("/me")
     public ResponseEntity<AppUser> updateUser(Authentication auth, @RequestBody UserUpdator updates) {

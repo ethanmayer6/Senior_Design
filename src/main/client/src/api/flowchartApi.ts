@@ -16,8 +16,10 @@ export interface Course {
   name: string;
   courseIdent: string;
   credits: number;
+  prereq_txt?: string;
   prerequisites: string[];
   description: string;
+  hours?: string;
   offered: string;
 }
 

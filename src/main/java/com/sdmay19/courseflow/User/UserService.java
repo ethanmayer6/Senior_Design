@@ -95,6 +95,24 @@ public class UserService {
       return userRepository.findAll();
     }
 
+    public List<UserSearchResult> searchUsersByUsername(String username, long currentUserId) {
+        if (username == null || username.trim().length() < 2) {
+            return List.of();
+        }
+
+        String normalizedQuery = normalizeEmail(username);
+        return userRepository.findByEmailContainingIgnoreCase(normalizedQuery).stream()
+                .filter(u -> u.getId() != currentUserId)
+                .limit(25)
+                .map(u -> new UserSearchResult(
+                        u.getId(),
+                        u.getUsername(),
+                        u.getFirstName(),
+                        u.getLastName(),
+                        u.getMajor()))
+                .toList();
+    }
+
     // UPDATE SERVICES
     public AppUser updateUser(long id, UserUpdator updates) {
       AppUser user = getUserById(id);

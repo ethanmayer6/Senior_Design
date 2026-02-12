@@ -16,26 +16,46 @@ import ReactFlow, {
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
-import type { Flowchart as FlowchartEntity } from '../api/flowchartApi';
+import type { Course as FlowchartCourse, CourseStatus, Flowchart as FlowchartEntity } from '../api/flowchartApi';
+import { createStatusLookup, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
 
-type CourseData = { label: string; cls: string; title?: string };
+type CourseData = {
+  label: string;
+  cls: string;
+  title?: string;
+  status?: CourseStatus;
+  course?: FlowchartCourse;
+};
 type SemesterData = { title: string };
 
-const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
-  <div
-    title={data.title}
-    className={[
-      'h-[4.5rem] w-[4.5rem] rounded-full',
-      'flex items-center justify-center text-center',
-      'px-1 font-semibold text-[11px] leading-tight shadow-sm cursor-default select-none',
-      data.cls,
-    ].join(' ')}
-  >
-    {data.label}
-    <Handle type="target" position={Position.Top} className="opacity-0" />
-    <Handle type="source" position={Position.Bottom} className="opacity-0" />
-  </div>
-));
+const CourseNode = memo(({ data }: NodeProps<CourseData>) => {
+  const normalizedStatus = String(data.status ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
+  const isInProgress = normalizedStatus === 'IN_PROGRESS';
+
+  return (
+    <div
+      title={data.title}
+      className={[
+        'h-[4.5rem] w-[4.5rem] rounded-full',
+        'flex items-center justify-center text-center',
+        'px-1 font-semibold text-[11px] leading-tight shadow-sm cursor-pointer select-none relative',
+        data.cls,
+      ].join(' ')}
+    >
+      {data.label}
+      {isInProgress && (
+        <span className="absolute -bottom-1 -right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-black shadow-sm">
+          IP
+        </span>
+      )}
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+});
 
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
   <div className="h-full w-full rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm">
@@ -84,7 +104,13 @@ function semesterRank(year: number, term: string): number {
   return year * 10 + termRank;
 }
 
-export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity }) {
+export default function Flowchart({
+  flowchart,
+  onCourseSelect,
+}: {
+  flowchart: FlowchartEntity;
+  onCourseSelect?: (course: FlowchartCourse) => void;
+}) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -93,6 +119,7 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
 
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
+    const statusLookup = createStatusLookup(flowchart.courseStatusMap);
     const semesters = Array.isArray(flowchart.semesters) ? flowchart.semesters : [];
     const sortedSems = [...semesters].sort(
       (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
@@ -131,9 +158,16 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
 
         const courseIdent = c.courseIdent || `UNKNOWN_${sem.id}_${placedCount}`;
         const prefix = courseIdent.split('_')[0];
-        const isCompleted = flowchart.courseStatusMap?.[courseIdent] === 'COMPLETED';
+        const status = resolveCourseStatus(statusLookup, courseIdent);
+        const normalizedStatus = normalizeStatus(status);
+        const isCompleted = normalizedStatus === 'COMPLETED';
+        const isInProgress = normalizedStatus === 'IN_PROGRESS';
         const color = deptClasses[prefix] || deptClasses.DEFAULT;
-        const cls = isCompleted ? `${color} ring-2 ring-emerald-300` : `${color} opacity-95`;
+        const cls = isCompleted
+          ? `${color} ring-2 ring-emerald-300`
+          : isInProgress
+            ? `${color} ring-2 ring-amber-300`
+            : `${color} opacity-95`;
         const nodeId = `${semId}__${courseIdent}__${placedCount}`;
 
         newNodes.push({
@@ -142,7 +176,9 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
           data: {
             label: courseIdent.replace('_', ' '),
             cls,
-            title: c.name,
+            title: `${c.name}${status ? ` (${status})` : ''}`,
+            status,
+            course: c,
           },
           parentNode: semId,
           extent: 'parent',
@@ -177,6 +213,13 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
   }, [flowchart, setNodes, setEdges]);
 
   const onConnect = (params: Edge | Connection) => setEdges((e) => addEdge(params, e));
+  const onNodeClick = (_: React.MouseEvent, node: Node) => {
+    if (node.type !== 'course') return;
+    const nodeData = node.data as CourseData;
+    if (nodeData.course && onCourseSelect) {
+      onCourseSelect(nodeData.course);
+    }
+  };
   const hasRenderableData = nodes.length > 0;
 
   return (
@@ -193,6 +236,7 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
         fitView
         fitViewOptions={{ padding: 0.18 }}
         defaultEdgeOptions={{ type: 'smoothstep' }}
