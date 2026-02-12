@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface MajorRepository extends JpaRepository<Major, Long> {
     Optional<Major> findByName(String majorName);
+    Optional<Major> findByNameIgnoreCase(String majorName);
     Optional<Major> findById(Long id);
 }

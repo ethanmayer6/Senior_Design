@@ -1,7 +1,16 @@
 import axios from 'axios';
+import { Env } from '../Env';
+
+const rawBaseUrl = (Env.API_BASE_URL || '/api').trim();
+const baseURL =
+  rawBaseUrl.startsWith('http://') ||
+  rawBaseUrl.startsWith('https://') ||
+  rawBaseUrl.startsWith('/')
+    ? rawBaseUrl
+    : `/${rawBaseUrl}`;
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL,
 });
 
 api.interceptors.request.use((config) => {

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -115,15 +117,19 @@ public class SpringConfiguration implements WebMvcConfigurer {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/index.html", "/assets/**", "/vite.svg", "/logo.png",
+                                "/uploads/profile-pictures/**")
+                        .permitAll()
                         .requestMatchers("/api/ping", "/testdata/**", "/api/users/register", "/api/users/login",
                                 "/api/users/check-email", "/api/courses/**", "/api/majors/**",
-                                "/api/requirementgroup/**", "/api/degreerequirement/**", "/api/flowchart/**",
-                                "/api/semester/**", "/api/progressReport/**")
+                                "/api/requirementgroup/**", "/api/degreerequirement/**",
+                                "/api/semester/**")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults())
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll())
                 .userDetailsService(userDetailsService())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter,

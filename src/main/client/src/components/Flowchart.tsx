@@ -38,10 +38,7 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => (
 ));
 
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
-  <div
-    className="rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm"
-    style={{ width: 760, height: 150 }}
-  >
+  <div className="h-full w-full rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm">
     <div className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">{data.title}</div>
   </div>
 ));
@@ -96,8 +93,7 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
 
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
-
-    const semesters = flowchart.semesters ?? [];
+    const semesters = Array.isArray(flowchart.semesters) ? flowchart.semesters : [];
     const sortedSems = [...semesters].sort(
       (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
     );
@@ -105,7 +101,13 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
     let currentY = 0;
     sortedSems.forEach((sem) => {
       const semId = `SEM_${sem.id}`;
-      const rowsNeeded = Math.max(1, Math.ceil(sem.courses.length / COURSE_PER_ROW));
+      const semesterCourses = Array.isArray(sem.courses) ? sem.courses : [];
+      const uniqueSemesterCourses = semesterCourses.filter((c, idx, arr) => {
+        const ident = c?.courseIdent;
+        if (!ident) return false;
+        return arr.findIndex((x) => x?.courseIdent === ident) === idx;
+      });
+      const rowsNeeded = Math.max(1, Math.ceil(uniqueSemesterCourses.length / COURSE_PER_ROW));
       const semesterHeight = Math.max(
         MIN_SEMESTER_HEIGHT,
         INNER_PADDING_Y + rowsNeeded * COURSE_GAP_Y
@@ -115,23 +117,27 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
         id: semId,
         type: 'semester',
         position: { x: 80, y: currentY },
-        data: { title: `${sem.term} ${sem.year}` },
+        data: { title: sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}` },
         style: { width: SEMESTER_WIDTH, height: semesterHeight },
         draggable: false,
       });
 
-      sem.courses.forEach((c, index) => {
-        const colIndex = index % COURSE_PER_ROW;
-        const rowIndex = Math.floor(index / COURSE_PER_ROW);
+      let placedCount = 0;
+      const courseNodeIdByIdent = new Map<string, string>();
+      uniqueSemesterCourses.forEach((c) => {
+        if (!c) return;
+        const colIndex = placedCount % COURSE_PER_ROW;
+        const rowIndex = Math.floor(placedCount / COURSE_PER_ROW);
 
-        const courseIdent = c.courseIdent;
+        const courseIdent = c.courseIdent || `UNKNOWN_${sem.id}_${placedCount}`;
         const prefix = courseIdent.split('_')[0];
         const isCompleted = flowchart.courseStatusMap?.[courseIdent] === 'COMPLETED';
         const color = deptClasses[prefix] || deptClasses.DEFAULT;
         const cls = isCompleted ? `${color} ring-2 ring-emerald-300` : `${color} opacity-95`;
+        const nodeId = `${semId}__${courseIdent}__${placedCount}`;
 
         newNodes.push({
-          id: courseIdent,
+          id: nodeId,
           type: 'course',
           data: {
             label: courseIdent.replace('_', ' '),
@@ -145,12 +151,17 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
             y: INNER_PADDING_Y + rowIndex * COURSE_GAP_Y,
           },
         });
+        courseNodeIdByIdent.set(courseIdent, nodeId);
+        placedCount++;
 
-        c.prerequisites?.forEach((p) => {
+        const prereqs = Array.isArray(c.prerequisites) ? c.prerequisites : [];
+        prereqs.forEach((p) => {
+          const prereqNodeId = courseNodeIdByIdent.get(p);
+          if (!prereqNodeId) return;
           newEdges.push({
-            id: `${p}->${courseIdent}`,
-            source: p,
-            target: courseIdent,
+            id: `${prereqNodeId}->${nodeId}`,
+            source: prereqNodeId,
+            target: nodeId,
             type: 'smoothstep',
             animated: !isCompleted,
             style: { stroke: '#64748b', strokeWidth: 1.5 },
@@ -163,12 +174,18 @@ export default function Flowchart({ flowchart }: { flowchart: FlowchartEntity })
 
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [flowchart]);
+  }, [flowchart, setNodes, setEdges]);
 
   const onConnect = (params: Edge | Connection) => setEdges((e) => addEdge(params, e));
+  const hasRenderableData = nodes.length > 0;
 
   return (
-    <div className="h-[80vh] min-h-[560px] w-full max-w-[980px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="relative h-[80vh] min-h-[560px] w-full max-w-[980px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      {!hasRenderableData && (
+        <div className="absolute z-10 p-3 text-sm text-slate-600">
+          Flowchart loaded, but no renderable courses were found.
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}

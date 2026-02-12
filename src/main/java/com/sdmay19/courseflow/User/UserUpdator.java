@@ -1,8 +1,5 @@
 package com.sdmay19.courseflow.User;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
 public class UserUpdator {
     private String firstName;
     private String lastName;
@@ -11,10 +8,6 @@ public class UserUpdator {
 
 
     private String password;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     // Getters
     public String getFirstName() {
         return firstName;
@@ -46,6 +39,6 @@ public class UserUpdator {
         this.phone = phone;
     }
     public void setPassword(String password) {
-        this.password = passwordEncoder.encode(password);
+        this.password = password;
     }
 }

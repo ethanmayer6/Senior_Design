@@ -23,16 +23,72 @@ public class AcademicProgressParser {
     ) {
     }
 
+    public record ParsedCredits(
+            Integer creditsDefined,
+            Integer creditsSatisfying,
+            Integer creditsInProgress) {
+    }
+
+    public record ParsedReport(
+            List<ParsedRow> rows,
+            ParsedCredits credits) {
+    }
+
     /**
      * Main entry point for parsing the academic record Excel file.
      */
-    public List<ParsedRow> parse(InputStream excelStream) {
+    public ParsedReport parse(InputStream excelStream) {
         List<ParsedRow> results = new ArrayList<>();
+        ParsedCredits parsedCredits = new ParsedCredits(null, null, null);
 
         try (Workbook workbook = new XSSFWorkbook(excelStream)) {
             Sheet sheet = workbook.getSheetAt(0);
+            int creditsDefinedCol = -1;
+            int creditsInProgressCol = -1;
+            int creditsSatisfyingCol = -1;
 
             for (Row row : sheet) {
+                for (Cell cell : row) {
+                    String value = getString(cell);
+                    if (value == null || value.isBlank()) {
+                        continue;
+                    }
+
+                    String normalized = value.trim().toUpperCase();
+                    if (normalized.equals("CREDITS DEFINED")) {
+                        creditsDefinedCol = cell.getColumnIndex();
+                    } else if (normalized.equals("CREDITS IN PROGRESS")) {
+                        creditsInProgressCol = cell.getColumnIndex();
+                    } else if (normalized.equals("CREDITS SATISFYING")) {
+                        creditsSatisfyingCol = cell.getColumnIndex();
+                    }
+                }
+
+                if (isTotalAcademicRow(row)) {
+                    Integer defined = getNumericFromRow(row, creditsDefinedCol);
+                    Integer inProgress = getNumericFromRow(row, creditsInProgressCol);
+                    Integer satisfying = getNumericFromRow(row, creditsSatisfyingCol);
+
+                    if (defined == null || satisfying == null) {
+                        List<Integer> values = extractNumericCells(row);
+                        if (values.size() >= 3) {
+                            if (defined == null) {
+                                defined = values.get(0);
+                            }
+                            if (inProgress == null) {
+                                inProgress = values.get(1);
+                            }
+                            if (satisfying == null) {
+                                satisfying = values.get(2);
+                            }
+                        }
+                    }
+
+                    if (defined != null || satisfying != null || inProgress != null) {
+                        parsedCredits = new ParsedCredits(defined, satisfying, inProgress);
+                    }
+                }
+
                 Cell satisfiedWithCell = row.getCell(3); // Column D
                 Cell academicPeriodCell = row.getCell(4); // Column E
 
@@ -69,7 +125,7 @@ public class AcademicProgressParser {
             throw new RuntimeException("Failed to parse academic progress report Excel file", e);
         }
 
-        return results;
+        return new ParsedReport(results, parsedCredits);
     }
 
     /**
@@ -84,6 +140,63 @@ public class AcademicProgressParser {
             case FORMULA -> cell.getCellFormula();
             default -> null;
         };
+    }
+
+    private boolean isTotalAcademicRow(Row row) {
+        for (Cell cell : row) {
+            String value = getString(cell);
+            if (value == null) {
+                continue;
+            }
+            if (value.trim().toUpperCase().contains("TOTAL ACADEMIC")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Integer getNumericFromRow(Row row, int columnIndex) {
+        if (columnIndex < 0) {
+            return null;
+        }
+        return getNumeric(row.getCell(columnIndex));
+    }
+
+    private Integer getNumeric(Cell cell) {
+        if (cell == null) {
+            return null;
+        }
+
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return (int) Math.round(cell.getNumericCellValue());
+        }
+
+        String value = getString(cell);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = Pattern.compile("-?\\d+").matcher(value);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(matcher.group());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private List<Integer> extractNumericCells(Row row) {
+        List<Integer> values = new ArrayList<>();
+        for (Cell cell : row) {
+            Integer numeric = getNumeric(cell);
+            if (numeric != null) {
+                values.add(numeric);
+            }
+        }
+        return values;
     }
 
     /**

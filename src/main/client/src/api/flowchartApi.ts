@@ -69,6 +69,11 @@ export interface CourseMapRequest {
   operation: "ADD" | "UPDATE" | "REMOVE";
 }
 
+export interface SemesterCourseUpdateRequest {
+  operation: "ADD" | "REMOVE";
+  courseIdent: string;
+}
+
 /**
  * Get the flowchart for the currently authenticated user.
  * Backend derives the user from the JWT, so no params needed.
@@ -152,5 +157,13 @@ export async function getCoursesByStatus(
   const res = await api.get<Course[]>(
     `/flowchart/courses/${flowchartId}/${status}`
   );
+  return res.data;
+}
+
+export async function updateSemesterCourses(
+  semesterId: number,
+  payload: SemesterCourseUpdateRequest
+) {
+  const res = await api.patch(`/semester/update/${semesterId}/courses`, payload);
   return res.data;
 }

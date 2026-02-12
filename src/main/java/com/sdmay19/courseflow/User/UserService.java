@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.sdmay19.courseflow.exception.user.AuthenticationFailedException;
 import com.sdmay19.courseflow.exception.user.UserNotFoundException;
+import com.sdmay19.courseflow.major.MajorRepository;
 import com.sdmay19.courseflow.security.AuthResponse;
 import com.sdmay19.courseflow.security.JwtService;
 
@@ -23,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 public class UserService {
 
-    private static final String EMAIL_REGEX = "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,63}$";
 
     private final UserRepository userRepository;
     public UserService(UserRepository userRepository) {
@@ -39,12 +40,16 @@ public class UserService {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Autowired
+    private MajorRepository majorRepository;
+
     // CREATE SERVICE - still need to add spring security
     public AppUser register(AppUser user) {
-        boolean validAccount = checkValidAccount(user);
-        if (!validAccount) {
-            throw new AuthenticationFailedException("Invalid Email or Password");
+        if (user == null) {
+            throw new AuthenticationFailedException("Invalid registration payload.");
         }
+        normalizeUserForAuth(user);
+        validateRegistrationInput(user);
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole("USER");
@@ -53,10 +58,11 @@ public class UserService {
 
     // READ SERVICES
     public AuthResponse login(String email, String password) {
-      AppUser appUser = userRepository.findByEmail(email)
+      String normalizedEmail = normalizeEmail(email);
+      AppUser appUser = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new AuthenticationFailedException("User with this email address does not exist"));
 
-        if (!passwordEncoder.matches(password, appUser.getPassword())) {
+        if (password == null || password.isBlank() || !passwordEncoder.matches(password, appUser.getPassword())) {
             throw new AuthenticationFailedException("Incorrect password");
         }
 
@@ -77,7 +83,7 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + phone));
     }
     public boolean isEmailAvailable(String email) {
-        return userRepository.findByEmail(email).isEmpty();
+        return userRepository.findByEmail(normalizeEmail(email)).isEmpty();
     }
 
     public String getProfilePic(Long id) {
@@ -98,14 +104,14 @@ public class UserService {
       if (updates.getMajor() != null)     user.setMajor(updates.getMajor());
       if (updates.getPhone() != null)     user.setPhone(updates.getPhone());
       if (updates.getPassword() != null)
-          user.setPassword(updates.getPassword());
+          user.setPassword(passwordEncoder.encode(updates.getPassword()));
   
       return userRepository.save(user);
   }
 
     public void updatePassword(long id, String password) {
       AppUser user = getUserById(id);
-        user.setPassword(password);
+        user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
     }
     public void updateFirstName(long id, String firstName) {
@@ -144,11 +150,19 @@ public class UserService {
     }
 
     // NEW ACCOUNT CHECKING MEASURES
-    private boolean checkValidAccount(AppUser user) {
-        boolean validEmail = checkEmailFormat(user.getEmail()) && emailNotExists(user.getEmail());
-        boolean validPassword = checkPasswordStrength(user.getPassword());
-
-        return validEmail && validPassword;
+    private void validateRegistrationInput(AppUser user) {
+        if (!checkEmailFormat(user.getEmail())) {
+            throw new AuthenticationFailedException("Please enter a valid email address.");
+        }
+        if (!emailNotExists(user.getEmail())) {
+            throw new AuthenticationFailedException("An account with this email already exists.");
+        }
+        if (!isValidMajor(user.getMajor())) {
+            throw new AuthenticationFailedException("Please select a valid major.");
+        }
+        if (!checkPasswordStrength(user.getPassword())) {
+            throw new AuthenticationFailedException("Password must be at least 6 characters.");
+        }
     }
     private boolean checkEmailFormat(String email) {
         if (email == null || email.isBlank()) return false;
@@ -158,10 +172,28 @@ public class UserService {
         return userRepository.findByEmail(email).isEmpty();
     }
     private boolean checkPasswordStrength(String password) {
-        if (password.length() < 6 || password.length() > 20) {
+        if (password == null || password.isBlank()) {
+            return false;
+        }
+        if (password.length() < 6) {
             return false;
         }
         return true;
+    }
+
+    private boolean isValidMajor(String major) {
+        if (major == null || major.isBlank()) {
+            return false;
+        }
+        return majorRepository.findByNameIgnoreCase(major.trim()).isPresent();
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private void normalizeUserForAuth(AppUser user) {
+        user.setEmail(normalizeEmail(user.getEmail()));
     }
 
     public ResponseEntity<?> uploadProfilePicture(Long id, MultipartFile file) {

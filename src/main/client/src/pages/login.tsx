@@ -3,59 +3,50 @@ import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
-import axios from 'axios';
 import Header from '../components/header.tsx';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axiosClient';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [noEmailOrPassword, setNoEmailOrPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
-  const navigate = useNavigate(); // <-- ADD THIS
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     if (!email || !password) {
       setNoEmailOrPassword(true);
       return;
     }
+
     setNoEmailOrPassword(false);
+    setLoginError('');
 
     try {
-      const response = await axios.post('http://localhost:8080/api/users/login', {
-        email,
-        password,
-      });
+      const response = await api.post('/users/login', { email, password });
 
-      console.log('✅ Login successful:', response.data);
-
-      // Save to localStorage
-      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token.trim());
-
-      // Redirect to CourseFlow home
       navigate('/courseflow');
-    } catch (err) {
-      console.error('❌ Login failed:', err);
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setLoginError(err?.response?.data?.message || 'Login failed. Please check your credentials.');
     }
   };
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      {/* Logo Section */}
       <Header></Header>
 
-      {/* Login Card */}
       <Card className="w-[400px] bg-white shadow-md rounded-xl flex flex-col items-center">
-        {/* Header Text */}
         <div className="text-center mb-3">
           <p className="text-gray-500 text-sm">Please enter your details</p>
           <h2 className="text-2xl font-bold text-gray-800 mt-1">Welcome back</h2>
         </div>
 
-        {/* Form */}
         <div className="flex flex-col w-[360px] gap-5 m-0">
-          {/* Email */}
           <div className="flex flex-col">
             <label htmlFor="email" className="text-sm font-medium text-gray-600 mb-1">
               Email address
@@ -72,7 +63,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="flex flex-col">
             <label htmlFor="password" className="text-sm font-medium text-gray-600 mb-1">
               Password
@@ -87,7 +77,7 @@ export default function Login() {
               feedback={false}
               toggleMask={false}
               inputClassName="w-full"
-              placeholder="••••••••"
+              placeholder="********"
             />
           </div>
 
@@ -96,8 +86,8 @@ export default function Login() {
               Please enter both email and password.
             </div>
           )}
+          {loginError && <div className="text-red-500 font-bold text-sm pl-2">{loginError}</div>}
 
-          {/* Remember Me / Forgot Password */}
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <input type="checkbox" id="remember" className="accent-red-600 cursor-pointer" />
@@ -113,10 +103,8 @@ export default function Login() {
             </a>
           </div>
 
-          {/* Login Button */}
           <Button label="Sign In" onClick={handleLogin} className="w-full justify-center py-2" />
 
-          {/* Sign-up link */}
           <p className="text-center text-sm text-gray-500">
             Don't have an account?{' '}
             <a href="/register" className="text-red-600 hover:text-red-700 font-medium">

@@ -42,6 +42,9 @@ public class AcademicProgressController {
             @RequestParam("file") MultipartFile file,
             Authentication auth) {
         try {
+            if (auth == null || !(auth.getPrincipal() instanceof AppUser)) {
+                return ResponseEntity.status(401).body("Authentication required.");
+            }
             AppUser user = (AppUser) auth.getPrincipal();
 
             // 1 — Build the flowchart projection (for debugging / future use)
@@ -53,6 +56,8 @@ public class AcademicProgressController {
             // 3 — Return whatever you prefer; frontend will just care about success
             return ResponseEntity.ok(graph); // or 'saved'
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError()

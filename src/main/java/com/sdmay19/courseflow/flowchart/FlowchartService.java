@@ -94,19 +94,9 @@ public class FlowchartService {
             AppUser user,
             Major major,
             Map<String, Status> courseStatusMap,
-            Map<String, List<Course>> coursesByAcademicPeriod) {
-
-        // Flatten all unique courses from the map to compute credits
-        Set<Course> allCourses = new HashSet<>();
-        for (List<Course> list : coursesByAcademicPeriod.values()) {
-            allCourses.addAll(list);
-        }
-
-        int totalCredits = allCourses.stream()
-                .mapToInt(Course::getCredits)
-                .sum();
-
-        int satisfiedCredits = totalCredits; // all in transcript are completed
+            Map<String, List<Course>> coursesByAcademicPeriod,
+            int totalCredits,
+            int satisfiedCredits) {
 
         Flowchart flowchart = new Flowchart(
                 totalCredits,
@@ -152,12 +142,19 @@ public class FlowchartService {
         for (Map.Entry<String, List<Course>> entry : merged.entrySet()) {
             String key = entry.getKey(); // e.g. "SPRING-2025"
             List<Course> mergedCourses = entry.getValue();
+            Map<String, Course> uniqueByIdent = new LinkedHashMap<>();
+            for (Course c : mergedCourses) {
+                if (c != null && c.getCourseIdent() != null) {
+                    uniqueByIdent.putIfAbsent(c.getCourseIdent(), c);
+                }
+            }
+            List<Course> uniqueMergedCourses = new ArrayList<>(uniqueByIdent.values());
 
             String[] parts = key.split("-");
             Term term = Term.valueOf(parts[0]);
             int year = Integer.parseInt(parts[1]);
 
-            Semester sem = new Semester(year, term, major.getName(), flowchart, mergedCourses);
+            Semester sem = new Semester(year, term, major.getName(), flowchart, uniqueMergedCourses);
             semesterEntities.add(sem);
         }
 
@@ -351,9 +348,38 @@ public class FlowchartService {
         map.put(ident, status);
     }
 
+    @Transactional(Transactional.TxType.SUPPORTS)
     public Flowchart getByUser(AppUser user) {
-        return flowChartRepository.findByUser(user)
-                .orElseThrow(() -> new FlowchartNotFoundException("Flowchart with user not found"));
+        List<Flowchart> userFlowcharts = new ArrayList<>(flowChartRepository.findAllByUser(user));
+        if (userFlowcharts.isEmpty()) {
+            throw new FlowchartNotFoundException("Flowchart with user not found");
+        }
+
+        userFlowcharts.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+
+        Flowchart selected = userFlowcharts.get(0);
+        for (Flowchart fc : userFlowcharts) {
+            List<Semester> sems = fc.getSemesters();
+            if (sems != null && !sems.isEmpty()) {
+                selected = fc;
+                break;
+            }
+        }
+
+        // Force initialize collections so API response includes renderable data.
+        if (selected.getCourseStatusMap() != null) {
+            selected.getCourseStatusMap().size();
+        }
+        if (selected.getSemesters() != null) {
+            selected.getSemesters().size();
+            for (Semester sem : selected.getSemesters()) {
+                if (sem.getCourses() != null) {
+                    sem.getCourses().size();
+                }
+            }
+        }
+
+        return selected;
     }
 
     // ---------------------------------------------------------------------

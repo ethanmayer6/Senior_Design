@@ -2,6 +2,7 @@
 package com.sdmay19.courseflow.flowchart;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sdmay19.courseflow.User.AppUser;
 import com.sdmay19.courseflow.course.Course;
 import com.sdmay19.courseflow.major.Major;
@@ -28,6 +29,7 @@ public class Flowchart {
 
     @ManyToOne
     @JoinColumn(name = "major_id", nullable = false)
+    @JsonIgnoreProperties({ "degreeRequirements" })
     private Major major;
 
     @OneToMany(mappedBy = "flowchart", cascade = CascadeType.ALL, orphanRemoval = true)

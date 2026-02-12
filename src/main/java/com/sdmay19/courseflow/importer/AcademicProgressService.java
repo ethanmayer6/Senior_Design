@@ -39,7 +39,8 @@ public class AcademicProgressService {
     // ----------------------------------------------------------------------
     public StudentProgressResult processProgress(MultipartFile file) {
         try {
-            List<AcademicProgressParser.ParsedRow> parsed = parser.parse(file.getInputStream());
+            AcademicProgressParser.ParsedReport parsedReport = parser.parse(file.getInputStream());
+            List<AcademicProgressParser.ParsedRow> parsed = parsedReport.rows();
 
             List<MappedCourse> isuCourses = new ArrayList<>();
             List<MappedCourse> transferCourses = new ArrayList<>();
@@ -78,7 +79,17 @@ public class AcademicProgressService {
                     + transferCourses.size() + " transfer courses, "
                     + unmatchedCourses.size() + " unmatched.");
 
-            return new StudentProgressResult(isuCourses, transferCourses, unmatchedCourses);
+            Integer creditsDefined = parsedReport.credits() == null ? null : parsedReport.credits().creditsDefined();
+            Integer creditsSatisfying = parsedReport.credits() == null ? null : parsedReport.credits().creditsSatisfying();
+            Integer creditsInProgress = parsedReport.credits() == null ? null : parsedReport.credits().creditsInProgress();
+
+            return new StudentProgressResult(
+                    isuCourses,
+                    transferCourses,
+                    unmatchedCourses,
+                    creditsDefined,
+                    creditsSatisfying,
+                    creditsInProgress);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to process academic progress report", e);
@@ -91,6 +102,10 @@ public class AcademicProgressService {
     public FlowchartResult buildFlowchartFromProgress(MultipartFile file) {
 
         StudentProgressResult parsed = processProgress(file);
+        if (parsed.isuCourses().isEmpty() && parsed.transferCourses().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No courses were parsed from this report. Please upload an ISU academic progress .xlsx export.");
+        }
 
         // completed = all matched courses (ISU + transfer)
         List<String> completed = new ArrayList<>();
@@ -165,10 +180,20 @@ public class AcademicProgressService {
         StudentProgressResult parsed = processProgress(file);
 
         // Step 2 — courseStatusMap (all matched courses are COMPLETED for now)
-        Map<String, Status> statusMap = new HashMap<>();
+        Map<String, MappedCourse> dedupedByCourse = new HashMap<>();
+        List<MappedCourse> allMapped = new ArrayList<>();
+        allMapped.addAll(parsed.transferCourses());
+        allMapped.addAll(parsed.isuCourses());
 
-        parsed.isuCourses().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
-        parsed.transferCourses().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
+        for (MappedCourse mc : allMapped) {
+            MappedCourse existing = dedupedByCourse.get(mc.courseCode());
+            if (existing == null || shouldReplace(existing, mc)) {
+                dedupedByCourse.put(mc.courseCode(), mc);
+            }
+        }
+
+        Map<String, Status> statusMap = new HashMap<>();
+        dedupedByCourse.values().forEach(mc -> statusMap.put(mc.courseCode(), Status.COMPLETED));
 
         // Step 3 — group courses by academic period
         Map<String, List<Course>> coursesByPeriod = new HashMap<>();
@@ -186,16 +211,26 @@ public class AcademicProgressService {
                     });
         };
 
-        parsed.isuCourses().forEach(mc -> addToPeriod.accept(mc, "NO_PERIOD"));
-        parsed.transferCourses().forEach(mc -> addToPeriod.accept(mc, "TRANSFER"));
+        dedupedByCourse.values().forEach(mc -> {
+            String fallback = (mc.academicPeriod() == null || mc.academicPeriod().isBlank()) ? "TRANSFER" : "NO_PERIOD";
+            addToPeriod.accept(mc, fallback);
+        });
 
         // Step 4 — compute credits from *all* grouped courses
-        int totalCredits = coursesByPeriod.values().stream()
+        int computedCredits = coursesByPeriod.values().stream()
                 .flatMap(List::stream)
                 .mapToInt(Course::getCredits)
                 .sum();
 
-        int satisfiedCredits = totalCredits; // everything in transcript is "completed" for now
+        int totalCredits = parsed.creditsDefined() != null && parsed.creditsDefined() > 0
+                ? parsed.creditsDefined()
+                : computedCredits;
+        int satisfiedCredits = parsed.creditsSatisfying() != null && parsed.creditsSatisfying() >= 0
+                ? parsed.creditsSatisfying()
+                : computedCredits;
+        if (satisfiedCredits > totalCredits && totalCredits > 0) {
+            satisfiedCredits = totalCredits;
+        }
 
         System.out.println("[INFO] createFlowchartFromProgress: periods="
                 + coursesByPeriod.size() + ", totalCredits=" + totalCredits);
@@ -203,12 +238,13 @@ public class AcademicProgressService {
         // Step 5 — get user's major
         String userMajorName = user.getMajor();
         if (userMajorName == null || userMajorName.isBlank()) {
-            throw new RuntimeException("User has no major set.");
+            throw new IllegalArgumentException("User has no major set.");
         }
 
-        Major major = majorRepository.findByName(userMajorName)
-                .orElseThrow(() -> new RuntimeException(
-                        "Major not found in database: " + userMajorName));
+        Major major = resolveMajor(userMajorName)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Major not found in database: " + userMajorName
+                                + ". Update your profile major to match an existing catalog major."));
 
         // Step 6 — delegate to FlowchartService to actually build & save semesters +
         // flowchart
@@ -216,7 +252,9 @@ public class AcademicProgressService {
                 user,
                 major,
                 statusMap,
-                coursesByPeriod);
+                coursesByPeriod,
+                totalCredits,
+                satisfiedCredits);
     }
 
     private String normalizePeriod(String raw, String defaultPeriod) {
@@ -246,6 +284,88 @@ public class AcademicProgressService {
         return defaultPeriod;
     }
 
+    private boolean shouldReplace(MappedCourse existing, MappedCourse candidate) {
+        String existingPeriod = normalizePeriod(existing.academicPeriod(), "TRANSFER");
+        String candidatePeriod = normalizePeriod(candidate.academicPeriod(), "TRANSFER");
+
+        boolean existingIsTransfer = "TRANSFER".equals(existingPeriod);
+        boolean candidateIsTransfer = "TRANSFER".equals(candidatePeriod);
+
+        if (existingIsTransfer && !candidateIsTransfer) {
+            return true;
+        }
+        if (!existingIsTransfer && candidateIsTransfer) {
+            return false;
+        }
+
+        return periodRank(candidatePeriod) > periodRank(existingPeriod);
+    }
+
+    private int periodRank(String period) {
+        if (period == null || period.isBlank()) {
+            return Integer.MIN_VALUE;
+        }
+        if ("TRANSFER".equals(period)) {
+            return -1;
+        }
+
+        String upper = period.toUpperCase(Locale.ROOT);
+        int year = 0;
+        java.util.regex.Matcher yearMatcher = java.util.regex.Pattern.compile("(\\d{4})").matcher(upper);
+        while (yearMatcher.find()) {
+            year = Integer.parseInt(yearMatcher.group(1));
+        }
+
+        int termRank = 0;
+        if (upper.contains("SPRING")) {
+            termRank = 1;
+        } else if (upper.contains("SUMMER")) {
+            termRank = 2;
+        } else if (upper.contains("FALL")) {
+            termRank = 3;
+        } else if (upper.contains("WINTER")) {
+            termRank = 0;
+        }
+
+        return year * 10 + termRank;
+    }
+
+    private Optional<Major> resolveMajor(String userMajorName) {
+        String normalizedInput = normalizeMajorName(userMajorName);
+        if (normalizedInput.isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<Major> exact = majorRepository.findByName(userMajorName.trim());
+        if (exact.isPresent()) {
+            return exact;
+        }
+
+        Map<String, String> aliases = Map.of(
+                "comsci", "computerscience",
+                "compsci", "computerscience",
+                "cs", "computerscience",
+                "se", "softwareengineering");
+        String canonical = aliases.getOrDefault(normalizedInput, normalizedInput);
+
+        return majorRepository.findAll().stream()
+                .filter(m -> m.getName() != null && !m.getName().isBlank())
+                .filter(m -> {
+                    String normalizedMajor = normalizeMajorName(m.getName());
+                    return normalizedMajor.equals(canonical)
+                            || normalizedMajor.contains(canonical)
+                            || canonical.contains(normalizedMajor);
+                })
+                .findFirst();
+    }
+
+    private String normalizeMajorName(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+
     // ----------------------------------------------------------------------
     // DTO RECORDS
     // ----------------------------------------------------------------------
@@ -259,7 +379,10 @@ public class AcademicProgressService {
     public record StudentProgressResult(
             List<MappedCourse> isuCourses,
             List<MappedCourse> transferCourses,
-            List<String> unmatchedCourses) {
+            List<String> unmatchedCourses,
+            Integer creditsDefined,
+            Integer creditsSatisfying,
+            Integer creditsInProgress) {
     }
 
     public record FlowchartResult(

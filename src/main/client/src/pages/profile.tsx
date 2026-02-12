@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import Header from '../components/header.tsx';
 import type { User } from '../types/user';
 import { Card } from 'primereact/card';
@@ -9,6 +8,8 @@ import { Button } from 'primereact/button';
 import { Avatar } from 'primereact/avatar';
 import { Dialog } from 'primereact/dialog';
 import { Divider } from 'primereact/divider';
+import { Dropdown } from 'primereact/dropdown';
+import api from '../api/axiosClient';
 
 export default function Profile() {
   const [user, setUser] = useState<Partial<User> | null>(null);
@@ -21,6 +22,7 @@ export default function Profile() {
   const [editSection, setEditSection] = useState<'none' | 'contact' | 'profile'>('none');
 
   const [form, setForm] = useState<Partial<User>>({});
+  const [majorOptions, setMajorOptions] = useState<string[]>([]);
 
   const mockBadges = ['Beginner', 'Contributor', 'Beta Tester'];
   const mockProgress = [
@@ -48,10 +50,7 @@ export default function Profile() {
       setLoading(true);
       setError('');
       try {
-        const token = localStorage.getItem('token');
-        const resp = await axios.get('http://localhost:8080/api/users/me', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        const resp = await api.get('/users/me');
         setUser(resp.data);
       } catch (err: any) {
         setError(err?.response?.data?.message || 'Failed to load profile. Please try again.');
@@ -59,7 +58,20 @@ export default function Profile() {
         setLoading(false);
       }
     };
+    const fetchMajors = async () => {
+      try {
+        const res = await api.get('/majors/getall');
+        const names = (res.data || [])
+          .map((m: any) => m?.name)
+          .filter((name: unknown): name is string => typeof name === 'string' && name.length > 0)
+          .sort((a: string, b: string) => a.localeCompare(b));
+        setMajorOptions(names);
+      } catch {
+        setError('Failed to load majors.');
+      }
+    };
     fetchProfile();
+    fetchMajors();
   }, []);
 
   const fullName = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '';
@@ -120,6 +132,10 @@ export default function Profile() {
         return;
       }
     }
+    if (editSection === 'profile' && form.major && !majorOptions.includes(form.major)) {
+      setError('Please select a valid major from the list.');
+      return;
+    }
 
     const updates = buildUpdates();
     if (Object.keys(updates).length === 0) {
@@ -130,10 +146,7 @@ export default function Profile() {
     setError('');
     setSuccess('');
     try {
-      const token = localStorage.getItem('token');
-      const resp = await axios.put('http://localhost:8080/api/users/me', updates, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const resp = await api.put('/users/me', updates);
       if (resp.status === 200) {
         setUser((u) => ({ ...(u ?? {}), ...updates }));
         setSuccess('Profile updated.');
@@ -328,9 +341,12 @@ export default function Profile() {
                 onChange={(e) => onFormChange('lastName', e.target.value)}
               />
               <label className="text-sm text-gray-600">Major</label>
-              <InputText
+              <Dropdown
                 value={form.major ?? ''}
-                onChange={(e) => onFormChange('major', e.target.value)}
+                options={majorOptions}
+                onChange={(e) => onFormChange('major', e.value ?? '')}
+                placeholder="Select major"
+                filter
               />
               <Divider />
               <div className="flex justify-end gap-2">

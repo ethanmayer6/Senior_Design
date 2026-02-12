@@ -11,6 +11,8 @@ public interface FlowChartRepository extends JpaRepository<Flowchart, Long> {
 
     Optional<Flowchart> findByUser(AppUser user);
 
+    Optional<Flowchart> findFirstByUserOrderByIdDesc(AppUser user);
+
     List<Flowchart> findAllByUser(AppUser user);
 
     void deleteAllByUser(AppUser user);

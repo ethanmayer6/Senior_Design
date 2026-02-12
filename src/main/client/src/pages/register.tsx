@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SelectButton } from 'primereact/selectbutton';
-import axios from 'axios';
 import type { User } from '../types/user';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { Card } from 'primereact/card';
 import { InputMask } from 'primereact/inputmask';
+import { Dropdown } from 'primereact/dropdown';
+import api from '../api/axiosClient';
 
 export default function Register() {
   const [user, setUser] = useState<User>({
@@ -27,6 +28,7 @@ export default function Register() {
   const [unavailableEmail, setUnavailableEmail] = useState('');
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [incorrectPassword, setIncorrectPassword] = useState('');
+  const [majorOptions, setMajorOptions] = useState<string[]>([]);
 
   const navigate = useNavigate();
 
@@ -36,8 +38,25 @@ export default function Register() {
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setUser((prev) => ({ ...prev, [name]: value }));
   };
+
+  useEffect(() => {
+    const loadMajors = async () => {
+      try {
+        const res = await api.get('/majors/getall');
+        const names = (res.data || [])
+          .map((m: any) => m?.name)
+          .filter((name: unknown): name is string => typeof name === 'string' && name.length > 0)
+          .sort((a: string, b: string) => a.localeCompare(b));
+        setMajorOptions(names);
+      } catch {
+        setError('Failed to load majors. Please refresh the page.');
+      }
+    };
+    loadMajors();
+  }, []);
 
   // -----------------------------------------------------------
   // REGISTER + AUTO LOGIN + REDIRECT
@@ -53,12 +72,16 @@ export default function Register() {
       setIncorrectPassword(confirmPassword);
       return;
     }
+    if (!majorOptions.includes(user.major)) {
+      setError('Please select a valid major from the list.');
+      return;
+    }
 
     // -------------------------------------------------------
     // 1. Check if email is available
     // -------------------------------------------------------
     try {
-      const checkEmail = await axios.get('http://localhost:8080/api/users/check-email', {
+      const checkEmail = await api.get('/users/check-email', {
         params: { email: user.email },
       });
 
@@ -76,7 +99,7 @@ export default function Register() {
     // 2. Register user
     // -------------------------------------------------------
     try {
-      const response = await axios.post('http://localhost:8080/api/users/register', user);
+      const response = await api.post('/users/register', user);
 
       if (response.status === 200 || response.status === 201) {
         setSuccess('Account created successfully!');
@@ -85,7 +108,7 @@ export default function Register() {
         // 3. Auto-login immediately
         // ---------------------------------------------------
         try {
-          const loginRes = await axios.post('http://localhost:8080/api/users/login', {
+          const loginRes = await api.post('/users/login', {
             email: user.email,
             password: user.password,
           });
@@ -93,19 +116,21 @@ export default function Register() {
           const loginData = loginRes.data;
 
           // Save to local storage
-          localStorage.setItem('user', JSON.stringify(loginData));
+          localStorage.setItem('user', JSON.stringify(loginData.user));
           localStorage.setItem('token', loginData.token.trim());
 
           // ---------------------------------------------------
           // 4. Redirect to CourseFlow home
           // ---------------------------------------------------
           navigate('/courseflow');
-        } catch (err) {
-          setError('Registration succeeded, but automatic login failed.');
+        } catch (err: any) {
+          setError(
+            err?.response?.data?.message || 'Registration succeeded, but automatic login failed.'
+          );
         }
       }
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -134,7 +159,7 @@ export default function Register() {
             <label className="text-sm font-medium text-gray-600 mb-1">User Type</label>
             <SelectButton
               value={user.role}
-              onChange={(e) => setUser({ ...user, role: e.value })}
+              onChange={(e) => setUser((prev) => ({ ...prev, role: e.value }))}
               options={roleOptions}
               allowEmpty={false}
               className="w-full flex"
@@ -199,19 +224,20 @@ export default function Register() {
                 name="phone"
                 mask="(999) 999-9999"
                 value={user.phone}
-                onChange={(e) => setUser({ ...user, phone: e.value || '' })}
+                onChange={(e) => setUser((prev) => ({ ...prev, phone: e.value || '' }))}
                 placeholder="(555) 123-4567"
                 className="w-full"
               />
             </div>
             <div className="w-[60%]">
               <label className="text-sm font-medium text-gray-600 mb-1">Major</label>
-              <InputText
-                name="major"
+              <Dropdown
                 value={user.major}
-                onChange={handleChange}
+                onChange={(e) => setUser((prev) => ({ ...prev, major: e.value || '' }))}
+                options={majorOptions}
                 className="w-full"
-                placeholder="e.g. Computer Science"
+                placeholder="Select major"
+                filter
                 required
               />
             </div>
@@ -223,7 +249,12 @@ export default function Register() {
             <Password
               name="password"
               value={user.password}
-              onChange={handleChange}
+              onChange={(e: any) =>
+                setUser((prev) => ({
+                  ...prev,
+                  password: e?.target?.value ?? e?.value ?? '',
+                }))
+              }
               feedback={false}
               toggleMask={false}
               inputClassName="w-full"
@@ -238,7 +269,7 @@ export default function Register() {
             <Password
               name="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e: any) => setConfirmPassword(e?.target?.value ?? e?.value ?? '')}
               feedback={false}
               toggleMask={false}
               inputClassName="w-full"

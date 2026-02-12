@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.sdmay19.courseflow.flowchart.Flowchart;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,6 +22,7 @@ public class AppUser implements UserDetails {
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
     private String phone;
     private String major;

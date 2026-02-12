@@ -1,8 +1,8 @@
 // src/main/client/src/components/ImportProgressReport.tsx
 import { useState } from 'react';
-import axios from 'axios';
 import { FileUpload } from 'primereact/fileupload';
 import type { FileUploadSelectEvent } from 'primereact/fileupload';
+import api from '../api/axiosClient';
 
 export default function ImportProgressReport({ onImported }: { onImported: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -16,14 +16,9 @@ export default function ImportProgressReport({ onImported }: { onImported: () =>
     const form = new FormData();
     form.append('file', file);
 
-    const token = localStorage.getItem('token');
-
     try {
-      await axios.post('http://localhost:8080/api/progressReport/flowchart', form, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+      await api.post('/progressReport/flowchart', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       // tell parent to reload flowchart
