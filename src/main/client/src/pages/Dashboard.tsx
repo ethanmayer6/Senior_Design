@@ -377,7 +377,9 @@ export default function Dashboard() {
       <Header></Header>
       <div className="flex h-full w-full gap-6 overflow-hidden p-6 pt-24">
         <div className="w-[320px] shrink-0">
-          <ImportProgressReport onImported={handleImportComplete} />
+          <div className="p-4 w-full">
+            <ImportProgressReport onImported={handleImportComplete} />
+          </div>
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"
@@ -440,14 +442,16 @@ export default function Dashboard() {
               onClick={handleAddCourse}
               disabled={!flowchart || updatingSemester}
             />
-            <Button
-              className="w-full text-center"
-              label={updatingSemester ? 'Removing...' : 'Remove Course'}
-              severity="danger"
-              outlined
-              onClick={handleRemoveCourse}
-              disabled={!flowchart || updatingSemester}
-            />
+            <div className="pt-2">
+              <Button
+                className="w-full text-center"
+                label={updatingSemester ? 'Removing...' : 'Remove Course'}
+                severity="danger"
+                outlined
+                onClick={handleRemoveCourse}
+                disabled={!flowchart || updatingSemester}
+              />
+            </div>
             {addCourseError && <div className="text-xs text-red-600">{addCourseError}</div>}
             {addCourseSuccess && <div className="text-xs text-emerald-700">{addCourseSuccess}</div>}
             {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
