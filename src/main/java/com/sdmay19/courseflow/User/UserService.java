@@ -113,6 +113,33 @@ public class UserService {
                 .toList();
     }
 
+    public List<UserSearchResult> getFriends(long currentUserId) {
+        AppUser currentUser = getUserById(currentUserId);
+        return currentUser.getFriends().stream()
+                .map(u -> new UserSearchResult(
+                        u.getId(),
+                        u.getUsername(),
+                        u.getFirstName(),
+                        u.getLastName(),
+                        u.getMajor()))
+                .sorted((a, b) -> String.valueOf(a.username()).compareToIgnoreCase(String.valueOf(b.username())))
+                .toList();
+    }
+
+    public void addFriend(long currentUserId, long friendId) {
+        if (currentUserId == friendId) {
+            throw new AuthenticationFailedException("You cannot add yourself as a friend.");
+        }
+
+        AppUser currentUser = getUserById(currentUserId);
+        AppUser friend = getUserById(friendId);
+
+        if (currentUser.getFriends().stream().noneMatch(existing -> existing.getId() == friendId)) {
+            currentUser.getFriends().add(friend);
+            userRepository.save(currentUser);
+        }
+    }
+
     public UserPreferencesResponse getPreferences(long id) {
         AppUser user = getUserById(id);
         return toPreferencesResponse(user);

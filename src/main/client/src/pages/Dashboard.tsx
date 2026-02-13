@@ -460,14 +460,15 @@ export default function Dashboard() {
               onClick={handleDeleteFlowchart}
             ></Button>
           </div>
-          {loading && (
-            <div className="flex justify-center py-10">
-              <ProgressSpinner style={{ width: '50px', height: '50px' }} />
-            </div>
-          )}
         </div>
 
         <div className="min-w-0 flex-1">
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <ProgressSpinner style={{ width: '56px', height: '56px' }} />
+            </div>
+          ) : (
+            <>
           {error && <div className="text-center text-red-600 pt-4">{error}</div>}
           {flowchart ? (
             <div className="flex h-full flex-col items-center">
@@ -763,6 +764,8 @@ export default function Dashboard() {
             <div className="text-center text-gray-600 pt-10">
               Upload a progress report to generate your flowchart.
             </div>
+          )}
+            </>
           )}
         </div>
       </div>

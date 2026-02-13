@@ -45,12 +45,8 @@ export default function Register() {
   useEffect(() => {
     const loadMajors = async () => {
       try {
-        const res = await api.get('/majors/getall');
-        const names = (res.data || [])
-          .map((m: any) => m?.name)
-          .filter((name: unknown): name is string => typeof name === 'string' && name.length > 0)
-          .sort((a: string, b: string) => a.localeCompare(b));
-        setMajorOptions(names);
+        const res = await api.get<string[]>('/majors/names');
+        setMajorOptions((res.data || []).filter((name) => typeof name === 'string' && name.length > 0));
       } catch {
         setError('Failed to load majors. Please refresh the page.');
       }

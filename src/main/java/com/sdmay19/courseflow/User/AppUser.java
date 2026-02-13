@@ -1,7 +1,9 @@
 package com.sdmay19.courseflow.User;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +39,14 @@ public class AppUser implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Flowchart> flowcharts;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_friends",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "friend_id"))
+    @JsonIgnore
+    private Set<AppUser> friends = new HashSet<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -107,6 +117,7 @@ public class AppUser implements UserDetails {
     public String getFontScale() { return fontScale; }
     public Boolean getReducedMotion() { return reducedMotion; }
     public List<Flowchart> getFlowcharts() { return flowcharts; }
+    public Set<AppUser> getFriends() { return friends; }
     public String getProfilePictureUrl() { return profilePictureUrl; }
 
     // SETTERS
@@ -136,6 +147,7 @@ public class AppUser implements UserDetails {
     public void setFontScale(String fontScale) { this.fontScale = fontScale; }
     public void setReducedMotion(Boolean reducedMotion) { this.reducedMotion = reducedMotion; }
     public void setFlowcharts(List<Flowchart> flowcharts) { this.flowcharts = flowcharts; }
+    public void setFriends(Set<AppUser> friends) { this.friends = friends; }
     public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
 
 

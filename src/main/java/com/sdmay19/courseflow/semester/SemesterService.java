@@ -90,7 +90,7 @@ public class SemesterService {
             throw new CourseCreationException("Course " + course.getCourseIdent() + " already exists in this semester.");
         }
 
-        validatePrerequisites(semester, course);
+        validateGuardrails(semester, course);
 
         semester.addCourse(course);
         flowchartService.addCourse(semester.getFlowchart().getId(), new CourseMapRequest(Status.UNFULFILLED, courseIdent, "Add"));
@@ -139,33 +139,60 @@ public class SemesterService {
         semesterRepository.deleteById(id);
     }
 
-    private void validatePrerequisites(Semester semester, Course course) {
+    private void validateGuardrails(Semester semester, Course course) {
         Set<String> prerequisites = extractPrerequisites(course);
-        if (prerequisites.isEmpty()) {
-            return;
-        }
+        Set<String> corequisites = extractCorequisites(course);
 
         Map<String, Status> statusMap = semester.getFlowchart().getCourseStatusMap();
-        Set<String> satisfiedIdents = new HashSet<>();
+        Set<String> satisfiedFromStatusMap = new HashSet<>();
         if (statusMap != null) {
             for (Map.Entry<String, Status> entry : statusMap.entrySet()) {
                 if (entry.getValue() == Status.COMPLETED || entry.getValue() == Status.IN_PROGRESS) {
-                    satisfiedIdents.add(normalizeCourseIdent(entry.getKey()));
+                    satisfiedFromStatusMap.add(normalizeCourseIdent(entry.getKey()));
                 }
+            }
+        }
+
+        Set<String> currentSemesterIdents = new HashSet<>();
+        List<Course> currentSemesterCourses = semester.getCourses() == null ? List.of() : semester.getCourses();
+        for (Course existing : currentSemesterCourses) {
+            if (existing != null && existing.getCourseIdent() != null) {
+                currentSemesterIdents.add(normalizeCourseIdent(existing.getCourseIdent()));
             }
         }
 
         Set<String> missingPrereqs = new HashSet<>();
         for (String prereq : prerequisites) {
             String normalizedPrereq = normalizeCourseIdent(prereq);
-            if (!normalizedPrereq.isBlank() && !satisfiedIdents.contains(normalizedPrereq)) {
+            if (!normalizedPrereq.isBlank() && !satisfiedFromStatusMap.contains(normalizedPrereq)) {
                 missingPrereqs.add(prereq);
             }
         }
 
-        if (!missingPrereqs.isEmpty()) {
+        Set<String> missingCoreqs = new HashSet<>();
+        for (String coreq : corequisites) {
+            String normalizedCoreq = normalizeCourseIdent(coreq);
+            if (normalizedCoreq.isBlank()) {
+                continue;
+            }
+            boolean satisfied = satisfiedFromStatusMap.contains(normalizedCoreq) || currentSemesterIdents.contains(normalizedCoreq);
+            if (!satisfied) {
+                missingCoreqs.add(coreq);
+            }
+        }
+
+        if (!missingPrereqs.isEmpty() || !missingCoreqs.isEmpty()) {
+            List<String> reasons = new java.util.ArrayList<>();
+            if (!missingPrereqs.isEmpty()) {
+                reasons.add("Missing prerequisites: " + String.join(", ", missingPrereqs) + ".");
+            }
+            if (!missingCoreqs.isEmpty()) {
+                reasons.add("Missing co-requisites (must already be in this semester or completed/in progress): "
+                        + String.join(", ", missingCoreqs) + ".");
+            }
             throw new CourseCreationException(
-                    "Cannot add " + course.getCourseIdent() + ". Missing prerequisites: " + String.join(", ", missingPrereqs));
+                    "Cannot add " + course.getCourseIdent() + " because it is blocked by validation guardrails. "
+                            + String.join(" ", reasons));
         }
     }
 
@@ -190,16 +217,71 @@ public class SemesterService {
             return result;
         }
 
-        Matcher matcher = Pattern.compile("\\b([A-Z]{2,8}(?:\\s+[A-Z]{1,3})?)\\s*[-_]?\\s*(\\d{4})\\b")
-                .matcher(prereqText.toUpperCase(Locale.ROOT));
-        while (matcher.find()) {
-            String rawPrefix = matcher.group(1) == null ? "" : matcher.group(1);
-            String prefix = rawPrefix.replaceAll("[^A-Z]", "");
-            if (!prefix.isBlank()) {
-                result.add(prefix + "_" + matcher.group(2));
+        String normalizedText = prereqText.toUpperCase(Locale.ROOT);
+        String[] segments = normalizedText.split("[.;\\n]");
+        Pattern coursePattern = Pattern.compile("\\b([A-Z]{2,8}(?:\\s+[A-Z]{1,3})?)\\s*[-_]?\\s*(\\d{4})\\b");
+
+        for (String segment : segments) {
+            if (segment == null || segment.isBlank()) {
+                continue;
+            }
+            String trimmedSegment = segment.trim();
+            if (isCorequisiteSegment(trimmedSegment)) {
+                continue;
+            }
+
+            Matcher matcher = coursePattern.matcher(trimmedSegment);
+            while (matcher.find()) {
+                String rawPrefix = matcher.group(1) == null ? "" : matcher.group(1);
+                String prefix = rawPrefix.replaceAll("[^A-Z]", "");
+                if (!prefix.isBlank()) {
+                    result.add(prefix + "_" + matcher.group(2));
+                }
             }
         }
         return result;
+    }
+
+    private Set<String> extractCorequisites(Course course) {
+        Set<String> result = new HashSet<>();
+        String prereqText = course.getPrereq_txt();
+        if (prereqText == null || prereqText.isBlank()) {
+            return result;
+        }
+
+        String normalizedText = prereqText.toUpperCase(Locale.ROOT);
+        String[] segments = normalizedText.split("[.;\\n]");
+        Pattern coursePattern = Pattern.compile("\\b([A-Z]{2,8}(?:\\s+[A-Z]{1,3})?)\\s*[-_]?\\s*(\\d{4})\\b");
+
+        for (String segment : segments) {
+            if (segment == null || segment.isBlank()) {
+                continue;
+            }
+            String trimmedSegment = segment.trim();
+            if (!isCorequisiteSegment(trimmedSegment)) {
+                continue;
+            }
+
+            Matcher matcher = coursePattern.matcher(trimmedSegment);
+            while (matcher.find()) {
+                String rawPrefix = matcher.group(1) == null ? "" : matcher.group(1);
+                String prefix = rawPrefix.replaceAll("[^A-Z]", "");
+                if (!prefix.isBlank()) {
+                    result.add(prefix + "_" + matcher.group(2));
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean isCorequisiteSegment(String segmentUpper) {
+        return segmentUpper.contains("CO-REQ")
+                || segmentUpper.contains("CO REQ")
+                || segmentUpper.contains("COREQ")
+                || segmentUpper.contains("CONCURRENT")
+                || segmentUpper.contains("ENROLLMENT IN")
+                || segmentUpper.contains("ENROLLED IN")
+                || segmentUpper.contains("TAKEN WITH");
     }
 
     private String normalizeCourseIdent(String ident) {

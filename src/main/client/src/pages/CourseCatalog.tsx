@@ -8,6 +8,7 @@ import {InputText} from "primereact/inputtext";
 import {Panel} from "primereact/panel"
 import {RadioButton} from "primereact/radiobutton";
 import {Dialog} from "primereact/dialog";
+import Header from "../components/header";
 import type {Semester} from "../api/flowchartApi";
 import {getUserFlowchart, updateSemesterCourses} from "../api/flowchartApi";
 // import { Slider } from 'primereact/slider';
@@ -293,7 +294,9 @@ export default function CourseCatalog() {
     };
 
     return (
-        <div className="min-h-screen p-4 flex gap-4">
+        <div className="min-h-screen bg-slate-50">
+            <Header />
+            <div className="flex gap-4 p-4 pt-24">
             <aside className="w-1/4">
                 <Panel header="Filters" className="h-full">
 
@@ -746,6 +749,7 @@ export default function CourseCatalog() {
                 />
               </div>
             </Dialog>
+            </div>
         </div>
     );
 };

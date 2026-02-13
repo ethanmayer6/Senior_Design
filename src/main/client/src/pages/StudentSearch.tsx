@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import Header from '../components/header';
-import { searchUsersByUsername, type StudentSearchResult } from '../api/usersApi';
+import {
+  addFriend,
+  getFriends,
+  searchUsersByUsername,
+  type StudentSearchResult,
+} from '../api/usersApi';
 
 export default function StudentSearch() {
   const [query, setQuery] = useState('');
@@ -10,6 +15,20 @@ export default function StudentSearch() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<StudentSearchResult[]>([]);
   const [searched, setSearched] = useState(false);
+  const [friends, setFriends] = useState<StudentSearchResult[]>([]);
+  const [addingFriendId, setAddingFriendId] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadFriends() {
+      try {
+        const friendList = await getFriends();
+        setFriends(friendList);
+      } catch {
+        setFriends([]);
+      }
+    }
+    void loadFriends();
+  }, []);
 
   const onSearch = async () => {
     const username = query.trim();
@@ -32,6 +51,27 @@ export default function StudentSearch() {
       setResults([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const friendIds = new Set(friends.map((friend) => friend.id));
+
+  const handleAddFriend = async (friend: StudentSearchResult) => {
+    setAddingFriendId(friend.id);
+    setError(null);
+    try {
+      await addFriend(friend.id);
+      setFriends((current) => {
+        if (current.some((existing) => existing.id === friend.id)) {
+          return current;
+        }
+        return [...current, friend];
+      });
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to add friend.';
+      setError(message);
+    } finally {
+      setAddingFriendId(null);
     }
   };
 
@@ -96,12 +136,30 @@ export default function StudentSearch() {
                       key={user.id}
                       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                     >
-                      <div className="text-sm font-semibold text-slate-800">{user.username}</div>
-                      <div className="mt-1 text-sm text-slate-600">
-                        {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Name not provided'}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Major: {user.major || 'Not set'}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800">{user.username}</div>
+                          <div className="mt-1 text-sm text-slate-600">
+                            {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Name not provided'}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            Major: {user.major || 'Not set'}
+                          </div>
+                        </div>
+                        <Button
+                          label={
+                            friendIds.has(user.id)
+                              ? 'Friend Added'
+                              : addingFriendId === user.id
+                                ? 'Adding...'
+                                : 'Add Friend'
+                          }
+                          icon={friendIds.has(user.id) ? 'pi pi-check' : 'pi pi-user-plus'}
+                          size="small"
+                          outlined={!friendIds.has(user.id)}
+                          onClick={() => void handleAddFriend(user)}
+                          disabled={friendIds.has(user.id) || addingFriendId === user.id}
+                        />
                       </div>
                     </div>
                   ))}

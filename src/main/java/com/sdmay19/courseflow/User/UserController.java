@@ -64,6 +64,19 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsersByUsername(username, currentUser.getId()));
     }
 
+    @GetMapping("/friends")
+    public ResponseEntity<java.util.List<UserSearchResult>> getFriends(Authentication auth) {
+        AppUser currentUser = (AppUser) auth.getPrincipal();
+        return ResponseEntity.ok(userService.getFriends(currentUser.getId()));
+    }
+
+    @PostMapping("/friends/{friendId}")
+    public ResponseEntity<Void> addFriend(Authentication auth, @PathVariable long friendId) {
+        AppUser currentUser = (AppUser) auth.getPrincipal();
+        userService.addFriend(currentUser.getId(), friendId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/preferences")
     public ResponseEntity<UserPreferencesResponse> getPreferences(Authentication auth) {
         AppUser currentUser = (AppUser) auth.getPrincipal();

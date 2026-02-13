@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/header';
 import { logout } from '../utils/auth';
+import { getFriends, type StudentSearchResult } from '../api/usersApi';
 
 const featureLinks = [
   {
@@ -43,19 +45,74 @@ const featureLinks = [
 
 export default function CourseflowHome() {
   const navigate = useNavigate();
+  const [friends, setFriends] = useState<StudentSearchResult[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(true);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  useEffect(() => {
+    async function loadFriends() {
+      setFriendsLoading(true);
+      try {
+        const friendList = await getFriends();
+        setFriends(friendList);
+      } catch {
+        setFriends([]);
+      } finally {
+        setFriendsLoading(false);
+      }
+    }
+    void loadFriends();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100">
       <Header />
 
-      <main className="pt-24 px-4 pb-10 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <section className="mx-auto w-full max-w-5xl">
+      <main className="pt-24 px-3 pb-10 sm:px-5 lg:px-6">
+        <div className="mx-auto grid w-full max-w-[1820px] items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)_18rem]">
+          <aside className="hidden h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:sticky lg:top-28 lg:block">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Friends List</p>
+                <h2 className="mt-1 text-base font-semibold text-gray-800">Your Friends</h2>
+              </div>
+              <Link
+                to="/student-search"
+                className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+              >
+                <i className="pi pi-user-plus mr-1 text-red-500"></i>
+                Add
+              </Link>
+            </div>
+
+            <div className="mt-4">
+              {friendsLoading ? (
+                <div className="text-sm text-gray-500">Loading friends...</div>
+              ) : friends.length === 0 ? (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+                  No friends added yet.
+                </div>
+              ) : (
+                <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+                  {friends.map((friend) => (
+                    <div key={friend.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                      <div className="text-sm font-semibold text-gray-800">{friend.username}</div>
+                      <div className="mt-1 text-xs text-gray-600">
+                        {`${friend.firstName || ''} ${friend.lastName || ''}`.trim() || 'Name not provided'}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">Major: {friend.major || 'Not set'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <section className="mx-auto w-full max-w-none">
             <div className="rounded-2xl border border-red-100 bg-white/90 p-6 shadow-sm sm:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500">Welcome</p>
               <h1 className="mt-2 text-3xl font-bold text-gray-900 sm:text-4xl">CourseFlow Home</h1>
@@ -82,7 +139,7 @@ export default function CourseflowHome() {
               </div>
             </div>
 
-            <div className="mt-6 grid max-w-5xl gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {featureLinks.map((feature) => (
                 <Link
                   key={feature.to}
@@ -103,8 +160,16 @@ export default function CourseflowHome() {
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Quick Actions</p>
 
             <Link
-              to="/settings"
+              to="/profile"
               className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-id-card mr-2 text-red-500"></i>
+              Profile
+            </Link>
+
+            <Link
+              to="/settings"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
             >
               <i className="pi pi-cog mr-2 text-red-500"></i>
               Settings

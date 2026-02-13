@@ -115,4 +115,40 @@ class SemesterServiceTest {
                 .isInstanceOf(CourseCreationException.class)
                 .hasMessageContaining("COMS_3090");
     }
+
+    @Test
+    void addCourse_throwsWhenCorequisitesMissing() {
+        Course targetCourse = new Course();
+        targetCourse.setCourseIdent("CPRE_4300");
+        targetCourse.setPrereq_txt("Co-req: COM S 3270");
+        targetCourse.setCredits(3);
+
+        when(semesterRepository.findById(1L)).thenReturn(Optional.of(semester));
+        when(courseService.getByCourseIdent("CPRE_4300")).thenReturn(targetCourse);
+
+        assertThatThrownBy(() -> semesterService.addCourse(1L, "CPRE_4300"))
+                .isInstanceOf(CourseCreationException.class)
+                .hasMessageContaining("Missing co-requisites")
+                .hasMessageContaining("COMS_3270");
+    }
+
+    @Test
+    void addCourse_allowsWhenCorequisiteAlreadyInSemester() {
+        Course existingCoreq = new Course();
+        existingCoreq.setCourseIdent("COMS_3270");
+        semester.setCourses(new ArrayList<>(java.util.List.of(existingCoreq)));
+
+        Course targetCourse = new Course();
+        targetCourse.setCourseIdent("CPRE_4300");
+        targetCourse.setPrereq_txt("Co-req: COM S 3270");
+        targetCourse.setCredits(3);
+
+        when(semesterRepository.findById(1L)).thenReturn(Optional.of(semester));
+        when(courseService.getByCourseIdent("CPRE_4300")).thenReturn(targetCourse);
+        when(semesterRepository.save(any(Semester.class))).thenReturn(semester);
+
+        semesterService.addCourse(1L, "CPRE_4300");
+
+        verify(semesterRepository).save(semester);
+    }
 }

@@ -32,6 +32,10 @@ public class MajorController {
     public ResponseEntity<List<Major>> getAllMajors() {
         return ResponseEntity.ok(majorService.getAllMajors());
     }
+    @GetMapping("/names")
+    public ResponseEntity<List<String>> getMajorNames() {
+        return ResponseEntity.ok(majorService.getAllMajorNames());
+    }
     @GetMapping("ident/{id}")
     public ResponseEntity<Major> getMajorById(@PathVariable long id) {
         return ResponseEntity.ok(majorService.getMajorById(id));

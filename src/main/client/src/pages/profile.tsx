@@ -51,17 +51,8 @@ export default function Profile() {
       setLoading(true);
       setError('');
       try {
-        const [profileRes, majorsRes] = await Promise.all([
-          api.get('/users/me'),
-          api.get('/majors/getall'),
-        ]);
-
+        const profileRes = await api.get('/users/me');
         setUser(profileRes.data);
-        const names = (majorsRes.data || [])
-          .map((m: any) => m?.name)
-          .filter((name: unknown): name is string => typeof name === 'string' && name.length > 0)
-          .sort((a: string, b: string) => a.localeCompare(b));
-        setMajorOptions(names);
       } catch (err: any) {
         setError(err?.response?.data?.message || 'Failed to load profile.');
       } finally {
@@ -82,14 +73,36 @@ export default function Profile() {
 
   const openEditProfile = () => {
     if (!user) return;
-    setProfileForm({
-      firstName: user.firstName ?? '',
-      lastName: user.lastName ?? '',
-      major: user.major ?? '',
-    });
+    const openDialog = () => {
+      setProfileForm({
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        major: user.major ?? '',
+      });
+      setError('');
+      setSuccess('');
+      setEditProfileVisible(true);
+    };
+
+    if (majorOptions.length > 0) {
+      openDialog();
+      return;
+    }
+
+    setSaving(true);
     setError('');
-    setSuccess('');
-    setEditProfileVisible(true);
+    void api
+      .get<string[]>('/majors/names')
+      .then((res) => {
+        setMajorOptions((res.data ?? []).filter((name) => typeof name === 'string' && name.length > 0));
+        openDialog();
+      })
+      .catch((err: any) => {
+        setError(err?.response?.data?.message || 'Failed to load majors for profile edit.');
+      })
+      .finally(() => {
+        setSaving(false);
+      });
   };
 
   const openEditContact = () => {

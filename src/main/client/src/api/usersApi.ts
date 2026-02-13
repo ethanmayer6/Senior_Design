@@ -15,6 +15,15 @@ export async function searchUsersByUsername(username: string): Promise<StudentSe
   return res.data;
 }
 
+export async function getFriends(): Promise<StudentSearchResult[]> {
+  const res = await api.get<StudentSearchResult[]>('/users/friends');
+  return res.data;
+}
+
+export async function addFriend(friendId: number): Promise<void> {
+  await api.post(`/users/friends/${friendId}`);
+}
+
 export type ThemePreset = 'default' | 'ocean' | 'forest';
 export type FontScale = 'small' | 'medium' | 'large';
 
