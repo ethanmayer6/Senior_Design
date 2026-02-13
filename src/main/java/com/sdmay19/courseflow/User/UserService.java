@@ -2,6 +2,7 @@ package com.sdmay19.courseflow.User;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import com.sdmay19.courseflow.File.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,7 @@ public class UserService {
         validateRegistrationInput(user);
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
+        user.setRole(normalizeRegistrationRole(user.getRole()));
         return userRepository.save(user);
     }
 
@@ -209,7 +210,7 @@ public class UserService {
       AppUser user = userRepository.findById(id)
     .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-    user.setRole(role); 
+    user.setRole(normalizeRoleForStorage(role));
     userRepository.save(user); 
     }
 
@@ -260,6 +261,34 @@ public class UserService {
 
     private String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private String normalizeRoleForStorage(String requestedRole) {
+        if (requestedRole == null || requestedRole.isBlank()) {
+            return "USER";
+        }
+
+        String normalized = requestedRole.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+
+        return switch (normalized) {
+            case "USER", "STUDENT" -> "USER";
+            case "ADVISOR" -> "ADVISOR";
+            case "FACULTY" -> "FACULTY";
+            case "ADMIN" -> "ADMIN";
+            default -> "USER";
+        };
+    }
+
+    private String normalizeRegistrationRole(String requestedRole) {
+        String normalized = normalizeRoleForStorage(requestedRole);
+        // Public registration cannot self-assign admin.
+        if ("ADMIN".equals(normalized)) {
+            return "USER";
+        }
+        return normalized;
     }
 
     private void normalizeUserForAuth(AppUser user) {
