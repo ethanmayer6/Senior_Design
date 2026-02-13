@@ -9,9 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +52,30 @@ public class FlowchartController {
     public FlowchartRequirementCoverageResponse getMyRequirementCoverage(Authentication auth) {
         AppUser user = (AppUser) auth.getPrincipal();
         return flowchartService.getRequirementCoverageByUser(user);
+    }
+
+    @GetMapping("/user/{userId}")
+    public FlowchartResponse getFlowchartByUserId(Authentication auth, @PathVariable long userId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        assertCanViewStudentFlowchart(requester, userId);
+        Flowchart flowchart = flowchartService.getByUserId(userId);
+        return FlowchartResponse.from(flowchart);
+    }
+
+    @GetMapping("/user/{userId}/insights")
+    public FlowchartInsightsResponse getFlowchartInsightsByUserId(Authentication auth, @PathVariable long userId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        assertCanViewStudentFlowchart(requester, userId);
+        return flowchartService.getInsightsByUserId(userId);
+    }
+
+    @GetMapping("/user/{userId}/requirements/coverage")
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByUserId(
+            Authentication auth,
+            @PathVariable long userId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        assertCanViewStudentFlowchart(requester, userId);
+        return flowchartService.getRequirementCoverageByUserId(userId);
     }
 
     @GetMapping("/id/{id}")
@@ -166,5 +192,29 @@ public class FlowchartController {
     public ResponseEntity<Void> deleteById(@PathVariable long id) {
         flowchartService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void assertCanViewStudentFlowchart(AppUser requester, long targetUserId) {
+        if (requester.getId() == targetUserId) {
+            return;
+        }
+
+        String normalizedRole = normalizeRole(requester.getRole());
+        if ("ADVISOR".equals(normalizedRole) || "FACULTY".equals(normalizedRole) || "ADMIN".equals(normalizedRole)) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this flowchart.");
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            return normalized.substring("ROLE_".length());
+        }
+        return normalized;
     }
 }

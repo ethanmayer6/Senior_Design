@@ -1,10 +1,14 @@
 // Dashboard.tsx
 import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
+  getFlowchartByUserId,
   getFlowchartInsights,
+  getFlowchartInsightsByUserId,
   getFlowchartRequirementCoverage,
+  getFlowchartRequirementCoverageByUserId,
   getUserFlowchart,
   updateSemesterCourses,
 } from '../api/flowchartApi';
@@ -28,6 +32,7 @@ function semesterRank(year: number, term: string): number {
 }
 
 export default function Dashboard() {
+  const [searchParams] = useSearchParams();
   const [flowchart, setFlowchart] = useState<FlowchartType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +59,11 @@ export default function Dashboard() {
   const [miniDepartment, setMiniDepartment] = useState('');
   const [selectedMiniCourse, setSelectedMiniCourse] = useState<FlowchartCourse | null>(null);
   const [miniAddingCourse, setMiniAddingCourse] = useState(false);
+  const requestedStudentId = Number(searchParams.get('studentId'));
+  const targetStudentId = Number.isFinite(requestedStudentId) && requestedStudentId > 0 ? requestedStudentId : null;
+  const readOnlyMode = searchParams.get('readOnly') === '1' && targetStudentId !== null;
+  const viewedStudentName = (searchParams.get('studentName') ?? '').trim();
+  const viewedStudentLabel = viewedStudentName || (targetStudentId ? `Student #${targetStudentId}` : 'student');
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -88,10 +98,16 @@ export default function Dashboard() {
 
   const loadInsightsAndCoverage = async () => {
     try {
-      const [insightData, coverageData] = await Promise.all([
-        getFlowchartInsights(),
-        getFlowchartRequirementCoverage(),
-      ]);
+      const [insightData, coverageData] =
+        readOnlyMode && targetStudentId !== null
+          ? await Promise.all([
+              getFlowchartInsightsByUserId(targetStudentId),
+              getFlowchartRequirementCoverageByUserId(targetStudentId),
+            ])
+          : await Promise.all([
+              getFlowchartInsights(),
+              getFlowchartRequirementCoverage(),
+            ]);
       setInsights(insightData);
       setRequirementCoverage(coverageData);
     } catch (e) {
@@ -103,9 +119,12 @@ export default function Dashboard() {
 
   const reloadFlowchart = async (failMessage: string) => {
     try {
-      const fc = await getUserFlowchart();
+      const fc =
+        readOnlyMode && targetStudentId !== null
+          ? await getFlowchartByUserId(targetStudentId)
+          : await getUserFlowchart();
       setFlowchart(fc);
-      if (showProgressInsights) {
+      if (showProgressInsights && fc) {
         await loadInsightsAndCoverage();
       }
       return fc;
@@ -114,7 +133,8 @@ export default function Dashboard() {
       setFlowchart(null);
       setInsights(null);
       setRequirementCoverage(null);
-      setError(failMessage);
+      const message = (e as any)?.response?.data?.message || failMessage;
+      setError(message);
       return null;
     }
   };
@@ -168,11 +188,15 @@ export default function Dashboard() {
     async function load() {
       setLoading(true);
       setError(null);
-      await reloadFlowchart('Failed to load your flowchart. Please refresh and try again.');
+      await reloadFlowchart(
+        readOnlyMode
+          ? 'Failed to load selected student flowchart. Please refresh and try again.'
+          : 'Failed to load your flowchart. Please refresh and try again.'
+      );
       setLoading(false);
     }
-    load();
-  }, []);
+    void load();
+  }, [readOnlyMode, targetStudentId]);
 
   useEffect(() => {
     if (!sortedSemesters.length) {
@@ -206,14 +230,23 @@ export default function Dashboard() {
   }, [showProgressInsights, flowchart?.id]);
 
   useEffect(() => {
-    if (!showMiniCatalog) {
+    if (readOnlyMode || !showMiniCatalog) {
       return;
     }
     void loadMiniCatalogCourses();
-  }, [showMiniCatalog]);
+  }, [showMiniCatalog, readOnlyMode]);
+
+  useEffect(() => {
+    if (!readOnlyMode) {
+      return;
+    }
+    setShowMiniCatalog(false);
+    setSelectedMiniCourse(null);
+  }, [readOnlyMode]);
 
   // After import completes, reload flowchart from backend
   const handleImportComplete = async () => {
+    if (readOnlyMode) return;
     setLoading(true);
     setError(null);
     await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.');
@@ -221,6 +254,7 @@ export default function Dashboard() {
   };
 
   const handleAddCourse = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     if (selectedSemesterId === null) {
       setAddCourseError('Select a semester before adding a course.');
@@ -260,6 +294,7 @@ export default function Dashboard() {
   };
 
   const handleRemoveCourse = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     if (selectedSemesterId === null) {
       setRemoveCourseError('Select a semester before removing a course.');
@@ -299,6 +334,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteFlowchart = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     try {
       await fetch(`http://localhost:8080/api/flowchart/delete/${flowchart.id}`, {
@@ -314,6 +350,7 @@ export default function Dashboard() {
   };
 
   const handleAddSelectedMiniCourse = async () => {
+    if (readOnlyMode) return;
     if (!selectedMiniCourse) {
       setMiniCatalogError('Select a course first.');
       return;
@@ -377,28 +414,48 @@ export default function Dashboard() {
       <Header></Header>
       <div className="flex h-full w-full gap-6 overflow-hidden p-6 pt-24">
         <div className="w-[320px] shrink-0">
-          <div className="p-4 w-full">
-            <ImportProgressReport onImported={handleImportComplete} />
-          </div>
-          <div className="p-4 w-full">
-            <Button
-              className="w-full text-center"
-              label={showMiniCatalog ? 'Hide Mini Course Catalog' : 'Mini Course Catalog'}
-              icon="pi pi-book"
-              outlined
-              onClick={() => {
-                setShowMiniCatalog((value) => {
-                  const next = !value;
-                  setMiniCatalogMessage(null);
-                  setMiniCatalogError(null);
-                  if (!next) {
-                    setSelectedMiniCourse(null);
-                  }
-                  return next;
-                });
-              }}
-            />
-          </div>
+          {readOnlyMode ? (
+            <div className="p-4 w-full">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">
+                <div className="font-semibold text-slate-900">Read-Only Mode</div>
+                <div className="mt-1">Viewing {viewedStudentLabel}'s flowchart.</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Upload and course edits are disabled in advisor view.
+                </div>
+              </div>
+              <Link
+                to="/student-search"
+                className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+              >
+                Back to Student Search
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="p-4 w-full">
+                <ImportProgressReport onImported={handleImportComplete} />
+              </div>
+              <div className="p-4 w-full">
+                <Button
+                  className="w-full text-center"
+                  label={showMiniCatalog ? 'Hide Mini Course Catalog' : 'Mini Course Catalog'}
+                  icon="pi pi-book"
+                  outlined
+                  onClick={() => {
+                    setShowMiniCatalog((value) => {
+                      const next = !value;
+                      setMiniCatalogMessage(null);
+                      setMiniCatalogError(null);
+                      if (!next) {
+                        setSelectedMiniCourse(null);
+                      }
+                      return next;
+                    });
+                  }}
+                />
+              </div>
+            </>
+          )}
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"
@@ -413,57 +470,61 @@ export default function Dashboard() {
               }}
             />
           </div>
-          <div className="p-4 w-full space-y-3">
-            <div className="text-sm font-semibold text-slate-700">Add Course To Flowchart</div>
-            <select
-              className="w-full rounded-md border border-slate-300 p-2 text-sm"
-              value={selectedSemesterId ?? ''}
-              onChange={(e) => setSelectedSemesterId(e.target.value ? Number(e.target.value) : null)}
-              disabled={!sortedSemesters.length || updatingSemester}
-            >
-              {sortedSemesters.length === 0 && <option value="">No semesters available</option>}
-              {sortedSemesters.map((sem) => (
-                <option key={sem.id} value={sem.id}>
-                  {sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`}
-                </option>
-              ))}
-            </select>
-            <input
-              className="w-full rounded-md border border-slate-300 p-2 text-sm"
-              type="text"
-              placeholder="Course ident (e.g. COMS_3090)"
-              value={courseIdentInput}
-              onChange={(e) => setCourseIdentInput(e.target.value)}
-              disabled={updatingSemester}
-            />
-            <Button
-              className="w-full text-center"
-              label={updatingSemester ? 'Adding...' : 'Add Course'}
-              onClick={handleAddCourse}
-              disabled={!flowchart || updatingSemester}
-            />
-            <div className="pt-2">
-              <Button
-                className="w-full text-center"
-                label={updatingSemester ? 'Removing...' : 'Remove Course'}
-                severity="danger"
-                outlined
-                onClick={handleRemoveCourse}
-                disabled={!flowchart || updatingSemester}
-              />
-            </div>
-            {addCourseError && <div className="text-xs text-red-600">{addCourseError}</div>}
-            {addCourseSuccess && <div className="text-xs text-emerald-700">{addCourseSuccess}</div>}
-            {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
-            {removeCourseSuccess && <div className="text-xs text-emerald-700">{removeCourseSuccess}</div>}
-          </div>
-          <div className="p-4 w-full">
-            <Button
-              className="w-full text-center"
-              label="Delete Flowchart"
-              onClick={handleDeleteFlowchart}
-            ></Button>
-          </div>
+          {!readOnlyMode && (
+            <>
+              <div className="p-4 w-full space-y-3">
+                <div className="text-sm font-semibold text-slate-700">Add Course To Flowchart</div>
+                <select
+                  className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                  value={selectedSemesterId ?? ''}
+                  onChange={(e) => setSelectedSemesterId(e.target.value ? Number(e.target.value) : null)}
+                  disabled={!sortedSemesters.length || updatingSemester}
+                >
+                  {sortedSemesters.length === 0 && <option value="">No semesters available</option>}
+                  {sortedSemesters.map((sem) => (
+                    <option key={sem.id} value={sem.id}>
+                      {sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                  type="text"
+                  placeholder="Course ident (e.g. COMS_3090)"
+                  value={courseIdentInput}
+                  onChange={(e) => setCourseIdentInput(e.target.value)}
+                  disabled={updatingSemester}
+                />
+                <Button
+                  className="w-full text-center"
+                  label={updatingSemester ? 'Adding...' : 'Add Course'}
+                  onClick={handleAddCourse}
+                  disabled={!flowchart || updatingSemester}
+                />
+                <div className="pt-2">
+                  <Button
+                    className="w-full text-center"
+                    label={updatingSemester ? 'Removing...' : 'Remove Course'}
+                    severity="danger"
+                    outlined
+                    onClick={handleRemoveCourse}
+                    disabled={!flowchart || updatingSemester}
+                  />
+                </div>
+                {addCourseError && <div className="text-xs text-red-600">{addCourseError}</div>}
+                {addCourseSuccess && <div className="text-xs text-emerald-700">{addCourseSuccess}</div>}
+                {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
+                {removeCourseSuccess && <div className="text-xs text-emerald-700">{removeCourseSuccess}</div>}
+              </div>
+              <div className="p-4 w-full">
+                <Button
+                  className="w-full text-center"
+                  label="Delete Flowchart"
+                  onClick={handleDeleteFlowchart}
+                ></Button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -766,7 +827,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center text-gray-600 pt-10">
-              Upload a progress report to generate your flowchart.
+              {readOnlyMode ? 'No flowchart found for this student.' : 'Upload a progress report to generate your flowchart.'}
             </div>
           )}
             </>

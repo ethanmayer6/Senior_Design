@@ -127,6 +127,22 @@ export async function getUserFlowchart(): Promise<Flowchart | null> {
 }
 
 /**
+ * Get the latest flowchart for a specific user id.
+ * Intended for advisor/faculty/admin read-only views.
+ */
+export async function getFlowchartByUserId(userId: number): Promise<Flowchart | null> {
+  try {
+    const res = await api.get<Flowchart>(`/flowchart/user/${userId}`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
  * Create a new flowchart using FlowchartDTO.
  * You’ll usually call this once for a new user.
  */
@@ -214,9 +230,35 @@ export async function getFlowchartInsights(): Promise<FlowchartInsights | null> 
   }
 }
 
+export async function getFlowchartInsightsByUserId(userId: number): Promise<FlowchartInsights | null> {
+  try {
+    const res = await api.get<FlowchartInsights>(`/flowchart/user/${userId}/insights`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 export async function getFlowchartRequirementCoverage(): Promise<FlowchartRequirementCoverage | null> {
   try {
     const res = await api.get<FlowchartRequirementCoverage>("/flowchart/user/requirements/coverage");
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getFlowchartRequirementCoverageByUserId(
+  userId: number
+): Promise<FlowchartRequirementCoverage | null> {
+  try {
+    const res = await api.get<FlowchartRequirementCoverage>(`/flowchart/user/${userId}/requirements/coverage`);
     return res.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {

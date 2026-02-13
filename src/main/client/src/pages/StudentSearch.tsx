@@ -2,12 +2,21 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import Header from '../components/header';
+import api from '../api/axiosClient';
 import {
   addFriend,
   getFriends,
   searchUsersByUsername,
   type StudentSearchResult,
 } from '../api/usersApi';
+
+function normalizeRole(role: string | null | undefined): string {
+  if (!role) {
+    return '';
+  }
+  const normalized = role.trim().toUpperCase();
+  return normalized.startsWith('ROLE_') ? normalized.substring(5) : normalized;
+}
 
 export default function StudentSearch() {
   const [query, setQuery] = useState('');
@@ -17,6 +26,20 @@ export default function StudentSearch() {
   const [searched, setSearched] = useState(false);
   const [friends, setFriends] = useState<StudentSearchResult[]>([]);
   const [addingFriendId, setAddingFriendId] = useState<number | null>(null);
+  const [viewerRole, setViewerRole] = useState<string>(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        return '';
+      }
+      const parsed = JSON.parse(storedUser) as { role?: string };
+      return normalizeRole(parsed.role);
+    } catch {
+      return '';
+    }
+  });
+  const canViewStudentFlowcharts =
+    viewerRole === 'ADVISOR' || viewerRole === 'FACULTY' || viewerRole === 'ADMIN';
 
   useEffect(() => {
     async function loadFriends() {
@@ -28,6 +51,18 @@ export default function StudentSearch() {
       }
     }
     void loadFriends();
+  }, []);
+
+  useEffect(() => {
+    async function loadViewerRole() {
+      try {
+        const me = await api.get<{ role?: string }>('/users/me');
+        setViewerRole(normalizeRole(me.data?.role));
+      } catch {
+        // Keep local cached role fallback.
+      }
+    }
+    void loadViewerRole();
   }, []);
 
   const onSearch = async () => {
@@ -146,20 +181,30 @@ export default function StudentSearch() {
                             Major: {user.major || 'Not set'}
                           </div>
                         </div>
-                        <Button
-                          label={
-                            friendIds.has(user.id)
-                              ? 'Friend Added'
-                              : addingFriendId === user.id
-                                ? 'Adding...'
-                                : 'Add Friend'
-                          }
-                          icon={friendIds.has(user.id) ? 'pi pi-check' : 'pi pi-user-plus'}
-                          size="small"
-                          outlined={!friendIds.has(user.id)}
-                          onClick={() => void handleAddFriend(user)}
-                          disabled={friendIds.has(user.id) || addingFriendId === user.id}
-                        />
+                        <div className="flex shrink-0 flex-col gap-2">
+                          {canViewStudentFlowcharts && (
+                            <Link
+                              to={`/dashboard?readOnly=1&studentId=${user.id}&studentName=${encodeURIComponent(user.username)}`}
+                              className="rounded-md border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                            >
+                              View Flowchart
+                            </Link>
+                          )}
+                          <Button
+                            label={
+                              friendIds.has(user.id)
+                                ? 'Friend Added'
+                                : addingFriendId === user.id
+                                  ? 'Adding...'
+                                  : 'Add Friend'
+                            }
+                            icon={friendIds.has(user.id) ? 'pi pi-check' : 'pi pi-user-plus'}
+                            size="small"
+                            outlined={!friendIds.has(user.id)}
+                            onClick={() => void handleAddFriend(user)}
+                            disabled={friendIds.has(user.id) || addingFriendId === user.id}
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
