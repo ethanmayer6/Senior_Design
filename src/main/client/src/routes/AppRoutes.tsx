@@ -11,6 +11,8 @@ import Dashboard from '../pages/Dashboard.tsx';
 import CourseflowHome from '../pages/CourseflowHome.tsx';
 import StudentSearch from '../pages/StudentSearch.tsx';
 import Settings from '../pages/Settings.tsx';
+import SmartScheduler from '../pages/SmartScheduler.tsx';
+import CurrentClasses from '../pages/CurrentClasses.tsx';
 
 export default function AppRoutes() {
   return (
@@ -27,6 +29,8 @@ export default function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/student-search" element={<StudentSearch />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/smart-scheduler" element={<SmartScheduler />} />
+        <Route path="/current-classes" element={<CurrentClasses />} />
       </Routes>
     </BrowserRouter>
   );
