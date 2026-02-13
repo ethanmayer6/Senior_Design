@@ -108,6 +108,26 @@ export interface FlowchartRequirementCoverage {
   requirements: RequirementCoverageItem[];
 }
 
+export interface FlowchartComment {
+  id: number;
+  flowchartId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: string;
+  body: string;
+  noteX: number | null;
+  noteY: number | null;
+  dismissed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlowchartCommentInput {
+  body: string;
+  noteX?: number | null;
+  noteY?: number | null;
+}
+
 /**
  * Get the flowchart for the currently authenticated user.
  * Backend derives the user from the JWT, so no params needed.
@@ -266,4 +286,31 @@ export async function getFlowchartRequirementCoverageByUserId(
     }
     throw err;
   }
+}
+
+export async function getFlowchartComments(flowchartId: number): Promise<FlowchartComment[]> {
+  const res = await api.get<FlowchartComment[]>(`/flowchart/${flowchartId}/comments`);
+  return res.data ?? [];
+}
+
+export async function createFlowchartComment(
+  flowchartId: number,
+  payload: FlowchartCommentInput
+): Promise<FlowchartComment> {
+  const res = await api.post<FlowchartComment>(`/flowchart/${flowchartId}/comments`, payload);
+  return res.data;
+}
+
+export async function updateFlowchartComment(commentId: number, payload: FlowchartCommentInput): Promise<FlowchartComment> {
+  const res = await api.put<FlowchartComment>(`/flowchart/comments/${commentId}`, payload);
+  return res.data;
+}
+
+export async function deleteFlowchartComment(commentId: number): Promise<void> {
+  await api.delete(`/flowchart/comments/${commentId}`);
+}
+
+export async function dismissFlowchartComment(commentId: number, dismissed: boolean): Promise<FlowchartComment> {
+  const res = await api.patch<FlowchartComment>(`/flowchart/comments/${commentId}/dismiss`, { dismissed });
+  return res.data;
 }

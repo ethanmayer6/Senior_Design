@@ -16,15 +16,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/flowchart")
 public class FlowchartController {
 
     private final FlowchartService flowchartService;
+    private final FlowchartCommentService flowchartCommentService;
 
-    public FlowchartController(FlowchartService flowchartService) {
+    public FlowchartController(FlowchartService flowchartService, FlowchartCommentService flowchartCommentService) {
         this.flowchartService = flowchartService;
+        this.flowchartCommentService = flowchartCommentService;
     }
 
     // CREATE
@@ -76,6 +79,62 @@ public class FlowchartController {
         AppUser requester = (AppUser) auth.getPrincipal();
         assertCanViewStudentFlowchart(requester, userId);
         return flowchartService.getRequirementCoverageByUserId(userId);
+    }
+
+    @GetMapping("/{flowchartId}/comments")
+    public List<FlowchartCommentResponse> getFlowchartComments(Authentication auth, @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        return flowchartCommentService.listComments(requester, flowchartId).stream()
+                .map(FlowchartCommentResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/{flowchartId}/comments")
+    public ResponseEntity<FlowchartCommentResponse> createFlowchartComment(
+            Authentication auth,
+            @PathVariable long flowchartId,
+            @RequestBody FlowchartCommentRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        FlowchartComment created = flowchartCommentService.createComment(
+                requester,
+                flowchartId,
+                request.body(),
+                request.noteX(),
+                request.noteY());
+        return ResponseEntity.status(HttpStatus.CREATED).body(FlowchartCommentResponse.from(created));
+    }
+
+    @PutMapping("/comments/{commentId}")
+    public FlowchartCommentResponse updateFlowchartComment(
+            Authentication auth,
+            @PathVariable long commentId,
+            @RequestBody FlowchartCommentRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        FlowchartComment updated = flowchartCommentService.updateComment(
+                requester,
+                commentId,
+                request.body(),
+                request.noteX(),
+                request.noteY());
+        return FlowchartCommentResponse.from(updated);
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteFlowchartComment(Authentication auth, @PathVariable long commentId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        flowchartCommentService.deleteComment(requester, commentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/comments/{commentId}/dismiss")
+    public FlowchartCommentResponse dismissFlowchartComment(
+            Authentication auth,
+            @PathVariable long commentId,
+            @RequestBody FlowchartCommentDismissRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        boolean dismissed = request.dismissed() == null || request.dismissed();
+        FlowchartComment updated = flowchartCommentService.setDismissed(requester, commentId, dismissed);
+        return FlowchartCommentResponse.from(updated);
     }
 
     @GetMapping("/id/{id}")
@@ -162,6 +221,48 @@ public class FlowchartController {
                     f.getCourseStatusMap(),
                     f.getMajor() == null ? null : f.getMajor().getName(),
                     semesters);
+        }
+    }
+
+    public record FlowchartCommentRequest(String body, Double noteX, Double noteY) {
+    }
+
+    public record FlowchartCommentDismissRequest(Boolean dismissed) {
+    }
+
+    public record FlowchartCommentResponse(
+            long id,
+            long flowchartId,
+            long authorId,
+            String authorName,
+            String authorRole,
+            String body,
+            Double noteX,
+            Double noteY,
+            boolean dismissed,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+        static FlowchartCommentResponse from(FlowchartComment comment) {
+            AppUser author = comment.getAuthor();
+            String firstName = author == null || author.getFirstName() == null ? "" : author.getFirstName().trim();
+            String lastName = author == null || author.getLastName() == null ? "" : author.getLastName().trim();
+            String fullName = (firstName + " " + lastName).trim();
+            String fallbackName = author == null ? "Unknown User" : author.getUsername();
+            String authorName = fullName.isBlank() ? fallbackName : fullName;
+            String authorRole = author == null ? "" : author.getRole();
+
+            return new FlowchartCommentResponse(
+                    comment.getId(),
+                    comment.getFlowchart().getId(),
+                    author == null ? 0L : author.getId(),
+                    authorName,
+                    authorRole,
+                    comment.getBody(),
+                    comment.getNoteX(),
+                    comment.getNoteY(),
+                    comment.isDismissed(),
+                    comment.getCreatedAt(),
+                    comment.getUpdatedAt());
         }
     }
 
