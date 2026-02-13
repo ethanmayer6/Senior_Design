@@ -292,7 +292,7 @@ export default function Flowchart({
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.18 }}
+        fitViewOptions={{ padding: 0.03, minZoom: 1.1, maxZoom: 1.1 }}
         defaultEdgeOptions={{ type: 'smoothstep' }}
         proOptions={{ hideAttribution: true }}
       >

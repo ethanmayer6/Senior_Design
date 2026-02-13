@@ -27,6 +27,18 @@ const featureLinks = [
     to: '/student-search',
     icon: 'pi pi-users',
   },
+  {
+    title: 'Smart Scheduler',
+    description: 'Generate draft semester schedule options using your planning constraints.',
+    to: '/smart-scheduler',
+    icon: 'pi pi-calendar-plus',
+  },
+  {
+    title: 'Current Classes',
+    description: 'See courses from your current term automatically based on today’s date.',
+    to: '/current-classes',
+    icon: 'pi pi-calendar',
+  },
 ];
 
 export default function CourseflowHome() {

@@ -14,8 +14,8 @@ import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Button } from 'primereact/button';
-import { useNavigate } from 'react-router-dom';
 import { createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import api from '../api/axiosClient';
 
 function semesterRank(year: number, term: string): number {
   const order: Record<string, number> = {
@@ -28,7 +28,6 @@ function semesterRank(year: number, term: string): number {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const [flowchart, setFlowchart] = useState<FlowchartType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +42,18 @@ export default function Dashboard() {
   const [insights, setInsights] = useState<FlowchartInsights | null>(null);
   const [requirementCoverage, setRequirementCoverage] = useState<FlowchartRequirementCoverage | null>(null);
   const [showRequirementCoverage, setShowRequirementCoverage] = useState(false);
+  const [showProgressInsights, setShowProgressInsights] = useState(false);
+  const [showMiniCatalog, setShowMiniCatalog] = useState(false);
+  const [miniCourses, setMiniCourses] = useState<FlowchartCourse[]>([]);
+  const [miniCatalogLoading, setMiniCatalogLoading] = useState(false);
+  const [miniCatalogError, setMiniCatalogError] = useState<string | null>(null);
+  const [miniCatalogMessage, setMiniCatalogMessage] = useState<string | null>(null);
+  const [miniSearchTerm, setMiniSearchTerm] = useState('');
+  const [miniLevel, setMiniLevel] = useState('');
+  const [miniOfferedTerm, setMiniOfferedTerm] = useState('');
+  const [miniDepartment, setMiniDepartment] = useState('');
+  const [selectedMiniCourse, setSelectedMiniCourse] = useState<FlowchartCourse | null>(null);
+  const [miniAddingCourse, setMiniAddingCourse] = useState(false);
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -75,16 +86,28 @@ export default function Dashboard() {
       ? Math.min((inProgressCredits / progressTotal) * 100, Math.max(0, 100 - completedWidthPercent))
       : 0;
 
-  const reloadFlowchart = async (failMessage: string) => {
+  const loadInsightsAndCoverage = async () => {
     try {
-      const [fc, insightData, coverageData] = await Promise.all([
-        getUserFlowchart(),
+      const [insightData, coverageData] = await Promise.all([
         getFlowchartInsights(),
         getFlowchartRequirementCoverage(),
       ]);
-      setFlowchart(fc);
       setInsights(insightData);
       setRequirementCoverage(coverageData);
+    } catch (e) {
+      console.error('Failed to load insights data:', e);
+      setInsights(null);
+      setRequirementCoverage(null);
+    }
+  };
+
+  const reloadFlowchart = async (failMessage: string) => {
+    try {
+      const fc = await getUserFlowchart();
+      setFlowchart(fc);
+      if (showProgressInsights) {
+        await loadInsightsAndCoverage();
+      }
       return fc;
     } catch (e) {
       console.error('Failed to load flowchart:', e);
@@ -93,6 +116,50 @@ export default function Dashboard() {
       setRequirementCoverage(null);
       setError(failMessage);
       return null;
+    }
+  };
+
+  const loadMiniCatalogCourses = async (overrides?: {
+    searchTerm?: string;
+    level?: string;
+    offeredTerm?: string;
+    department?: string;
+  }) => {
+    setMiniCatalogLoading(true);
+    setMiniCatalogError(null);
+    try {
+      const search = (overrides?.searchTerm ?? miniSearchTerm).trim();
+      const level = overrides?.level ?? miniLevel;
+      const offeredTerm = overrides?.offeredTerm ?? miniOfferedTerm;
+      const department = (overrides?.department ?? miniDepartment).trim().toUpperCase();
+      if (search) {
+        const res = await api.get<FlowchartCourse[]>('/courses/search', {
+          params: { searchTerm: search },
+        });
+        setMiniCourses(res.data ?? []);
+      } else if (level || offeredTerm || department) {
+        const res = await api.get<FlowchartCourse[]>('/courses/filter', {
+          params: {
+            level: level || undefined,
+            offeredTerm: offeredTerm || undefined,
+            department: department || undefined,
+            page: 0,
+            size: 100,
+          },
+        });
+        setMiniCourses(res.data ?? []);
+      } else {
+        const res = await api.get<FlowchartCourse[]>('/courses/page', {
+          params: { page: 0, size: 100 },
+        });
+        setMiniCourses(res.data ?? []);
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to load mini catalog.';
+      setMiniCatalogError(message);
+      setMiniCourses([]);
+    } finally {
+      setMiniCatalogLoading(false);
     }
   };
 
@@ -130,6 +197,20 @@ export default function Dashboard() {
       setSelectedCourse(null);
     }
   }, [flowchart, selectedCourse]);
+
+  useEffect(() => {
+    if (!showProgressInsights || !flowchart) {
+      return;
+    }
+    void loadInsightsAndCoverage();
+  }, [showProgressInsights, flowchart?.id]);
+
+  useEffect(() => {
+    if (!showMiniCatalog) {
+      return;
+    }
+    void loadMiniCatalogCourses();
+  }, [showMiniCatalog]);
 
   // After import completes, reload flowchart from backend
   const handleImportComplete = async () => {
@@ -232,6 +313,64 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddSelectedMiniCourse = async () => {
+    if (!selectedMiniCourse) {
+      setMiniCatalogError('Select a course first.');
+      return;
+    }
+    if (selectedSemesterId === null) {
+      setMiniCatalogError('Select a semester before adding a course.');
+      return;
+    }
+
+    setMiniAddingCourse(true);
+    setMiniCatalogError(null);
+    setMiniCatalogMessage(null);
+    try {
+      await updateSemesterCourses(selectedSemesterId, {
+        operation: 'ADD',
+        courseIdent: selectedMiniCourse.courseIdent,
+      });
+      await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.');
+      setMiniCatalogMessage(`Added ${selectedMiniCourse.courseIdent} to your flowchart.`);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to add selected course to your flowchart.';
+      setMiniCatalogError(message);
+    } finally {
+      setMiniAddingCourse(false);
+    }
+  };
+
+  const handleApplyMiniFilters = async () => {
+    setMiniCatalogMessage(null);
+    setMiniCatalogError(null);
+    await loadMiniCatalogCourses({
+      searchTerm: miniSearchTerm,
+      level: miniLevel,
+      offeredTerm: miniOfferedTerm,
+      department: miniDepartment,
+    });
+  };
+
+  const handleResetMiniFilters = async () => {
+    setMiniSearchTerm('');
+    setMiniLevel('');
+    setMiniOfferedTerm('');
+    setMiniDepartment('');
+    setSelectedMiniCourse(null);
+    setMiniCatalogMessage(null);
+    setMiniCatalogError(null);
+    await loadMiniCatalogCourses({
+      searchTerm: '',
+      level: '',
+      offeredTerm: '',
+      department: '',
+    });
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Logo Section */}
@@ -242,10 +381,34 @@ export default function Dashboard() {
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"
-              label="Go To Course Catalog"
+              label={showMiniCatalog ? 'Hide Mini Course Catalog' : 'Mini Course Catalog'}
               icon="pi pi-book"
               outlined
-              onClick={() => navigate('/catalog')}
+              onClick={() => {
+                setShowMiniCatalog((value) => {
+                  const next = !value;
+                  setMiniCatalogMessage(null);
+                  setMiniCatalogError(null);
+                  if (!next) {
+                    setSelectedMiniCourse(null);
+                  }
+                  return next;
+                });
+              }}
+            />
+          </div>
+          <div className="p-4 w-full">
+            <Button
+              className="w-full text-center"
+              label={showProgressInsights ? 'Hide Degree Progress & Insights' : 'Show Degree Progress & Insights'}
+              icon="pi pi-chart-line"
+              outlined
+              onClick={() => {
+                setShowProgressInsights((value) => !value);
+                if (showProgressInsights) {
+                  setShowRequirementCoverage(false);
+                }
+              }}
             />
           </div>
           <div className="p-4 w-full space-y-3">
@@ -310,7 +473,8 @@ export default function Dashboard() {
             <div className="flex h-full flex-col items-center">
               <div className="flex h-full w-full max-w-[1320px] flex-col gap-4 xl:flex-row">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-4 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  {showProgressInsights && (
+                    <div className="mb-4 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium text-slate-700">
                       <span>Degree Progress & Planning Insights</span>
                       <span>
@@ -416,10 +580,143 @@ export default function Dashboard() {
                         )}
                       </div>
                     )}
-                  </div>
+                    </div>
+                  )}
                   <Flowchart flowchart={flowchart} onCourseSelect={setSelectedCourse} />
                 </div>
-                {selectedCourse && (
+                {showMiniCatalog ? (
+                  <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[360px]">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                      Mini Course Catalog
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      <input
+                        className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                        placeholder="Search by ident or title"
+                        value={miniSearchTerm}
+                        onChange={(e) => setMiniSearchTerm(e.target.value)}
+                        disabled={miniCatalogLoading}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                          value={miniLevel}
+                          onChange={(e) => setMiniLevel(e.target.value)}
+                          disabled={miniCatalogLoading}
+                        >
+                          <option value="">Any level</option>
+                          <option value="1000">1000</option>
+                          <option value="2000">2000</option>
+                          <option value="3000">3000</option>
+                          <option value="4000">4000</option>
+                          <option value="5000">5000</option>
+                        </select>
+                        <select
+                          className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                          value={miniOfferedTerm}
+                          onChange={(e) => setMiniOfferedTerm(e.target.value)}
+                          disabled={miniCatalogLoading}
+                        >
+                          <option value="">Any term</option>
+                          <option value="SPRING">Spring</option>
+                          <option value="SUMMER">Summer</option>
+                          <option value="FALL">Fall</option>
+                          <option value="WINTER">Winter</option>
+                        </select>
+                      </div>
+                      <input
+                        className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                        placeholder="Department (e.g. COMS)"
+                        value={miniDepartment}
+                        onChange={(e) => setMiniDepartment(e.target.value)}
+                        disabled={miniCatalogLoading}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          className="w-full"
+                          label={miniCatalogLoading ? 'Loading...' : 'Apply'}
+                          onClick={() => void handleApplyMiniFilters()}
+                          disabled={miniCatalogLoading}
+                        />
+                        <Button
+                          className="w-full"
+                          label="Reset"
+                          outlined
+                          onClick={() => void handleResetMiniFilters()}
+                          disabled={miniCatalogLoading}
+                        />
+                      </div>
+                      {miniCatalogError && <div className="text-xs text-red-600">{miniCatalogError}</div>}
+                      {miniCatalogMessage && <div className="text-xs text-emerald-700">{miniCatalogMessage}</div>}
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Courses
+                      </div>
+                      <div className="max-h-[260px] space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                        {miniCatalogLoading ? (
+                          <div className="p-2 text-sm text-slate-600">Loading courses...</div>
+                        ) : miniCourses.length === 0 ? (
+                          <div className="p-2 text-sm text-slate-600">No courses found.</div>
+                        ) : (
+                          miniCourses.map((course) => (
+                            <button
+                              key={course.courseIdent}
+                              type="button"
+                              className={`w-full rounded-md border px-2 py-1.5 text-left text-xs transition ${
+                                selectedMiniCourse?.courseIdent === course.courseIdent
+                                  ? 'border-red-400 bg-red-50 text-red-800'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                              }`}
+                              onClick={() => setSelectedMiniCourse(course)}
+                            >
+                              <div className="font-semibold">{course.courseIdent.replace('_', ' ')}</div>
+                              <div className="line-clamp-1">{course.name}</div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedMiniCourse && (
+                      <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-700">
+                        <div className="text-base font-semibold text-slate-900">
+                          {selectedMiniCourse.courseIdent.replace('_', ' ')}
+                        </div>
+                        <div className="text-red-600">{selectedMiniCourse.name}</div>
+                        <div className="mt-2 rounded-md bg-slate-50 p-2 text-xs">
+                          Credits: {selectedMiniCourse.credits}
+                          {selectedMiniCourse.hours ? ` | ${selectedMiniCourse.hours}` : ''}
+                        </div>
+                        <div className="mt-2 text-xs">
+                          <span className="font-semibold uppercase tracking-wide text-slate-500">Offered: </span>
+                          {selectedMiniCourse.offered || 'Not listed'}
+                        </div>
+                        <div className="mt-2 text-xs leading-relaxed">
+                          {selectedMiniCourse.description || 'No description.'}
+                        </div>
+                        <div className="mt-2 text-xs">
+                          <span className="font-semibold uppercase tracking-wide text-slate-500">Prerequisites: </span>
+                          {selectedMiniCourse.prerequisites?.length
+                            ? selectedMiniCourse.prerequisites.join(', ')
+                            : selectedMiniCourse.prereq_txt || 'None'}
+                        </div>
+                        <Button
+                          className="mt-3 w-full"
+                          label={miniAddingCourse ? 'Adding...' : 'Add to CourseFlow'}
+                          onClick={() => void handleAddSelectedMiniCourse()}
+                          disabled={miniAddingCourse || selectedSemesterId === null}
+                        />
+                        {selectedSemesterId === null && (
+                          <div className="mt-1 text-xs text-slate-500">
+                            Select a semester in the left panel before adding.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </aside>
+                ) : selectedCourse ? (
                   <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[340px]">
                     <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                       Selected Course
@@ -459,7 +756,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </aside>
-                )}
+                ) : null}
               </div>
             </div>
           ) : (
