@@ -246,9 +246,14 @@ public class AcademicProgressService {
         }
 
         Major major = resolveMajor(userMajorName)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Major not found in database: " + userMajorName
-                                + ". Update your profile major to match an existing catalog major."));
+                .orElseGet(() -> {
+                    System.out.println("[WARN] Major not found in database for user value: '" + userMajorName
+                            + "'. Creating a fallback major record for import.");
+                    Major fallbackMajor = new Major();
+                    fallbackMajor.setName(userMajorName.trim());
+                    fallbackMajor.setDescription("Auto-created during progress report import.");
+                    return majorRepository.save(fallbackMajor);
+                });
 
         // Step 6 — delegate to FlowchartService to actually build & save semesters +
         // flowchart
@@ -379,7 +384,7 @@ public class AcademicProgressService {
             return Optional.empty();
         }
 
-        Optional<Major> exact = majorRepository.findByName(userMajorName.trim());
+        Optional<Major> exact = majorRepository.findByNameIgnoreCase(userMajorName.trim());
         if (exact.isPresent()) {
             return exact;
         }
@@ -391,7 +396,8 @@ public class AcademicProgressService {
                 "se", "softwareengineering");
         String canonical = aliases.getOrDefault(normalizedInput, normalizedInput);
 
-        return majorRepository.findAll().stream()
+        List<Major> allMajors = majorRepository.findAll();
+        Optional<Major> normalizedContainsMatch = allMajors.stream()
                 .filter(m -> m.getName() != null && !m.getName().isBlank())
                 .filter(m -> {
                     String normalizedMajor = normalizeMajorName(m.getName());
@@ -400,6 +406,15 @@ public class AcademicProgressService {
                             || canonical.contains(normalizedMajor);
                 })
                 .findFirst();
+        if (normalizedContainsMatch.isPresent()) {
+            return normalizedContainsMatch;
+        }
+
+        Set<String> inputTokens = tokenizeMajorName(userMajorName);
+        return allMajors.stream()
+                .filter(m -> m.getName() != null && !m.getName().isBlank())
+                .max(Comparator.comparingInt(m -> tokenOverlap(inputTokens, tokenizeMajorName(m.getName()))))
+                .filter(m -> tokenOverlap(inputTokens, tokenizeMajorName(m.getName())) > 0);
     }
 
     private String normalizeMajorName(String value) {
@@ -407,6 +422,33 @@ public class AcademicProgressService {
             return "";
         }
         return value.toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+
+    private Set<String> tokenizeMajorName(String value) {
+        if (value == null || value.isBlank()) {
+            return Set.of();
+        }
+        String[] parts = value.toLowerCase(Locale.ROOT).split("[^a-z0-9]+");
+        Set<String> tokens = new HashSet<>();
+        for (String part : parts) {
+            if (part.length() >= 2) {
+                tokens.add(part);
+            }
+        }
+        return tokens;
+    }
+
+    private int tokenOverlap(Set<String> left, Set<String> right) {
+        if (left.isEmpty() || right.isEmpty()) {
+            return 0;
+        }
+        int score = 0;
+        for (String token : left) {
+            if (right.contains(token)) {
+                score++;
+            }
+        }
+        return score;
     }
 
     // ----------------------------------------------------------------------
