@@ -4,15 +4,20 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
+  createFlowchartComment,
+  deleteFlowchartComment,
+  dismissFlowchartComment,
+  getFlowchartComments,
   getFlowchartByUserId,
   getFlowchartInsights,
   getFlowchartInsightsByUserId,
   getFlowchartRequirementCoverage,
   getFlowchartRequirementCoverageByUserId,
   getUserFlowchart,
+  updateFlowchartComment,
   updateSemesterCourses,
 } from '../api/flowchartApi';
-import type { Course as FlowchartCourse, Flowchart as FlowchartType } from '../api/flowchartApi';
+import type { Course as FlowchartCourse, Flowchart as FlowchartType, FlowchartComment } from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
@@ -29,6 +34,20 @@ function semesterRank(year: number, term: string): number {
   };
   const termRank = order[term?.toUpperCase()] ?? 9;
   return year * 10 + termRank;
+}
+
+function normalizeRole(role: string | null | undefined): string {
+  if (!role) return '';
+  const normalized = role.trim().toUpperCase();
+  return normalized.startsWith('ROLE_') ? normalized.substring(5) : normalized;
+}
+
+function formatCommentDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  return parsed.toLocaleString();
 }
 
 export default function Dashboard() {
@@ -59,11 +78,32 @@ export default function Dashboard() {
   const [miniDepartment, setMiniDepartment] = useState('');
   const [selectedMiniCourse, setSelectedMiniCourse] = useState<FlowchartCourse | null>(null);
   const [miniAddingCourse, setMiniAddingCourse] = useState(false);
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false);
+  const [showDismissedComments, setShowDismissedComments] = useState(false);
+  const [comments, setComments] = useState<FlowchartComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentActionLoadingId, setCommentActionLoadingId] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState('');
   const requestedStudentId = Number(searchParams.get('studentId'));
   const targetStudentId = Number.isFinite(requestedStudentId) && requestedStudentId > 0 ? requestedStudentId : null;
   const readOnlyMode = searchParams.get('readOnly') === '1' && targetStudentId !== null;
   const viewedStudentName = (searchParams.get('studentName') ?? '').trim();
   const viewedStudentLabel = viewedStudentName || (targetStudentId ? `Student #${targetStudentId}` : 'student');
+  const currentUserRole = (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (!stored) return '';
+      const parsed = JSON.parse(stored) as { role?: string };
+      return normalizeRole(parsed.role);
+    } catch {
+      return '';
+    }
+  })();
+  const canDismissComments = !readOnlyMode || currentUserRole === 'ADMIN';
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -95,6 +135,7 @@ export default function Dashboard() {
     progressTotal > 0
       ? Math.min((inProgressCredits / progressTotal) * 100, Math.max(0, 100 - completedWidthPercent))
       : 0;
+  const visibleComments = showDismissedComments ? comments : comments.filter((comment) => !comment.dismissed);
 
   const loadInsightsAndCoverage = async () => {
     try {
@@ -183,6 +224,112 @@ export default function Dashboard() {
     }
   };
 
+  const loadComments = async (flowchartId: number) => {
+    setCommentsLoading(true);
+    setCommentsError(null);
+    try {
+      const data = await getFlowchartComments(flowchartId);
+      setComments(data);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to load comments.';
+      setCommentsError(message);
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleCreateComment = async () => {
+    if (!flowchart) return;
+    const body = commentDraft.trim();
+    if (!body) {
+      setCommentsError('Comment text cannot be empty.');
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentsError(null);
+    try {
+      const created = await createFlowchartComment(flowchart.id, { body, noteX: null, noteY: null });
+      setComments((current) => [created, ...current]);
+      setCommentDraft('');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleStartEditComment = (comment: FlowchartComment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentBody(comment.body);
+    setCommentsError(null);
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentBody('');
+  };
+
+  const handleSaveEditedComment = async (comment: FlowchartComment) => {
+    const body = editingCommentBody.trim();
+    if (!body) {
+      setCommentsError('Comment text cannot be empty.');
+      return;
+    }
+
+    setCommentActionLoadingId(comment.id);
+    setCommentsError(null);
+    try {
+      const updated = await updateFlowchartComment(comment.id, {
+        body,
+        noteX: comment.noteX,
+        noteY: comment.noteY,
+      });
+      setComments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setEditingCommentId(null);
+      setEditingCommentBody('');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    setCommentActionLoadingId(commentId);
+    setCommentsError(null);
+    try {
+      await deleteFlowchartComment(commentId);
+      setComments((current) => current.filter((item) => item.id !== commentId));
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+        setEditingCommentBody('');
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to delete comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
+  const handleDismissComment = async (comment: FlowchartComment, dismissed: boolean) => {
+    setCommentActionLoadingId(comment.id);
+    setCommentsError(null);
+    try {
+      const updated = await dismissFlowchartComment(comment.id, dismissed);
+      setComments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update comment visibility.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
   // Load saved flowchart when dashboard loads
   useEffect(() => {
     async function load() {
@@ -241,8 +388,17 @@ export default function Dashboard() {
       return;
     }
     setShowMiniCatalog(false);
+    setShowCommentsPanel(true);
     setSelectedMiniCourse(null);
   }, [readOnlyMode]);
+
+  useEffect(() => {
+    if (!flowchart) {
+      setComments([]);
+      return;
+    }
+    void loadComments(flowchart.id);
+  }, [flowchart?.id]);
 
   // After import completes, reload flowchart from backend
   const handleImportComplete = async () => {
@@ -444,6 +600,9 @@ export default function Dashboard() {
                   onClick={() => {
                     setShowMiniCatalog((value) => {
                       const next = !value;
+                      if (next) {
+                        setShowCommentsPanel(false);
+                      }
                       setMiniCatalogMessage(null);
                       setMiniCatalogError(null);
                       if (!next) {
@@ -467,6 +626,23 @@ export default function Dashboard() {
                 if (showProgressInsights) {
                   setShowRequirementCoverage(false);
                 }
+              }}
+            />
+          </div>
+          <div className="p-4 w-full">
+            <Button
+              className="w-full text-center"
+              label={showCommentsPanel ? 'Hide Flowchart Notes' : 'Flowchart Notes'}
+              icon="pi pi-comments"
+              outlined
+              onClick={() => {
+                setShowCommentsPanel((value) => {
+                  const next = !value;
+                  if (next) {
+                    setShowMiniCatalog(false);
+                  }
+                  return next;
+                });
               }}
             />
           </div>
@@ -650,7 +826,144 @@ export default function Dashboard() {
                   )}
                   <Flowchart flowchart={flowchart} onCourseSelect={setSelectedCourse} />
                 </div>
-                {showMiniCatalog ? (
+                {showCommentsPanel ? (
+                  <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[360px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                        Flowchart Notes
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                        onClick={() => setShowDismissedComments((value) => !value)}
+                      >
+                        {showDismissedComments ? 'Hide dismissed' : 'Show dismissed'}
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      {readOnlyMode
+                        ? 'Leave recommendations for the student to review later.'
+                        : 'Review advisor recommendations and add your own notes.'}
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                        rows={3}
+                        placeholder="Add a recommendation or planning note..."
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        disabled={commentSubmitting}
+                      />
+                      <Button
+                        className="w-full"
+                        label={commentSubmitting ? 'Posting...' : 'Post Note'}
+                        icon="pi pi-send"
+                        onClick={() => void handleCreateComment()}
+                        disabled={commentSubmitting || !flowchart}
+                      />
+                      {commentsError && <div className="text-xs text-red-600">{commentsError}</div>}
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Notes ({visibleComments.length})
+                      </div>
+                      <div className="max-h-[460px] space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                        {commentsLoading ? (
+                          <div className="p-2 text-sm text-slate-600">Loading notes...</div>
+                        ) : visibleComments.length === 0 ? (
+                          <div className="p-2 text-sm text-slate-600">No notes yet.</div>
+                        ) : (
+                          visibleComments.map((comment) => (
+                            <div
+                              key={comment.id}
+                              className={`rounded-md border p-2 text-sm ${
+                                comment.dismissed
+                                  ? 'border-slate-200 bg-slate-100 text-slate-500'
+                                  : 'border-slate-200 bg-white text-slate-700'
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <div className="font-semibold text-slate-800">{comment.authorName}</div>
+                                  <div className="text-[11px] text-slate-500">
+                                    {normalizeRole(comment.authorRole) || 'USER'}
+                                    {comment.updatedAt ? ` - ${formatCommentDate(comment.updatedAt)}` : ''}
+                                  </div>
+                                </div>
+                                {comment.dismissed && (
+                                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                                    dismissed
+                                  </span>
+                                )}
+                              </div>
+
+                              {editingCommentId === comment.id ? (
+                                <textarea
+                                  className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm"
+                                  rows={3}
+                                  value={editingCommentBody}
+                                  onChange={(e) => setEditingCommentBody(e.target.value)}
+                                  disabled={commentActionLoadingId === comment.id}
+                                />
+                              ) : (
+                                <div className="mt-2 whitespace-pre-wrap text-sm">{comment.body}</div>
+                              )}
+
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {editingCommentId === comment.id ? (
+                                  <>
+                                    <Button
+                                      size="small"
+                                      label="Save"
+                                      onClick={() => void handleSaveEditedComment(comment)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    <Button
+                                      size="small"
+                                      label="Cancel"
+                                      outlined
+                                      onClick={handleCancelEditComment}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="small"
+                                      label="Edit"
+                                      text
+                                      onClick={() => handleStartEditComment(comment)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    <Button
+                                      size="small"
+                                      label="Delete"
+                                      text
+                                      severity="danger"
+                                      onClick={() => void handleDeleteComment(comment.id)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    {canDismissComments && (
+                                      <Button
+                                        size="small"
+                                        label={comment.dismissed ? 'Restore' : 'Dismiss'}
+                                        text
+                                        onClick={() => void handleDismissComment(comment, !comment.dismissed)}
+                                        disabled={commentActionLoadingId === comment.id}
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </aside>
+                ) : showMiniCatalog ? (
                   <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[360px]">
                     <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                       Mini Course Catalog
