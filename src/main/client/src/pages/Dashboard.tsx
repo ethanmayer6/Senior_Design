@@ -4,20 +4,25 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
+  deleteFlowchart,
   createFlowchartComment,
   deleteFlowchartComment,
   dismissFlowchartComment,
+  getFlowchartInsightsByFlowchartId,
   getFlowchartComments,
   getFlowchartByUserId,
   getFlowchartInsights,
   getFlowchartInsightsByUserId,
+  getFlowchartRequirementCoverageByFlowchartId,
   getFlowchartRequirementCoverage,
   getFlowchartRequirementCoverageByUserId,
+  getMyFlowchartById,
+  getMyFlowcharts,
   getUserFlowchart,
   updateFlowchartComment,
   updateSemesterCourses,
 } from '../api/flowchartApi';
-import type { Course as FlowchartCourse, Flowchart as FlowchartType, FlowchartComment } from '../api/flowchartApi';
+import type { Course as FlowchartCourse, Flowchart as FlowchartType, FlowchartComment, FlowchartTab } from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
@@ -87,6 +92,8 @@ export default function Dashboard() {
   const [commentActionLoadingId, setCommentActionLoadingId] = useState<number | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentBody, setEditingCommentBody] = useState('');
+  const [flowchartTabs, setFlowchartTabs] = useState<FlowchartTab[]>([]);
+  const [activeFlowchartId, setActiveFlowchartId] = useState<number | null>(null);
   const requestedStudentId = Number(searchParams.get('studentId'));
   const targetStudentId = Number.isFinite(requestedStudentId) && requestedStudentId > 0 ? requestedStudentId : null;
   const readOnlyMode = searchParams.get('readOnly') === '1' && targetStudentId !== null;
@@ -103,6 +110,19 @@ export default function Dashboard() {
     }
   })();
   const canDismissComments = !readOnlyMode || currentUserRole === 'ADMIN';
+  const maxFlowchartTabs = 10;
+  const canCreateMoreFlowcharts = flowchartTabs.length < maxFlowchartTabs;
+  const activeFlowchartStorageKey = (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (!stored) return null;
+      const parsed = JSON.parse(stored) as { id?: number };
+      if (!parsed?.id) return null;
+      return `activeFlowchartId:${parsed.id}`;
+    } catch {
+      return null;
+    }
+  })();
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -144,6 +164,11 @@ export default function Dashboard() {
               getFlowchartInsightsByUserId(targetStudentId),
               getFlowchartRequirementCoverageByUserId(targetStudentId),
             ])
+          : activeFlowchartId !== null
+            ? await Promise.all([
+                getFlowchartInsightsByFlowchartId(activeFlowchartId),
+                getFlowchartRequirementCoverageByFlowchartId(activeFlowchartId),
+              ])
           : await Promise.all([
               getFlowchartInsights(),
               getFlowchartRequirementCoverage(),
@@ -157,12 +182,36 @@ export default function Dashboard() {
     }
   };
 
-  const reloadFlowchart = async (failMessage: string) => {
+  const reloadFlowchartTabs = async (): Promise<FlowchartTab[]> => {
+    if (readOnlyMode) return [];
+    try {
+      const tabs = await getMyFlowcharts();
+      setFlowchartTabs(tabs.slice(0, maxFlowchartTabs));
+      return tabs.slice(0, maxFlowchartTabs);
+    } catch (e) {
+      console.error('Failed to load flowchart tabs:', e);
+      setFlowchartTabs([]);
+      return [];
+    }
+  };
+
+  const persistActiveFlowchartId = (flowchartId: number | null) => {
+    if (!activeFlowchartStorageKey) return;
+    if (flowchartId === null) {
+      localStorage.removeItem(activeFlowchartStorageKey);
+      return;
+    }
+    localStorage.setItem(activeFlowchartStorageKey, String(flowchartId));
+  };
+
+  const reloadFlowchart = async (failMessage: string, requestedFlowchartId?: number | null) => {
     try {
       const fc =
         readOnlyMode && targetStudentId !== null
           ? await getFlowchartByUserId(targetStudentId)
-          : await getUserFlowchart();
+          : requestedFlowchartId !== null && requestedFlowchartId !== undefined
+            ? await getMyFlowchartById(requestedFlowchartId)
+            : await getUserFlowchart();
       setFlowchart(fc);
       if (showProgressInsights && fc) {
         await loadInsightsAndCoverage();
@@ -334,11 +383,27 @@ export default function Dashboard() {
     async function load() {
       setLoading(true);
       setError(null);
-      await reloadFlowchart(
-        readOnlyMode
-          ? 'Failed to load selected student flowchart. Please refresh and try again.'
-          : 'Failed to load your flowchart. Please refresh and try again.'
-      );
+      if (readOnlyMode) {
+        await reloadFlowchart('Failed to load selected student flowchart. Please refresh and try again.');
+        setLoading(false);
+        return;
+      }
+
+      const tabs = await reloadFlowchartTabs();
+      if (tabs.length === 0) {
+        setFlowchart(null);
+        setActiveFlowchartId(null);
+        persistActiveFlowchartId(null);
+        setLoading(false);
+        return;
+      }
+
+      const persisted = activeFlowchartStorageKey ? Number(localStorage.getItem(activeFlowchartStorageKey)) : NaN;
+      const validPersisted = Number.isFinite(persisted) && tabs.some((tab) => tab.id === persisted);
+      const initialActiveId = validPersisted ? persisted : tabs[0].id;
+      setActiveFlowchartId(initialActiveId);
+      persistActiveFlowchartId(initialActiveId);
+      await reloadFlowchart('Failed to load your flowchart. Please refresh and try again.', initialActiveId);
       setLoading(false);
     }
     void load();
@@ -403,7 +468,15 @@ export default function Dashboard() {
     if (readOnlyMode) return;
     setLoading(true);
     setError(null);
-    await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.');
+    const tabs = await reloadFlowchartTabs();
+    const nextActiveId = tabs.length > 0 ? tabs[0].id : null;
+    setActiveFlowchartId(nextActiveId);
+    persistActiveFlowchartId(nextActiveId);
+    if (nextActiveId !== null) {
+      await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.', nextActiveId);
+    } else {
+      setFlowchart(null);
+    }
     setLoading(false);
   };
 
@@ -491,16 +564,29 @@ export default function Dashboard() {
     if (readOnlyMode) return;
     if (!flowchart) return;
     try {
-      await fetch(`http://localhost:8080/api/flowchart/delete/${flowchart.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      setFlowchart(null);
+      await deleteFlowchart(flowchart.id);
+      const tabs = await reloadFlowchartTabs();
+      const nextActiveId = tabs.length > 0 ? tabs[0].id : null;
+      setActiveFlowchartId(nextActiveId);
+      persistActiveFlowchartId(nextActiveId);
+      if (nextActiveId !== null) {
+        await reloadFlowchart('Flowchart was deleted, but loading the next flowchart failed.', nextActiveId);
+      } else {
+        setFlowchart(null);
+      }
     } catch (err) {
       console.error('Failed to delete flowchart:', err);
     }
+  };
+
+  const handleSelectFlowchartTab = async (flowchartId: number) => {
+    if (readOnlyMode || flowchartId === activeFlowchartId) return;
+    setLoading(true);
+    setError(null);
+    setActiveFlowchartId(flowchartId);
+    persistActiveFlowchartId(flowchartId);
+    await reloadFlowchart('Failed to load selected flowchart. Please try again.', flowchartId);
+    setLoading(false);
   };
 
   const handleAddMiniCourse = async (course: FlowchartCourse) => {
@@ -561,10 +647,10 @@ export default function Dashboard() {
     <div className="flex h-screen bg-gray-50">
       {/* Logo Section */}
       <Header></Header>
-      <div className="flex h-full w-full gap-6 overflow-hidden p-6 pt-24">
-        <div className="w-[320px] shrink-0">
+      <div className="flex h-full w-full gap-4 overflow-hidden px-4 pb-4 pt-24">
+        <div className="w-[320px] shrink-0 overflow-y-auto pr-1">
           {readOnlyMode ? (
-            <div className="p-4 w-full">
+            <div className="p-2 w-full">
               <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">
                 <div className="font-semibold text-slate-900">Read-Only Mode</div>
                 <div className="mt-1">Viewing {viewedStudentLabel}'s flowchart.</div>
@@ -581,10 +667,15 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="p-4 w-full">
-                <ImportProgressReport onImported={handleImportComplete} />
+              <div className="p-2 w-full">
+                <ImportProgressReport onImported={handleImportComplete} disabled={!canCreateMoreFlowcharts} />
+                <div className="mt-2 text-xs text-slate-500">
+                  {canCreateMoreFlowcharts
+                    ? `${flowchartTabs.length}/${maxFlowchartTabs} flowcharts used. Uploading a report creates a new tab.`
+                    : `You have reached the ${maxFlowchartTabs} flowchart limit.`}
+                </div>
               </div>
-              <div className="p-4 w-full">
+              <div className="p-2 w-full">
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     className="w-full text-center"
@@ -614,7 +705,7 @@ export default function Dashboard() {
               </div>
             </>
           )}
-          <div className="p-4 w-full">
+          <div className="p-2 w-full">
             <Button
               className="w-full text-center"
               label={showProgressInsights ? 'Hide Degree Progress & Insights' : 'Show Degree Progress & Insights'}
@@ -628,7 +719,7 @@ export default function Dashboard() {
               }}
             />
           </div>
-          <div className="p-4 w-full">
+          <div className="p-2 w-full">
             <Button
               className="w-full text-center"
               label={showCommentsPanel ? 'Hide Flowchart Notes' : 'Flowchart Notes'}
@@ -647,7 +738,7 @@ export default function Dashboard() {
           </div>
           {!readOnlyMode && (
             <>
-              <div className="p-4 w-full space-y-3">
+              <div className="p-2 w-full space-y-3">
                 <div className="text-sm font-semibold text-slate-700">Add Course To Flowchart</div>
                 <select
                   className="w-full rounded-md border border-slate-300 p-2 text-sm"
@@ -691,7 +782,7 @@ export default function Dashboard() {
                 {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
                 {removeCourseSuccess && <div className="text-xs text-emerald-700">{removeCourseSuccess}</div>}
               </div>
-              <div className="p-4 w-full">
+              <div className="p-2 w-full">
                 <Button
                   className="w-full text-center"
                   label="Delete Flowchart"
@@ -709,6 +800,28 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
+          {!readOnlyMode && flowchartTabs.length > 0 && (
+            <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1">
+              {flowchartTabs.map((tab, index) => {
+                const isActive = tab.id === activeFlowchartId;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => void handleSelectFlowchartTab(tab.id)}
+                    className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                      isActive
+                        ? 'border-red-300 bg-red-50 text-red-700'
+                        : 'border-slate-300 bg-white text-slate-700 hover:border-red-300 hover:bg-red-50'
+                    }`}
+                    title={tab.title}
+                  >
+                    {`Flowchart ${index + 1}`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {error && <div className="text-center text-red-600 pt-4">{error}</div>}
           {flowchart ? (
             <div className="flex h-full flex-col items-center">

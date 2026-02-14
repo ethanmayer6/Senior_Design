@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 @Service
 public class FlowchartService {
+    public static final int MAX_FLOWCHARTS_PER_USER = 10;
 
     private final CourseRepository courseRepository;
     private final MajorRepository majorRepository;
@@ -50,6 +51,8 @@ public class FlowchartService {
     // CREATE FROM DTO (existing behavior)
     // ---------------------------------------------------------------------
     public Flowchart createFromDTO(FlowchartDTO dto) {
+        AppUser user = getUser(dto);
+        assertCanCreateFlowchart(user);
         Flowchart saved = buildFromDTO(dto);
         return flowChartRepository.save(saved);
     }
@@ -120,6 +123,7 @@ public class FlowchartService {
             int satisfiedCredits,
             Map<String, Integer> requirementRemainingMap,
             Map<String, String> requirementStatusMap) {
+        assertCanCreateFlowchart(user);
 
         Flowchart flowchart = new Flowchart(
                 totalCredits,
@@ -417,6 +421,26 @@ public class FlowchartService {
     }
 
     @Transactional(Transactional.TxType.SUPPORTS)
+    public List<Flowchart> getAllByUser(AppUser user) {
+        List<Flowchart> flowcharts = new ArrayList<>(flowChartRepository.findAllByUser(user));
+        flowcharts.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        for (Flowchart flowchart : flowcharts) {
+            initializeFlowchart(flowchart);
+        }
+        return flowcharts;
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public Flowchart getByUserAndFlowchartId(AppUser user, long flowchartId) {
+        Flowchart flowchart = getById(flowchartId);
+        if (flowchart.getUser() == null || flowchart.getUser().getId() != user.getId()) {
+            throw new FlowchartNotFoundException("Flowchart with Id " + flowchartId + " not found.");
+        }
+        initializeFlowchart(flowchart);
+        return flowchart;
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartInsightsResponse getInsightsByUser(AppUser user) {
         Flowchart flowchart = getByUser(user);
         return buildInsights(flowchart);
@@ -425,6 +449,12 @@ public class FlowchartService {
     @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartInsightsResponse getInsightsByUserId(long userId) {
         Flowchart flowchart = getByUserId(userId);
+        return buildInsights(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartInsightsResponse getInsightsByFlowchartId(long flowchartId) {
+        Flowchart flowchart = getById(flowchartId);
         return buildInsights(flowchart);
     }
 
@@ -502,6 +532,12 @@ public class FlowchartService {
     @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartRequirementCoverageResponse getRequirementCoverageByUserId(long userId) {
         Flowchart flowchart = getByUserId(userId);
+        return buildRequirementCoverage(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByFlowchartId(long flowchartId) {
+        Flowchart flowchart = getById(flowchartId);
         return buildRequirementCoverage(flowchart);
     }
 
@@ -760,6 +796,33 @@ public class FlowchartService {
             return "";
         }
         return ident.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private void initializeFlowchart(Flowchart flowchart) {
+        if (flowchart == null) {
+            return;
+        }
+        if (flowchart.getCourseStatusMap() != null) {
+            flowchart.getCourseStatusMap().size();
+        }
+        if (flowchart.getSemesters() != null) {
+            flowchart.getSemesters().size();
+            for (Semester sem : flowchart.getSemesters()) {
+                if (sem.getCourses() != null) {
+                    sem.getCourses().size();
+                }
+            }
+        }
+    }
+
+    private void assertCanCreateFlowchart(AppUser user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User is required to create a flowchart.");
+        }
+        int existingCount = flowChartRepository.findAllByUser(user).size();
+        if (existingCount >= MAX_FLOWCHARTS_PER_USER) {
+            throw new IllegalArgumentException("You can only have up to " + MAX_FLOWCHARTS_PER_USER + " flowcharts.");
+        }
     }
 
     private Status getStatusForCourse(Map<String, Status> statusMap, String courseIdent) {

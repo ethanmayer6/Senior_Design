@@ -4,7 +4,12 @@ import { FileUpload } from 'primereact/fileupload';
 import type { FileUploadSelectEvent } from 'primereact/fileupload';
 import api from '../api/axiosClient';
 
-export default function ImportProgressReport({ onImported }: { onImported: () => void }) {
+interface ImportProgressReportProps {
+  onImported: () => void;
+  disabled?: boolean;
+}
+
+export default function ImportProgressReport({ onImported, disabled = false }: ImportProgressReportProps) {
   const [loading, setLoading] = useState(false);
 
   const onSelect = async (e: FileUploadSelectEvent) => {
@@ -39,7 +44,7 @@ export default function ImportProgressReport({ onImported }: { onImported: () =>
         auto
         chooseLabel={loading ? 'Processing...' : 'Upload Progress Report'}
         chooseOptions={{ className: 'w-full text-center' }}
-        disabled={loading}
+        disabled={loading || disabled}
         customUpload
         uploadHandler={() => {}}
         onSelect={onSelect}

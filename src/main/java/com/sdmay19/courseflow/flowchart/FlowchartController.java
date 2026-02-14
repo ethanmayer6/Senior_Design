@@ -45,6 +45,21 @@ public class FlowchartController {
         return FlowchartResponse.from(flowchart);
     }
 
+    @GetMapping("/user/flowcharts")
+    public List<FlowchartTabResponse> getMyFlowcharts(Authentication auth) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        return flowchartService.getAllByUser(user).stream()
+                .map(FlowchartTabResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/user/flowcharts/{flowchartId}")
+    public FlowchartResponse getMyFlowchartById(Authentication auth, @PathVariable long flowchartId) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getByUserAndFlowchartId(user, flowchartId);
+        return FlowchartResponse.from(flowchart);
+    }
+
     @GetMapping("/user/insights")
     public FlowchartInsightsResponse getMyFlowchartInsights(Authentication auth) {
         AppUser user = (AppUser) auth.getPrincipal();
@@ -79,6 +94,24 @@ public class FlowchartController {
         AppUser requester = (AppUser) auth.getPrincipal();
         assertCanViewStudentFlowchart(requester, userId);
         return flowchartService.getRequirementCoverageByUserId(userId);
+    }
+
+    @GetMapping("/{flowchartId}/insights")
+    public FlowchartInsightsResponse getFlowchartInsights(Authentication auth, @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getById(flowchartId);
+        assertCanViewStudentFlowchart(requester, flowchart.getUser().getId());
+        return flowchartService.getInsightsByFlowchartId(flowchartId);
+    }
+
+    @GetMapping("/{flowchartId}/requirements/coverage")
+    public FlowchartRequirementCoverageResponse getFlowchartRequirementCoverage(
+            Authentication auth,
+            @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getById(flowchartId);
+        assertCanViewStudentFlowchart(requester, flowchart.getUser().getId());
+        return flowchartService.getRequirementCoverageByFlowchartId(flowchartId);
     }
 
     @GetMapping("/{flowchartId}/comments")
@@ -221,6 +254,26 @@ public class FlowchartController {
                     f.getCourseStatusMap(),
                     f.getMajor() == null ? null : f.getMajor().getName(),
                     semesters);
+        }
+    }
+
+    public record FlowchartTabResponse(
+            long id,
+            String title,
+            int totalCredits,
+            int creditsSatisfied,
+            int semesterCount) {
+        static FlowchartTabResponse from(Flowchart f) {
+            int semesterCount = f.getSemesters() == null ? 0 : f.getSemesters().size();
+            String title = (f.getTitle() == null || f.getTitle().isBlank())
+                    ? "Flowchart " + f.getId()
+                    : f.getTitle();
+            return new FlowchartTabResponse(
+                    f.getId(),
+                    title,
+                    f.getTotalCredits(),
+                    f.getCreditsSatisfied(),
+                    semesterCount);
         }
     }
 

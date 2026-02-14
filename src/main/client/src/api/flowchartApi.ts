@@ -128,6 +128,14 @@ export interface FlowchartCommentInput {
   noteY?: number | null;
 }
 
+export interface FlowchartTab {
+  id: number;
+  title: string;
+  totalCredits: number;
+  creditsSatisfied: number;
+  semesterCount: number;
+}
+
 /**
  * Get the flowchart for the currently authenticated user.
  * Backend derives the user from the JWT, so no params needed.
@@ -137,6 +145,23 @@ export interface FlowchartCommentInput {
 export async function getUserFlowchart(): Promise<Flowchart | null> {
   try {
     const res = await api.get<Flowchart>("/flowchart/user");
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getMyFlowcharts(): Promise<FlowchartTab[]> {
+  const res = await api.get<FlowchartTab[]>('/flowchart/user/flowcharts');
+  return res.data ?? [];
+}
+
+export async function getMyFlowchartById(flowchartId: number): Promise<Flowchart | null> {
+  try {
+    const res = await api.get<Flowchart>(`/flowchart/user/flowcharts/${flowchartId}`);
     return res.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
@@ -262,6 +287,18 @@ export async function getFlowchartInsightsByUserId(userId: number): Promise<Flow
   }
 }
 
+export async function getFlowchartInsightsByFlowchartId(flowchartId: number): Promise<FlowchartInsights | null> {
+  try {
+    const res = await api.get<FlowchartInsights>(`/flowchart/${flowchartId}/insights`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 export async function getFlowchartRequirementCoverage(): Promise<FlowchartRequirementCoverage | null> {
   try {
     const res = await api.get<FlowchartRequirementCoverage>("/flowchart/user/requirements/coverage");
@@ -279,6 +316,20 @@ export async function getFlowchartRequirementCoverageByUserId(
 ): Promise<FlowchartRequirementCoverage | null> {
   try {
     const res = await api.get<FlowchartRequirementCoverage>(`/flowchart/user/${userId}/requirements/coverage`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getFlowchartRequirementCoverageByFlowchartId(
+  flowchartId: number
+): Promise<FlowchartRequirementCoverage | null> {
+  try {
+    const res = await api.get<FlowchartRequirementCoverage>(`/flowchart/${flowchartId}/requirements/coverage`);
     return res.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
