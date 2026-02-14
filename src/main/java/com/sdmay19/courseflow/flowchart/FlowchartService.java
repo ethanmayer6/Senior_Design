@@ -410,8 +410,21 @@ public class FlowchartService {
     }
 
     @Transactional(Transactional.TxType.SUPPORTS)
+    public Flowchart getByUserId(long userId) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found"));
+        return getByUser(user);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartInsightsResponse getInsightsByUser(AppUser user) {
         Flowchart flowchart = getByUser(user);
+        return buildInsights(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartInsightsResponse getInsightsByUserId(long userId) {
+        Flowchart flowchart = getByUserId(userId);
         return buildInsights(flowchart);
     }
 
@@ -483,6 +496,12 @@ public class FlowchartService {
     @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartRequirementCoverageResponse getRequirementCoverageByUser(AppUser user) {
         Flowchart flowchart = getByUser(user);
+        return buildRequirementCoverage(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByUserId(long userId) {
+        Flowchart flowchart = getByUserId(userId);
         return buildRequirementCoverage(flowchart);
     }
 

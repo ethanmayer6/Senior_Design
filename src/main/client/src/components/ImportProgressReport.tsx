@@ -31,13 +31,14 @@ export default function ImportProgressReport({ onImported }: { onImported: () =>
   };
 
   return (
-    <div className="p-4 justify-center w-full max-w-xl">
+    <div className="w-full">
       <FileUpload
         name="file"
         accept=".xlsx"
         mode="basic"
         auto
         chooseLabel={loading ? 'Processing...' : 'Upload Progress Report'}
+        chooseOptions={{ className: 'w-full text-center' }}
         disabled={loading}
         customUpload
         uploadHandler={() => {}}

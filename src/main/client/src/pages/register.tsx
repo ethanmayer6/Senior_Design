@@ -12,7 +12,7 @@ import api from '../api/axiosClient';
 
 export default function Register() {
   const [user, setUser] = useState<User>({
-    role: 'student',
+    role: 'USER',
     firstName: '',
     lastName: '',
     email: '',
@@ -33,8 +33,8 @@ export default function Register() {
   const navigate = useNavigate();
 
   const roleOptions = [
-    { label: 'Student', value: 'student' },
-    { label: 'Advisor/Faculty', value: 'advisor' },
+    { label: 'Student', value: 'USER' },
+    { label: 'Advisor/Faculty', value: 'ADVISOR' },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

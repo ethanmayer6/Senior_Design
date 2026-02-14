@@ -108,6 +108,26 @@ export interface FlowchartRequirementCoverage {
   requirements: RequirementCoverageItem[];
 }
 
+export interface FlowchartComment {
+  id: number;
+  flowchartId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: string;
+  body: string;
+  noteX: number | null;
+  noteY: number | null;
+  dismissed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlowchartCommentInput {
+  body: string;
+  noteX?: number | null;
+  noteY?: number | null;
+}
+
 /**
  * Get the flowchart for the currently authenticated user.
  * Backend derives the user from the JWT, so no params needed.
@@ -117,6 +137,22 @@ export interface FlowchartRequirementCoverage {
 export async function getUserFlowchart(): Promise<Flowchart | null> {
   try {
     const res = await api.get<Flowchart>("/flowchart/user");
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Get the latest flowchart for a specific user id.
+ * Intended for advisor/faculty/admin read-only views.
+ */
+export async function getFlowchartByUserId(userId: number): Promise<Flowchart | null> {
+  try {
+    const res = await api.get<Flowchart>(`/flowchart/user/${userId}`);
     return res.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
@@ -214,6 +250,18 @@ export async function getFlowchartInsights(): Promise<FlowchartInsights | null> 
   }
 }
 
+export async function getFlowchartInsightsByUserId(userId: number): Promise<FlowchartInsights | null> {
+  try {
+    const res = await api.get<FlowchartInsights>(`/flowchart/user/${userId}/insights`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 export async function getFlowchartRequirementCoverage(): Promise<FlowchartRequirementCoverage | null> {
   try {
     const res = await api.get<FlowchartRequirementCoverage>("/flowchart/user/requirements/coverage");
@@ -224,4 +272,45 @@ export async function getFlowchartRequirementCoverage(): Promise<FlowchartRequir
     }
     throw err;
   }
+}
+
+export async function getFlowchartRequirementCoverageByUserId(
+  userId: number
+): Promise<FlowchartRequirementCoverage | null> {
+  try {
+    const res = await api.get<FlowchartRequirementCoverage>(`/flowchart/user/${userId}/requirements/coverage`);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getFlowchartComments(flowchartId: number): Promise<FlowchartComment[]> {
+  const res = await api.get<FlowchartComment[]>(`/flowchart/${flowchartId}/comments`);
+  return res.data ?? [];
+}
+
+export async function createFlowchartComment(
+  flowchartId: number,
+  payload: FlowchartCommentInput
+): Promise<FlowchartComment> {
+  const res = await api.post<FlowchartComment>(`/flowchart/${flowchartId}/comments`, payload);
+  return res.data;
+}
+
+export async function updateFlowchartComment(commentId: number, payload: FlowchartCommentInput): Promise<FlowchartComment> {
+  const res = await api.put<FlowchartComment>(`/flowchart/comments/${commentId}`, payload);
+  return res.data;
+}
+
+export async function deleteFlowchartComment(commentId: number): Promise<void> {
+  await api.delete(`/flowchart/comments/${commentId}`);
+}
+
+export async function dismissFlowchartComment(commentId: number, dismissed: boolean): Promise<FlowchartComment> {
+  const res = await api.patch<FlowchartComment>(`/flowchart/comments/${commentId}/dismiss`, { dismissed });
+  return res.data;
 }

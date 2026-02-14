@@ -1,15 +1,23 @@
 // Dashboard.tsx
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
+  createFlowchartComment,
+  deleteFlowchartComment,
+  dismissFlowchartComment,
+  getFlowchartComments,
+  getFlowchartByUserId,
   getFlowchartInsights,
+  getFlowchartInsightsByUserId,
   getFlowchartRequirementCoverage,
+  getFlowchartRequirementCoverageByUserId,
   getUserFlowchart,
+  updateFlowchartComment,
   updateSemesterCourses,
 } from '../api/flowchartApi';
-import type { Course as FlowchartCourse, Flowchart as FlowchartType } from '../api/flowchartApi';
+import type { Course as FlowchartCourse, Flowchart as FlowchartType, FlowchartComment } from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
@@ -28,7 +36,22 @@ function semesterRank(year: number, term: string): number {
   return year * 10 + termRank;
 }
 
+function normalizeRole(role: string | null | undefined): string {
+  if (!role) return '';
+  const normalized = role.trim().toUpperCase();
+  return normalized.startsWith('ROLE_') ? normalized.substring(5) : normalized;
+}
+
+function formatCommentDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  return parsed.toLocaleString();
+}
+
 export default function Dashboard() {
+  const [searchParams] = useSearchParams();
   const [flowchart, setFlowchart] = useState<FlowchartType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +77,32 @@ export default function Dashboard() {
   const [miniOfferedTerm, setMiniOfferedTerm] = useState('');
   const [miniDepartment, setMiniDepartment] = useState('');
   const [miniAddingCourseIdent, setMiniAddingCourseIdent] = useState<string | null>(null);
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false);
+  const [showDismissedComments, setShowDismissedComments] = useState(false);
+  const [comments, setComments] = useState<FlowchartComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentActionLoadingId, setCommentActionLoadingId] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState('');
+  const requestedStudentId = Number(searchParams.get('studentId'));
+  const targetStudentId = Number.isFinite(requestedStudentId) && requestedStudentId > 0 ? requestedStudentId : null;
+  const readOnlyMode = searchParams.get('readOnly') === '1' && targetStudentId !== null;
+  const viewedStudentName = (searchParams.get('studentName') ?? '').trim();
+  const viewedStudentLabel = viewedStudentName || (targetStudentId ? `Student #${targetStudentId}` : 'student');
+  const currentUserRole = (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (!stored) return '';
+      const parsed = JSON.parse(stored) as { role?: string };
+      return normalizeRole(parsed.role);
+    } catch {
+      return '';
+    }
+  })();
+  const canDismissComments = !readOnlyMode || currentUserRole === 'ADMIN';
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -85,13 +134,20 @@ export default function Dashboard() {
     progressTotal > 0
       ? Math.min((inProgressCredits / progressTotal) * 100, Math.max(0, 100 - completedWidthPercent))
       : 0;
+  const visibleComments = showDismissedComments ? comments : comments.filter((comment) => !comment.dismissed);
 
   const loadInsightsAndCoverage = async () => {
     try {
-      const [insightData, coverageData] = await Promise.all([
-        getFlowchartInsights(),
-        getFlowchartRequirementCoverage(),
-      ]);
+      const [insightData, coverageData] =
+        readOnlyMode && targetStudentId !== null
+          ? await Promise.all([
+              getFlowchartInsightsByUserId(targetStudentId),
+              getFlowchartRequirementCoverageByUserId(targetStudentId),
+            ])
+          : await Promise.all([
+              getFlowchartInsights(),
+              getFlowchartRequirementCoverage(),
+            ]);
       setInsights(insightData);
       setRequirementCoverage(coverageData);
     } catch (e) {
@@ -103,9 +159,12 @@ export default function Dashboard() {
 
   const reloadFlowchart = async (failMessage: string) => {
     try {
-      const fc = await getUserFlowchart();
+      const fc =
+        readOnlyMode && targetStudentId !== null
+          ? await getFlowchartByUserId(targetStudentId)
+          : await getUserFlowchart();
       setFlowchart(fc);
-      if (showProgressInsights) {
+      if (showProgressInsights && fc) {
         await loadInsightsAndCoverage();
       }
       return fc;
@@ -114,7 +173,8 @@ export default function Dashboard() {
       setFlowchart(null);
       setInsights(null);
       setRequirementCoverage(null);
-      setError(failMessage);
+      const message = (e as any)?.response?.data?.message || failMessage;
+      setError(message);
       return null;
     }
   };
@@ -163,16 +223,126 @@ export default function Dashboard() {
     }
   };
 
+  const loadComments = async (flowchartId: number) => {
+    setCommentsLoading(true);
+    setCommentsError(null);
+    try {
+      const data = await getFlowchartComments(flowchartId);
+      setComments(data);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to load comments.';
+      setCommentsError(message);
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleCreateComment = async () => {
+    if (!flowchart) return;
+    const body = commentDraft.trim();
+    if (!body) {
+      setCommentsError('Comment text cannot be empty.');
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentsError(null);
+    try {
+      const created = await createFlowchartComment(flowchart.id, { body, noteX: null, noteY: null });
+      setComments((current) => [created, ...current]);
+      setCommentDraft('');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleStartEditComment = (comment: FlowchartComment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentBody(comment.body);
+    setCommentsError(null);
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentBody('');
+  };
+
+  const handleSaveEditedComment = async (comment: FlowchartComment) => {
+    const body = editingCommentBody.trim();
+    if (!body) {
+      setCommentsError('Comment text cannot be empty.');
+      return;
+    }
+
+    setCommentActionLoadingId(comment.id);
+    setCommentsError(null);
+    try {
+      const updated = await updateFlowchartComment(comment.id, {
+        body,
+        noteX: comment.noteX,
+        noteY: comment.noteY,
+      });
+      setComments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setEditingCommentId(null);
+      setEditingCommentBody('');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    setCommentActionLoadingId(commentId);
+    setCommentsError(null);
+    try {
+      await deleteFlowchartComment(commentId);
+      setComments((current) => current.filter((item) => item.id !== commentId));
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+        setEditingCommentBody('');
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to delete comment.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
+  const handleDismissComment = async (comment: FlowchartComment, dismissed: boolean) => {
+    setCommentActionLoadingId(comment.id);
+    setCommentsError(null);
+    try {
+      const updated = await dismissFlowchartComment(comment.id, dismissed);
+      setComments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update comment visibility.';
+      setCommentsError(message);
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  };
+
   // Load saved flowchart when dashboard loads
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError(null);
-      await reloadFlowchart('Failed to load your flowchart. Please refresh and try again.');
+      await reloadFlowchart(
+        readOnlyMode
+          ? 'Failed to load selected student flowchart. Please refresh and try again.'
+          : 'Failed to load your flowchart. Please refresh and try again.'
+      );
       setLoading(false);
     }
-    load();
-  }, []);
+    void load();
+  }, [readOnlyMode, targetStudentId]);
 
   useEffect(() => {
     if (!sortedSemesters.length) {
@@ -206,14 +376,31 @@ export default function Dashboard() {
   }, [showProgressInsights, flowchart?.id]);
 
   useEffect(() => {
-    if (!showMiniCatalog) {
+    if (readOnlyMode || !showMiniCatalog) {
       return;
     }
     void loadMiniCatalogCourses();
-  }, [showMiniCatalog]);
+  }, [showMiniCatalog, readOnlyMode]);
+
+  useEffect(() => {
+    if (!readOnlyMode) {
+      return;
+    }
+    setShowMiniCatalog(false);
+    setShowCommentsPanel(true);
+  }, [readOnlyMode]);
+
+  useEffect(() => {
+    if (!flowchart) {
+      setComments([]);
+      return;
+    }
+    void loadComments(flowchart.id);
+  }, [flowchart?.id]);
 
   // After import completes, reload flowchart from backend
   const handleImportComplete = async () => {
+    if (readOnlyMode) return;
     setLoading(true);
     setError(null);
     await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.');
@@ -221,6 +408,7 @@ export default function Dashboard() {
   };
 
   const handleAddCourse = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     if (selectedSemesterId === null) {
       setAddCourseError('Select a semester before adding a course.');
@@ -260,6 +448,7 @@ export default function Dashboard() {
   };
 
   const handleRemoveCourse = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     if (selectedSemesterId === null) {
       setRemoveCourseError('Select a semester before removing a course.');
@@ -299,6 +488,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteFlowchart = async () => {
+    if (readOnlyMode) return;
     if (!flowchart) return;
     try {
       await fetch(`http://localhost:8080/api/flowchart/delete/${flowchart.id}`, {
@@ -314,6 +504,7 @@ export default function Dashboard() {
   };
 
   const handleAddMiniCourse = async (course: FlowchartCourse) => {
+    if (readOnlyMode) return;
     if (selectedSemesterId === null) {
       setMiniCatalogError('Select a semester before adding a course.');
       return;
@@ -372,32 +563,57 @@ export default function Dashboard() {
       <Header></Header>
       <div className="flex h-full w-full gap-6 overflow-hidden p-6 pt-24">
         <div className="w-[320px] shrink-0">
-          <ImportProgressReport onImported={handleImportComplete} />
-          <div className="p-4 w-full">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                className="w-full text-center"
-                label={showMiniCatalog ? 'Hide Mini Catalog' : 'Mini Catalog'}
-                icon="pi pi-book"
-                outlined
-                onClick={() => {
-                  setShowMiniCatalog((value) => {
-                    const next = !value;
-                    setMiniCatalogMessage(null);
-                    setMiniCatalogError(null);
-                    return next;
-                  });
-                }}
-              />
+          {readOnlyMode ? (
+            <div className="p-4 w-full">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">
+                <div className="font-semibold text-slate-900">Read-Only Mode</div>
+                <div className="mt-1">Viewing {viewedStudentLabel}'s flowchart.</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Upload and course edits are disabled in advisor view.
+                </div>
+              </div>
               <Link
-                to="/catalog"
-                className="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                to="/student-search"
+                className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
               >
-                <i className="pi pi-external-link mr-2 text-red-500"></i>
-                Course Catalog
+                Back to Student Search
               </Link>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="p-4 w-full">
+                <ImportProgressReport onImported={handleImportComplete} />
+              </div>
+              <div className="p-4 w-full">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    className="w-full text-center"
+                    label={showMiniCatalog ? 'Hide Mini Catalog' : 'Mini Catalog'}
+                    icon="pi pi-book"
+                    outlined
+                    onClick={() => {
+                      setShowMiniCatalog((value) => {
+                        const next = !value;
+                        if (next) {
+                          setShowCommentsPanel(false);
+                        }
+                        setMiniCatalogMessage(null);
+                        setMiniCatalogError(null);
+                        return next;
+                      });
+                    }}
+                  />
+                  <Link
+                    to="/catalog"
+                    className="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                  >
+                    <i className="pi pi-external-link mr-2 text-red-500"></i>
+                    Course Catalog
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"
@@ -412,55 +628,78 @@ export default function Dashboard() {
               }}
             />
           </div>
-          <div className="p-4 w-full space-y-3">
-            <div className="text-sm font-semibold text-slate-700">Add Course To Flowchart</div>
-            <select
-              className="w-full rounded-md border border-slate-300 p-2 text-sm"
-              value={selectedSemesterId ?? ''}
-              onChange={(e) => setSelectedSemesterId(e.target.value ? Number(e.target.value) : null)}
-              disabled={!sortedSemesters.length || updatingSemester}
-            >
-              {sortedSemesters.length === 0 && <option value="">No semesters available</option>}
-              {sortedSemesters.map((sem) => (
-                <option key={sem.id} value={sem.id}>
-                  {sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`}
-                </option>
-              ))}
-            </select>
-            <input
-              className="w-full rounded-md border border-slate-300 p-2 text-sm"
-              type="text"
-              placeholder="Course ident (e.g. COMS_3090)"
-              value={courseIdentInput}
-              onChange={(e) => setCourseIdentInput(e.target.value)}
-              disabled={updatingSemester}
-            />
-            <Button
-              className="w-full text-center"
-              label={updatingSemester ? 'Adding...' : 'Add Course'}
-              onClick={handleAddCourse}
-              disabled={!flowchart || updatingSemester}
-            />
-            <Button
-              className="w-full text-center"
-              label={updatingSemester ? 'Removing...' : 'Remove Course'}
-              severity="danger"
-              outlined
-              onClick={handleRemoveCourse}
-              disabled={!flowchart || updatingSemester}
-            />
-            {addCourseError && <div className="text-xs text-red-600">{addCourseError}</div>}
-            {addCourseSuccess && <div className="text-xs text-emerald-700">{addCourseSuccess}</div>}
-            {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
-            {removeCourseSuccess && <div className="text-xs text-emerald-700">{removeCourseSuccess}</div>}
-          </div>
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"
-              label="Delete Flowchart"
-              onClick={handleDeleteFlowchart}
-            ></Button>
+              label={showCommentsPanel ? 'Hide Flowchart Notes' : 'Flowchart Notes'}
+              icon="pi pi-comments"
+              outlined
+              onClick={() => {
+                setShowCommentsPanel((value) => {
+                  const next = !value;
+                  if (next) {
+                    setShowMiniCatalog(false);
+                  }
+                  return next;
+                });
+              }}
+            />
           </div>
+          {!readOnlyMode && (
+            <>
+              <div className="p-4 w-full space-y-3">
+                <div className="text-sm font-semibold text-slate-700">Add Course To Flowchart</div>
+                <select
+                  className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                  value={selectedSemesterId ?? ''}
+                  onChange={(e) => setSelectedSemesterId(e.target.value ? Number(e.target.value) : null)}
+                  disabled={!sortedSemesters.length || updatingSemester}
+                >
+                  {sortedSemesters.length === 0 && <option value="">No semesters available</option>}
+                  {sortedSemesters.map((sem) => (
+                    <option key={sem.id} value={sem.id}>
+                      {sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                  type="text"
+                  placeholder="Course ident (e.g. COMS_3090)"
+                  value={courseIdentInput}
+                  onChange={(e) => setCourseIdentInput(e.target.value)}
+                  disabled={updatingSemester}
+                />
+                <Button
+                  className="w-full text-center"
+                  label={updatingSemester ? 'Adding...' : 'Add Course'}
+                  onClick={handleAddCourse}
+                  disabled={!flowchart || updatingSemester}
+                />
+                <div className="pt-2">
+                  <Button
+                    className="w-full text-center"
+                    label={updatingSemester ? 'Removing...' : 'Remove Course'}
+                    severity="danger"
+                    outlined
+                    onClick={handleRemoveCourse}
+                    disabled={!flowchart || updatingSemester}
+                  />
+                </div>
+                {addCourseError && <div className="text-xs text-red-600">{addCourseError}</div>}
+                {addCourseSuccess && <div className="text-xs text-emerald-700">{addCourseSuccess}</div>}
+                {removeCourseError && <div className="text-xs text-red-600">{removeCourseError}</div>}
+                {removeCourseSuccess && <div className="text-xs text-emerald-700">{removeCourseSuccess}</div>}
+              </div>
+              <div className="p-4 w-full">
+                <Button
+                  className="w-full text-center"
+                  label="Delete Flowchart"
+                  onClick={handleDeleteFlowchart}
+                ></Button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -586,7 +825,144 @@ export default function Dashboard() {
                   )}
                   <Flowchart flowchart={flowchart} onCourseSelect={setSelectedCourse} />
                 </div>
-                {showMiniCatalog ? (
+                {showCommentsPanel ? (
+                  <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[360px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                        Flowchart Notes
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                        onClick={() => setShowDismissedComments((value) => !value)}
+                      >
+                        {showDismissedComments ? 'Hide dismissed' : 'Show dismissed'}
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      {readOnlyMode
+                        ? 'Leave recommendations for the student to review later.'
+                        : 'Review advisor recommendations and add your own notes.'}
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                        rows={3}
+                        placeholder="Add a recommendation or planning note..."
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        disabled={commentSubmitting}
+                      />
+                      <Button
+                        className="w-full"
+                        label={commentSubmitting ? 'Posting...' : 'Post Note'}
+                        icon="pi pi-send"
+                        onClick={() => void handleCreateComment()}
+                        disabled={commentSubmitting || !flowchart}
+                      />
+                      {commentsError && <div className="text-xs text-red-600">{commentsError}</div>}
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Notes ({visibleComments.length})
+                      </div>
+                      <div className="max-h-[460px] space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                        {commentsLoading ? (
+                          <div className="p-2 text-sm text-slate-600">Loading notes...</div>
+                        ) : visibleComments.length === 0 ? (
+                          <div className="p-2 text-sm text-slate-600">No notes yet.</div>
+                        ) : (
+                          visibleComments.map((comment) => (
+                            <div
+                              key={comment.id}
+                              className={`rounded-md border p-2 text-sm ${
+                                comment.dismissed
+                                  ? 'border-slate-200 bg-slate-100 text-slate-500'
+                                  : 'border-slate-200 bg-white text-slate-700'
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <div className="font-semibold text-slate-800">{comment.authorName}</div>
+                                  <div className="text-[11px] text-slate-500">
+                                    {normalizeRole(comment.authorRole) || 'USER'}
+                                    {comment.updatedAt ? ` - ${formatCommentDate(comment.updatedAt)}` : ''}
+                                  </div>
+                                </div>
+                                {comment.dismissed && (
+                                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                                    dismissed
+                                  </span>
+                                )}
+                              </div>
+
+                              {editingCommentId === comment.id ? (
+                                <textarea
+                                  className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm"
+                                  rows={3}
+                                  value={editingCommentBody}
+                                  onChange={(e) => setEditingCommentBody(e.target.value)}
+                                  disabled={commentActionLoadingId === comment.id}
+                                />
+                              ) : (
+                                <div className="mt-2 whitespace-pre-wrap text-sm">{comment.body}</div>
+                              )}
+
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {editingCommentId === comment.id ? (
+                                  <>
+                                    <Button
+                                      size="small"
+                                      label="Save"
+                                      onClick={() => void handleSaveEditedComment(comment)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    <Button
+                                      size="small"
+                                      label="Cancel"
+                                      outlined
+                                      onClick={handleCancelEditComment}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="small"
+                                      label="Edit"
+                                      text
+                                      onClick={() => handleStartEditComment(comment)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    <Button
+                                      size="small"
+                                      label="Delete"
+                                      text
+                                      severity="danger"
+                                      onClick={() => void handleDeleteComment(comment.id)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    {canDismissComments && (
+                                      <Button
+                                        size="small"
+                                        label={comment.dismissed ? 'Restore' : 'Dismiss'}
+                                        text
+                                        onClick={() => void handleDismissComment(comment, !comment.dismissed)}
+                                        disabled={commentActionLoadingId === comment.id}
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </aside>
+                ) : showMiniCatalog ? (
                   <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:w-[360px]">
                     <div className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                       Mini Course Catalog
@@ -739,7 +1115,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center text-gray-600 pt-10">
-              Upload a progress report to generate your flowchart.
+              {readOnlyMode ? 'No flowchart found for this student.' : 'Upload a progress report to generate your flowchart.'}
             </div>
           )}
             </>

@@ -10,7 +10,7 @@ interface Props {
 
 export default function RoleEditor({ user, onSave }: Props) {
   const [role, setRole] = useState<string>(user.role);
-  const roles = ["USER", "ADMIN"];
+  const roles = ["USER", "ADVISOR", "FACULTY", "ADMIN"];
 
   return (
     <div className="flex flex-col gap-3">
