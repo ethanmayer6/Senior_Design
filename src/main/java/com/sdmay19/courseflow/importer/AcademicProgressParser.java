@@ -276,14 +276,14 @@ public class AcademicProgressParser {
             return null;
         }
         String upper = raw.trim().toUpperCase(Locale.ROOT);
+        if (upper.contains("NOT SATISF")) {
+            return "UNMET";
+        }
         if (upper.contains("IN PROGRESS")) {
             return "IN_PROGRESS";
         }
         if (upper.contains("SATISF")) {
             return "SATISFIED";
-        }
-        if (upper.contains("NOT SATISF")) {
-            return "UNMET";
         }
         return upper.replaceAll("[\\s-]+", "_");
     }

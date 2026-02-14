@@ -199,4 +199,28 @@ class FlowchartServiceTest {
         assertThat(coverage.getUnmetRequirements()).isEqualTo(1);
         assertThat(coverage.getRequirements()).hasSize(3);
     }
+
+    @Test
+    void buildRequirementCoverage_prefersImportedRequirementStatusAndRemainingWhenPresent() {
+        DegreeRequirement req = new DegreeRequirement();
+        req.setName("Engineering Core");
+        req.setSatisfyingCredits(24);
+        req.setCourses(List.of());
+
+        Major major = new Major();
+        major.setName("Software Engineering");
+        major.setDegreeRequirements(List.of(req));
+        flowchart.setMajor(major);
+        flowchart.setRequirementRemainingMap(Map.of("Engineering Core", 5));
+        flowchart.setRequirementStatusMap(Map.of("Engineering Core", "IN_PROGRESS"));
+        flowchart.setCourseStatusMap(Map.of());
+
+        FlowchartRequirementCoverageResponse coverage = flowchartService.buildRequirementCoverage(flowchart);
+
+        assertThat(coverage.getRequirements()).hasSize(1);
+        FlowchartRequirementCoverageResponse.RequirementCoverageItem item = coverage.getRequirements().get(0);
+        assertThat(item.getName()).isEqualTo("Engineering Core");
+        assertThat(item.getStatus()).isEqualTo("IN_PROGRESS");
+        assertThat(item.getRemainingCredits()).isEqualTo(5);
+    }
 }

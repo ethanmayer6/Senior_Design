@@ -1,5 +1,6 @@
 // Dashboard.tsx
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
@@ -52,8 +53,7 @@ export default function Dashboard() {
   const [miniLevel, setMiniLevel] = useState('');
   const [miniOfferedTerm, setMiniOfferedTerm] = useState('');
   const [miniDepartment, setMiniDepartment] = useState('');
-  const [selectedMiniCourse, setSelectedMiniCourse] = useState<FlowchartCourse | null>(null);
-  const [miniAddingCourse, setMiniAddingCourse] = useState(false);
+  const [miniAddingCourseIdent, setMiniAddingCourseIdent] = useState<string | null>(null);
 
   const sortedSemesters = flowchart?.semesters
     ? [...flowchart.semesters].sort(
@@ -313,26 +313,22 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddSelectedMiniCourse = async () => {
-    if (!selectedMiniCourse) {
-      setMiniCatalogError('Select a course first.');
-      return;
-    }
+  const handleAddMiniCourse = async (course: FlowchartCourse) => {
     if (selectedSemesterId === null) {
       setMiniCatalogError('Select a semester before adding a course.');
       return;
     }
 
-    setMiniAddingCourse(true);
+    setMiniAddingCourseIdent(course.courseIdent);
     setMiniCatalogError(null);
     setMiniCatalogMessage(null);
     try {
       await updateSemesterCourses(selectedSemesterId, {
         operation: 'ADD',
-        courseIdent: selectedMiniCourse.courseIdent,
+        courseIdent: course.courseIdent,
       });
       await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.');
-      setMiniCatalogMessage(`Added ${selectedMiniCourse.courseIdent} to your flowchart.`);
+      setMiniCatalogMessage(`Added ${course.courseIdent} to your flowchart.`);
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
@@ -340,7 +336,7 @@ export default function Dashboard() {
         'Failed to add selected course to your flowchart.';
       setMiniCatalogError(message);
     } finally {
-      setMiniAddingCourse(false);
+      setMiniAddingCourseIdent(null);
     }
   };
 
@@ -360,7 +356,6 @@ export default function Dashboard() {
     setMiniLevel('');
     setMiniOfferedTerm('');
     setMiniDepartment('');
-    setSelectedMiniCourse(null);
     setMiniCatalogMessage(null);
     setMiniCatalogError(null);
     await loadMiniCatalogCourses({
@@ -379,23 +374,29 @@ export default function Dashboard() {
         <div className="w-[320px] shrink-0">
           <ImportProgressReport onImported={handleImportComplete} />
           <div className="p-4 w-full">
-            <Button
-              className="w-full text-center"
-              label={showMiniCatalog ? 'Hide Mini Course Catalog' : 'Mini Course Catalog'}
-              icon="pi pi-book"
-              outlined
-              onClick={() => {
-                setShowMiniCatalog((value) => {
-                  const next = !value;
-                  setMiniCatalogMessage(null);
-                  setMiniCatalogError(null);
-                  if (!next) {
-                    setSelectedMiniCourse(null);
-                  }
-                  return next;
-                });
-              }}
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                className="w-full text-center"
+                label={showMiniCatalog ? 'Hide Mini Catalog' : 'Mini Catalog'}
+                icon="pi pi-book"
+                outlined
+                onClick={() => {
+                  setShowMiniCatalog((value) => {
+                    const next = !value;
+                    setMiniCatalogMessage(null);
+                    setMiniCatalogError(null);
+                    return next;
+                  });
+                }}
+              />
+              <Link
+                to="/catalog"
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+              >
+                <i className="pi pi-external-link mr-2 text-red-500"></i>
+                Course Catalog
+              </Link>
+            </div>
           </div>
           <div className="p-4 w-full">
             <Button
@@ -662,58 +663,34 @@ export default function Dashboard() {
                           <div className="p-2 text-sm text-slate-600">No courses found.</div>
                         ) : (
                           miniCourses.map((course) => (
-                            <button
+                            <div
                               key={course.courseIdent}
-                              type="button"
-                              className={`w-full rounded-md border px-2 py-1.5 text-left text-xs transition ${
-                                selectedMiniCourse?.courseIdent === course.courseIdent
-                                  ? 'border-red-400 bg-red-50 text-red-800'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                              }`}
-                              onClick={() => setSelectedMiniCourse(course)}
+                              className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-left text-xs text-slate-700"
                             >
-                              <div className="font-semibold">{course.courseIdent.replace('_', ' ')}</div>
-                              <div className="line-clamp-1">{course.name}</div>
-                            </button>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-semibold">{course.courseIdent.replace('_', ' ')}</div>
+                                  <div className="line-clamp-1">{course.name}</div>
+                                </div>
+                                <Button
+                                  className="shrink-0"
+                                  size="small"
+                                  label={miniAddingCourseIdent === course.courseIdent ? 'Adding...' : 'Add'}
+                                  onClick={() => void handleAddMiniCourse(course)}
+                                  disabled={
+                                    selectedSemesterId === null ||
+                                    miniAddingCourseIdent === course.courseIdent
+                                  }
+                                />
+                              </div>
+                            </div>
                           ))
                         )}
                       </div>
                     </div>
-
-                    {selectedMiniCourse && (
-                      <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-700">
-                        <div className="text-base font-semibold text-slate-900">
-                          {selectedMiniCourse.courseIdent.replace('_', ' ')}
-                        </div>
-                        <div className="text-red-600">{selectedMiniCourse.name}</div>
-                        <div className="mt-2 rounded-md bg-slate-50 p-2 text-xs">
-                          Credits: {selectedMiniCourse.credits}
-                          {selectedMiniCourse.hours ? ` | ${selectedMiniCourse.hours}` : ''}
-                        </div>
-                        <div className="mt-2 text-xs">
-                          <span className="font-semibold uppercase tracking-wide text-slate-500">Offered: </span>
-                          {selectedMiniCourse.offered || 'Not listed'}
-                        </div>
-                        <div className="mt-2 text-xs leading-relaxed">
-                          {selectedMiniCourse.description || 'No description.'}
-                        </div>
-                        <div className="mt-2 text-xs">
-                          <span className="font-semibold uppercase tracking-wide text-slate-500">Prerequisites: </span>
-                          {selectedMiniCourse.prerequisites?.length
-                            ? selectedMiniCourse.prerequisites.join(', ')
-                            : selectedMiniCourse.prereq_txt || 'None'}
-                        </div>
-                        <Button
-                          className="mt-3 w-full"
-                          label={miniAddingCourse ? 'Adding...' : 'Add to CourseFlow'}
-                          onClick={() => void handleAddSelectedMiniCourse()}
-                          disabled={miniAddingCourse || selectedSemesterId === null}
-                        />
-                        {selectedSemesterId === null && (
-                          <div className="mt-1 text-xs text-slate-500">
-                            Select a semester in the left panel before adding.
-                          </div>
-                        )}
+                    {selectedSemesterId === null && (
+                      <div className="mt-2 text-xs text-slate-500">
+                        Select a semester in the left panel before adding.
                       </div>
                     )}
                   </aside>

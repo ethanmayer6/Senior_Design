@@ -90,7 +90,8 @@ public class AcademicProgressService {
                     unmatchedCourses,
                     creditsDefined,
                     creditsSatisfying,
-                    creditsInProgress);
+                    creditsInProgress,
+                    parsedReport.requirements());
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to process academic progress report", e);
@@ -257,13 +258,30 @@ public class AcademicProgressService {
 
         // Step 6 — delegate to FlowchartService to actually build & save semesters +
         // flowchart
+        Map<String, Integer> requirementRemainingMap = new HashMap<>();
+        Map<String, String> requirementStatusMap = new HashMap<>();
+        for (AcademicProgressParser.ParsedRequirement requirement : parsed.requirements()) {
+            if (requirement == null || requirement.name() == null || requirement.name().isBlank()) {
+                continue;
+            }
+            String key = requirement.name().trim();
+            if (requirement.remainingCredits() != null) {
+                requirementRemainingMap.put(key, requirement.remainingCredits());
+            }
+            if (requirement.status() != null && !requirement.status().isBlank()) {
+                requirementStatusMap.put(key, requirement.status().trim().toUpperCase(Locale.ROOT));
+            }
+        }
+
         return flowchartService.createFromProgress(
                 user,
                 major,
                 statusMap,
                 coursesByPeriod,
                 totalCredits,
-                satisfiedCredits);
+                satisfiedCredits,
+                requirementRemainingMap,
+                requirementStatusMap);
     }
 
     private String normalizePeriod(String raw, String defaultPeriod) {
@@ -467,7 +485,8 @@ public class AcademicProgressService {
             List<String> unmatchedCourses,
             Integer creditsDefined,
             Integer creditsSatisfying,
-            Integer creditsInProgress) {
+            Integer creditsInProgress,
+            List<AcademicProgressParser.ParsedRequirement> requirements) {
     }
 
     public record FlowchartResult(

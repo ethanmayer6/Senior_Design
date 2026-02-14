@@ -491,8 +491,15 @@ public class FlowchartService {
         List<DegreeRequirement> degreeRequirements = major == null || major.getDegreeRequirements() == null
                 ? List.of()
                 : major.getDegreeRequirements();
+        Map<String, Integer> importedRemainingMap = flowchart.getRequirementRemainingMap() == null
+                ? Map.of()
+                : flowchart.getRequirementRemainingMap();
+        Map<String, String> importedStatusMap = flowchart.getRequirementStatusMap() == null
+                ? Map.of()
+                : flowchart.getRequirementStatusMap();
 
         List<FlowchartRequirementCoverageResponse.RequirementCoverageItem> items = new ArrayList<>();
+        Set<String> usedImportedRequirementKeys = new HashSet<>();
 
         for (DegreeRequirement requirement : degreeRequirements) {
             if (requirement == null) {
@@ -604,15 +611,27 @@ public class FlowchartService {
 
             int appliedCredits = Math.min(requiredCredits, completedCredits + inProgressCredits);
             int remainingCredits = Math.max(0, requiredCredits - appliedCredits);
+            Integer importedRemaining = lookupRequirementValue(importedRemainingMap, requirement.getName());
+            String importedStatus = normalizeRequirementStatusValue(lookupRequirementValue(importedStatusMap, requirement.getName()));
+            if (importedRemaining != null && importedRemaining >= 0) {
+                remainingCredits = importedRemaining;
+                requiredCredits = Math.max(requiredCredits, completedCredits + inProgressCredits + remainingCredits);
+            }
 
             String status;
-            if (completedCredits >= requiredCredits) {
-                status = "SATISFIED";
-            } else if (appliedCredits > 0) {
-                status = "IN_PROGRESS";
+            if (importedStatus != null) {
+                status = importedStatus;
             } else {
-                status = "UNMET";
+                if (completedCredits >= requiredCredits) {
+                    status = "SATISFIED";
+                } else if (appliedCredits > 0) {
+                    status = "IN_PROGRESS";
+                } else {
+                    status = "UNMET";
+                }
             }
+
+            usedImportedRequirementKeys.add(normalizeRequirementKey(requirement.getName()));
 
             items.add(new FlowchartRequirementCoverageResponse.RequirementCoverageItem(
                     requirement.getName(),
@@ -623,6 +642,36 @@ public class FlowchartService {
                     status,
                     completedCourses,
                     inProgressCourses));
+        }
+
+        Set<String> importedNames = new LinkedHashSet<>();
+        importedNames.addAll(importedRemainingMap.keySet());
+        importedNames.addAll(importedStatusMap.keySet());
+        for (String requirementName : importedNames) {
+            if (requirementName == null || requirementName.isBlank()) {
+                continue;
+            }
+            String normalizedKey = normalizeRequirementKey(requirementName);
+            if (usedImportedRequirementKeys.contains(normalizedKey)) {
+                continue;
+            }
+
+            Integer importedRemaining = lookupRequirementValue(importedRemainingMap, requirementName);
+            String importedStatus = normalizeRequirementStatusValue(lookupRequirementValue(importedStatusMap, requirementName));
+            int remainingCredits = importedRemaining == null ? 0 : Math.max(0, importedRemaining);
+            String status = importedStatus == null
+                    ? (remainingCredits == 0 ? "SATISFIED" : "UNMET")
+                    : importedStatus;
+
+            items.add(new FlowchartRequirementCoverageResponse.RequirementCoverageItem(
+                    requirementName,
+                    remainingCredits,
+                    0,
+                    0,
+                    remainingCredits,
+                    status,
+                    List.of(),
+                    List.of()));
         }
 
         items.sort((a, b) -> {
@@ -821,5 +870,48 @@ public class FlowchartService {
             return 1;
         }
         return 2;
+    }
+
+    private String normalizeRequirementKey(String name) {
+        if (name == null) {
+            return "";
+        }
+        return name.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private <T> T lookupRequirementValue(Map<String, T> map, String requirementName) {
+        if (map == null || map.isEmpty() || requirementName == null) {
+            return null;
+        }
+        if (map.containsKey(requirementName)) {
+            return map.get(requirementName);
+        }
+        String target = normalizeRequirementKey(requirementName);
+        for (Map.Entry<String, T> entry : map.entrySet()) {
+            if (normalizeRequirementKey(entry.getKey()).equals(target)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private String normalizeRequirementStatusValue(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String normalized = raw.trim().toUpperCase(Locale.ROOT).replaceAll("[\\s-]+", "_");
+        if (normalized.contains("NOT_SATISF")) {
+            return "UNMET";
+        }
+        if (normalized.contains("IN_PROGRESS")) {
+            return "IN_PROGRESS";
+        }
+        if (normalized.contains("SATISF")) {
+            return "SATISFIED";
+        }
+        if ("UNMET".equals(normalized) || "SATISFIED".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 }
