@@ -275,6 +275,13 @@ public class FlowchartService {
                 .orElseThrow(() -> new FlowchartNotFoundException("Flowchart with Id " + id + " not Found."));
     }
 
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public Flowchart getByIdInitialized(long id) {
+        Flowchart flowchart = getById(id);
+        initializeFlowchartCollections(flowchart);
+        return flowchart;
+    }
+
     public List<Course> getCourseByStatus(long flowchartId, Status status) {
         Flowchart flowchart = getById(flowchartId);
         Map<String, Status> courseMap = flowchart.getCourseStatusMap();
@@ -377,36 +384,12 @@ public class FlowchartService {
 
     @Transactional(Transactional.TxType.SUPPORTS)
     public Flowchart getByUser(AppUser user) {
-        List<Flowchart> userFlowcharts = new ArrayList<>(flowChartRepository.findAllByUser(user));
+        List<Flowchart> userFlowcharts = listByUser(user);
         if (userFlowcharts.isEmpty()) {
             throw new FlowchartNotFoundException("Flowchart with user not found");
         }
 
-        userFlowcharts.sort((a, b) -> Long.compare(b.getId(), a.getId()));
-
-        Flowchart selected = userFlowcharts.get(0);
-        for (Flowchart fc : userFlowcharts) {
-            List<Semester> sems = fc.getSemesters();
-            if (sems != null && !sems.isEmpty()) {
-                selected = fc;
-                break;
-            }
-        }
-
-        // Force initialize collections so API response includes renderable data.
-        if (selected.getCourseStatusMap() != null) {
-            selected.getCourseStatusMap().size();
-        }
-        if (selected.getSemesters() != null) {
-            selected.getSemesters().size();
-            for (Semester sem : selected.getSemesters()) {
-                if (sem.getCourses() != null) {
-                    sem.getCourses().size();
-                }
-            }
-        }
-
-        return selected;
+        return selectDefaultFlowchart(userFlowcharts);
     }
 
     @Transactional(Transactional.TxType.SUPPORTS)
@@ -414,6 +397,47 @@ public class FlowchartService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found"));
         return getByUser(user);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public List<Flowchart> listByUser(AppUser user) {
+        List<Flowchart> userFlowcharts = new ArrayList<>(flowChartRepository.findAllByUser(user));
+        if (userFlowcharts.isEmpty()) {
+            return List.of();
+        }
+
+        userFlowcharts.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        for (Flowchart flowchart : userFlowcharts) {
+            initializeFlowchartCollections(flowchart);
+        }
+        return userFlowcharts;
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public List<Flowchart> listByUserId(long userId) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found"));
+        return listByUser(user);
+    }
+
+    @Transactional
+    public Flowchart duplicateForUser(AppUser user, Long sourceFlowchartId, String requestedTitle) {
+        Flowchart source = resolveSourceFlowchart(user, sourceFlowchartId);
+
+        Flowchart duplicate = new Flowchart();
+        duplicate.setUser(user);
+        duplicate.setMajor(source.getMajor());
+        duplicate.setTotalCredits(source.getTotalCredits());
+        duplicate.setCreditsSatisfied(source.getCreditsSatisfied());
+        duplicate.setTitle(resolveDuplicateTitle(user, source, requestedTitle));
+        duplicate.setCourseStatusMap(copyStatusMap(source.getCourseStatusMap()));
+        duplicate.setRequirementRemainingMap(copyRequirementRemainingMap(source.getRequirementRemainingMap()));
+        duplicate.setRequirementStatusMap(copyRequirementStatusMap(source.getRequirementStatusMap()));
+        duplicate.setSemesters(cloneSemesters(source.getSemesters(), duplicate));
+
+        Flowchart saved = flowChartRepository.save(duplicate);
+        initializeFlowchartCollections(saved);
+        return saved;
     }
 
     @Transactional(Transactional.TxType.SUPPORTS)
@@ -425,6 +449,12 @@ public class FlowchartService {
     @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartInsightsResponse getInsightsByUserId(long userId) {
         Flowchart flowchart = getByUserId(userId);
+        return buildInsights(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartInsightsResponse getInsightsByFlowchartId(long flowchartId) {
+        Flowchart flowchart = getByIdInitialized(flowchartId);
         return buildInsights(flowchart);
     }
 
@@ -502,6 +532,12 @@ public class FlowchartService {
     @Transactional(Transactional.TxType.SUPPORTS)
     public FlowchartRequirementCoverageResponse getRequirementCoverageByUserId(long userId) {
         Flowchart flowchart = getByUserId(userId);
+        return buildRequirementCoverage(flowchart);
+    }
+
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByFlowchartId(long flowchartId) {
+        Flowchart flowchart = getByIdInitialized(flowchartId);
         return buildRequirementCoverage(flowchart);
     }
 
@@ -704,6 +740,135 @@ public class FlowchartService {
 
     public List<Flowchart> getAll() {
         return flowChartRepository.findAll();
+    }
+
+    private Flowchart selectDefaultFlowchart(List<Flowchart> flowcharts) {
+        Flowchart selected = flowcharts.get(0);
+        for (Flowchart flowchart : flowcharts) {
+            List<Semester> sems = flowchart.getSemesters();
+            if (sems != null && !sems.isEmpty()) {
+                selected = flowchart;
+                break;
+            }
+        }
+        return selected;
+    }
+
+    private void initializeFlowchartCollections(Flowchart flowchart) {
+        if (flowchart == null) {
+            return;
+        }
+        if (flowchart.getCourseStatusMap() != null) {
+            flowchart.getCourseStatusMap().size();
+        }
+        if (flowchart.getRequirementRemainingMap() != null) {
+            flowchart.getRequirementRemainingMap().size();
+        }
+        if (flowchart.getRequirementStatusMap() != null) {
+            flowchart.getRequirementStatusMap().size();
+        }
+        if (flowchart.getSemesters() != null) {
+            flowchart.getSemesters().size();
+            for (Semester semester : flowchart.getSemesters()) {
+                if (semester != null && semester.getCourses() != null) {
+                    semester.getCourses().size();
+                }
+            }
+        }
+    }
+
+    private Flowchart resolveSourceFlowchart(AppUser user, Long sourceFlowchartId) {
+        if (sourceFlowchartId == null || sourceFlowchartId <= 0L) {
+            return getByUser(user);
+        }
+
+        Flowchart source = getById(sourceFlowchartId);
+        AppUser owner = source.getUser();
+        if (owner == null || owner.getId() != user.getId()) {
+            throw new FlowchartNotFoundException("Flowchart with Id " + sourceFlowchartId + " not found.");
+        }
+        initializeFlowchartCollections(source);
+        return source;
+    }
+
+    private String resolveDuplicateTitle(AppUser user, Flowchart source, String requestedTitle) {
+        if (requestedTitle != null && !requestedTitle.isBlank()) {
+            return requestedTitle.trim();
+        }
+
+        String baseTitle = source.getTitle() == null || source.getTitle().isBlank()
+                ? "Course Plan"
+                : source.getTitle().trim();
+        String baseCandidate = baseTitle + " Backup";
+
+        List<Flowchart> existing = flowChartRepository.findAllByUser(user);
+        if (!containsTitleIgnoreCase(existing, baseCandidate)) {
+            return baseCandidate;
+        }
+
+        int index = 2;
+        while (containsTitleIgnoreCase(existing, baseCandidate + " " + index)) {
+            index++;
+        }
+        return baseCandidate + " " + index;
+    }
+
+    private boolean containsTitleIgnoreCase(List<Flowchart> flowcharts, String title) {
+        String target = title == null ? "" : title.trim();
+        for (Flowchart flowchart : flowcharts) {
+            String existingTitle = flowchart == null || flowchart.getTitle() == null
+                    ? ""
+                    : flowchart.getTitle().trim();
+            if (existingTitle.equalsIgnoreCase(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Map<String, Status> copyStatusMap(Map<String, Status> source) {
+        if (source == null) {
+            return new HashMap<>();
+        }
+        return new HashMap<>(source);
+    }
+
+    private Map<String, Integer> copyRequirementRemainingMap(Map<String, Integer> source) {
+        if (source == null) {
+            return new HashMap<>();
+        }
+        return new HashMap<>(source);
+    }
+
+    private Map<String, String> copyRequirementStatusMap(Map<String, String> source) {
+        if (source == null) {
+            return new HashMap<>();
+        }
+        return new HashMap<>(source);
+    }
+
+    private List<Semester> cloneSemesters(List<Semester> sourceSemesters, Flowchart owner) {
+        List<Semester> cloned = new ArrayList<>();
+        if (sourceSemesters == null || sourceSemesters.isEmpty()) {
+            return cloned;
+        }
+
+        for (Semester semester : sourceSemesters) {
+            if (semester == null) {
+                continue;
+            }
+            List<Course> copiedCourses = semester.getCourses() == null
+                    ? new ArrayList<>()
+                    : new ArrayList<>(semester.getCourses());
+            Semester copiedSemester = new Semester(
+                    semester.getYear(),
+                    semester.getTerm(),
+                    semester.getMajor(),
+                    owner,
+                    copiedCourses);
+            cloned.add(copiedSemester);
+        }
+        return cloned;
     }
 
     private String normalizeCourseIdent(String ident) {

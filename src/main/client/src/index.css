@@ -242,3 +242,65 @@ body,
   color: #e2e8f0 !important;
 }
 
+.flowchart-shell .react-flow__controls {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+.flowchart-shell .react-flow__controls-button {
+  width: 30px;
+  height: 30px;
+  background: #ffffff;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.flowchart-shell .react-flow__controls-button:last-child {
+  border-bottom: 0;
+}
+
+.flowchart-shell .react-flow__controls-button:hover {
+  background: #f8fafc;
+}
+
+.flowchart-shell .react-flow__minimap {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+}
+
+.flowchart-shell .react-flow__edge-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flowchart-shell .react-flow__node-course > div {
+  transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.flowchart-shell .react-flow__node-course > div:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.dark-mode .flowchart-shell .react-flow__controls {
+  border-color: #334155;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .flowchart-shell .react-flow__controls-button {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .flowchart-shell .react-flow__controls-button:hover {
+  background: #1f2937;
+}
+
+.dark-mode .flowchart-shell .react-flow__minimap {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: #334155 !important;
+}
+

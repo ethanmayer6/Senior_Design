@@ -45,6 +45,25 @@ public class FlowchartController {
         return FlowchartResponse.from(flowchart);
     }
 
+    @GetMapping("/user/versions")
+    public List<FlowchartResponse> getMyFlowchartVersions(Authentication auth) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        return flowchartService.listByUser(user).stream()
+                .map(FlowchartResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/user/versions/duplicate")
+    public ResponseEntity<FlowchartResponse> duplicateMyFlowchartVersion(
+            Authentication auth,
+            @RequestBody(required = false) FlowchartDuplicateRequest request) {
+        AppUser user = (AppUser) auth.getPrincipal();
+        Long sourceFlowchartId = request == null ? null : request.sourceFlowchartId();
+        String title = request == null ? null : request.title();
+        Flowchart duplicated = flowchartService.duplicateForUser(user, sourceFlowchartId, title);
+        return ResponseEntity.status(HttpStatus.CREATED).body(FlowchartResponse.from(duplicated));
+    }
+
     @GetMapping("/user/insights")
     public FlowchartInsightsResponse getMyFlowchartInsights(Authentication auth) {
         AppUser user = (AppUser) auth.getPrincipal();
@@ -63,6 +82,15 @@ public class FlowchartController {
         assertCanViewStudentFlowchart(requester, userId);
         Flowchart flowchart = flowchartService.getByUserId(userId);
         return FlowchartResponse.from(flowchart);
+    }
+
+    @GetMapping("/user/{userId}/versions")
+    public List<FlowchartResponse> getFlowchartVersionsByUserId(Authentication auth, @PathVariable long userId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        assertCanViewStudentFlowchart(requester, userId);
+        return flowchartService.listByUserId(userId).stream()
+                .map(FlowchartResponse::from)
+                .toList();
     }
 
     @GetMapping("/user/{userId}/insights")
@@ -138,8 +166,29 @@ public class FlowchartController {
     }
 
     @GetMapping("/id/{id}")
-    public Flowchart getById(@PathVariable long id) {
-        return flowchartService.getById(id);
+    public Flowchart getById(Authentication auth, @PathVariable long id) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getByIdInitialized(id);
+        assertCanAccessFlowchart(requester, flowchart);
+        return flowchart;
+    }
+
+    @GetMapping("/{flowchartId}/insights")
+    public FlowchartInsightsResponse getFlowchartInsightsByFlowchartId(Authentication auth, @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getByIdInitialized(flowchartId);
+        assertCanAccessFlowchart(requester, flowchart);
+        return flowchartService.getInsightsByFlowchartId(flowchartId);
+    }
+
+    @GetMapping("/{flowchartId}/requirements/coverage")
+    public FlowchartRequirementCoverageResponse getRequirementCoverageByFlowchartId(
+            Authentication auth,
+            @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        Flowchart flowchart = flowchartService.getByIdInitialized(flowchartId);
+        assertCanAccessFlowchart(requester, flowchart);
+        return flowchartService.getRequirementCoverageByFlowchartId(flowchartId);
     }
 
     @GetMapping("/courses/{id}/{status}")
@@ -230,6 +279,9 @@ public class FlowchartController {
     public record FlowchartCommentDismissRequest(Boolean dismissed) {
     }
 
+    public record FlowchartDuplicateRequest(Long sourceFlowchartId, String title) {
+    }
+
     public record FlowchartCommentResponse(
             long id,
             long flowchartId,
@@ -306,6 +358,13 @@ public class FlowchartController {
         }
 
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this flowchart.");
+    }
+
+    private void assertCanAccessFlowchart(AppUser requester, Flowchart flowchart) {
+        if (flowchart == null || flowchart.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Flowchart not found.");
+        }
+        assertCanViewStudentFlowchart(requester, flowchart.getUser().getId());
     }
 
     private String normalizeRole(String role) {

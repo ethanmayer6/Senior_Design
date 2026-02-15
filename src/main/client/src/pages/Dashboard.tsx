@@ -5,15 +5,15 @@ import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
   createFlowchartComment,
+  deleteFlowchart,
   deleteFlowchartComment,
   dismissFlowchartComment,
+  duplicateFlowchartVersion,
   getFlowchartComments,
-  getFlowchartByUserId,
-  getFlowchartInsights,
-  getFlowchartInsightsByUserId,
-  getFlowchartRequirementCoverage,
-  getFlowchartRequirementCoverageByUserId,
-  getUserFlowchart,
+  getFlowchartInsightsByFlowchartId,
+  getFlowchartRequirementCoverageByFlowchartId,
+  getFlowchartVersionsByUserId,
+  getUserFlowchartVersions,
   updateFlowchartComment,
   updateSemesterCourses,
 } from '../api/flowchartApi';
@@ -53,8 +53,13 @@ function formatCommentDate(value: string): string {
 export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const [flowchart, setFlowchart] = useState<FlowchartType | null>(null);
+  const [flowchartVersions, setFlowchartVersions] = useState<FlowchartType[]>([]);
+  const [selectedFlowchartId, setSelectedFlowchartId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [versionStatusError, setVersionStatusError] = useState<string | null>(null);
+  const [versionStatusMessage, setVersionStatusMessage] = useState<string | null>(null);
+  const [creatingBackupVersion, setCreatingBackupVersion] = useState(false);
   const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null);
   const [courseIdentInput, setCourseIdentInput] = useState('');
   const [updatingSemester, setUpdatingSemester] = useState(false);
@@ -137,18 +142,12 @@ export default function Dashboard() {
       : 0;
   const visibleComments = showDismissedComments ? comments : comments.filter((comment) => !comment.dismissed);
 
-  const loadInsightsAndCoverage = async () => {
+  const loadInsightsAndCoverage = async (flowchartId: number) => {
     try {
-      const [insightData, coverageData] =
-        readOnlyMode && targetStudentId !== null
-          ? await Promise.all([
-              getFlowchartInsightsByUserId(targetStudentId),
-              getFlowchartRequirementCoverageByUserId(targetStudentId),
-            ])
-          : await Promise.all([
-              getFlowchartInsights(),
-              getFlowchartRequirementCoverage(),
-            ]);
+      const [insightData, coverageData] = await Promise.all([
+        getFlowchartInsightsByFlowchartId(flowchartId),
+        getFlowchartRequirementCoverageByFlowchartId(flowchartId),
+      ]);
       setInsights(insightData);
       setRequirementCoverage(coverageData);
     } catch (e) {
@@ -158,19 +157,61 @@ export default function Dashboard() {
     }
   };
 
-  const reloadFlowchart = async (failMessage: string) => {
+  const selectFlowchartFromVersions = (
+    versions: FlowchartType[],
+    preferredFlowchartId?: number | null
+  ): FlowchartType | null => {
+    if (!versions.length) {
+      setSelectedFlowchartId(null);
+      return null;
+    }
+
+    const preferred =
+      preferredFlowchartId !== undefined && preferredFlowchartId !== null
+        ? versions.find((version) => version.id === preferredFlowchartId)
+        : null;
+    if (preferred) {
+      setSelectedFlowchartId(preferred.id);
+      return preferred;
+    }
+
+    const shouldReuseCurrentSelection = preferredFlowchartId === undefined;
+    const existingSelection =
+      shouldReuseCurrentSelection && selectedFlowchartId !== null
+        ? versions.find((version) => version.id === selectedFlowchartId)
+        : null;
+    if (existingSelection) {
+      setSelectedFlowchartId(existingSelection.id);
+      return existingSelection;
+    }
+
+    setSelectedFlowchartId(versions[0].id);
+    return versions[0];
+  };
+
+  const reloadFlowchart = async (failMessage: string, preferredFlowchartId?: number | null) => {
     try {
-      const fc =
+      const versions =
         readOnlyMode && targetStudentId !== null
-          ? await getFlowchartByUserId(targetStudentId)
-          : await getUserFlowchart();
-      setFlowchart(fc);
-      if (showProgressInsights && fc) {
-        await loadInsightsAndCoverage();
+          ? await getFlowchartVersionsByUserId(targetStudentId)
+          : await getUserFlowchartVersions();
+
+      setFlowchartVersions(versions);
+      const selected = selectFlowchartFromVersions(versions, preferredFlowchartId);
+      setFlowchart(selected);
+
+      if (showProgressInsights && selected) {
+        await loadInsightsAndCoverage(selected.id);
       }
-      return fc;
+      if (!selected) {
+        setInsights(null);
+        setRequirementCoverage(null);
+      }
+      return selected;
     } catch (e) {
       console.error('Failed to load flowchart:', e);
+      setFlowchartVersions([]);
+      setSelectedFlowchartId(null);
       setFlowchart(null);
       setInsights(null);
       setRequirementCoverage(null);
@@ -338,7 +379,8 @@ export default function Dashboard() {
       await reloadFlowchart(
         readOnlyMode
           ? 'Failed to load selected student flowchart. Please refresh and try again.'
-          : 'Failed to load your flowchart. Please refresh and try again.'
+          : 'Failed to load your flowchart. Please refresh and try again.',
+        null
       );
       setLoading(false);
     }
@@ -373,7 +415,7 @@ export default function Dashboard() {
     if (!showProgressInsights || !flowchart) {
       return;
     }
-    void loadInsightsAndCoverage();
+    void loadInsightsAndCoverage(flowchart.id);
   }, [showProgressInsights, flowchart?.id]);
 
   useEffect(() => {
@@ -400,12 +442,48 @@ export default function Dashboard() {
     void loadComments(flowchart.id);
   }, [flowchart?.id]);
 
+  const handleSelectFlowchartVersion = (nextFlowchartId: number) => {
+    const selected = flowchartVersions.find((version) => version.id === nextFlowchartId) ?? null;
+    setSelectedFlowchartId(selected?.id ?? null);
+    setFlowchart(selected);
+    setError(null);
+    setVersionStatusError(null);
+    setVersionStatusMessage(null);
+    setSelectedCourse(null);
+  };
+
+  const handleCreateBackupVersion = async () => {
+    if (readOnlyMode || !flowchart) return;
+    setCreatingBackupVersion(true);
+    setVersionStatusError(null);
+    setVersionStatusMessage(null);
+
+    try {
+      const created = await duplicateFlowchartVersion({ sourceFlowchartId: flowchart.id });
+      await reloadFlowchart(
+        'Created a backup version, but reloading versions failed. Please refresh.',
+        created.id
+      );
+      setVersionStatusMessage(`Created backup: ${created.title || `Plan ${created.id}`}.`);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to create backup flowchart version.';
+      setVersionStatusError(message);
+    } finally {
+      setCreatingBackupVersion(false);
+    }
+  };
+
   // After import completes, reload flowchart from backend
   const handleImportComplete = async () => {
     if (readOnlyMode) return;
     setLoading(true);
     setError(null);
-    await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.');
+    setVersionStatusError(null);
+    setVersionStatusMessage(null);
+    await reloadFlowchart('Import succeeded, but loading the flowchart failed. Please refresh.', null);
     setLoading(false);
   };
 
@@ -434,7 +512,10 @@ export default function Dashboard() {
         operation: 'ADD',
         courseIdent: normalizedIdent,
       });
-      await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.');
+      await reloadFlowchart(
+        'Course was added, but reloading the flowchart failed. Please refresh.',
+        flowchart.id
+      );
       setCourseIdentInput('');
       setAddCourseSuccess(`Added ${normalizedIdent}.`);
     } catch (err: any) {
@@ -474,7 +555,10 @@ export default function Dashboard() {
         operation: 'REMOVE',
         courseIdent: normalizedIdent,
       });
-      await reloadFlowchart('Course was removed, but reloading the flowchart failed. Please refresh.');
+      await reloadFlowchart(
+        'Course was removed, but reloading the flowchart failed. Please refresh.',
+        flowchart.id
+      );
       setCourseIdentInput('');
       setRemoveCourseSuccess(`Removed ${normalizedIdent}.`);
     } catch (err: any) {
@@ -492,21 +576,26 @@ export default function Dashboard() {
   const handleDeleteFlowchart = async () => {
     if (readOnlyMode) return;
     if (!flowchart) return;
+    setVersionStatusError(null);
+    setVersionStatusMessage(null);
     try {
-      await fetch(`http://localhost:8080/api/flowchart/delete/${flowchart.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      setFlowchart(null);
-    } catch (err) {
+      await deleteFlowchart(flowchart.id);
+      const fallbackId = flowchartVersions.find((version) => version.id !== flowchart.id)?.id ?? null;
+      await reloadFlowchart('Flowchart was deleted, but reloading versions failed. Please refresh.', fallbackId);
+      setVersionStatusMessage('Deleted selected flowchart version.');
+    } catch (err: any) {
       console.error('Failed to delete flowchart:', err);
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to delete selected flowchart version.';
+      setVersionStatusError(message);
     }
   };
 
   const handleAddSelectedMiniCourse = async () => {
     if (readOnlyMode) return;
+    if (!flowchart) return;
     if (!selectedMiniCourse) {
       setMiniCatalogError('Select a course first.');
       return;
@@ -524,7 +613,10 @@ export default function Dashboard() {
         operation: 'ADD',
         courseIdent: selectedMiniCourse.courseIdent,
       });
-      await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.');
+      await reloadFlowchart(
+        'Course was added, but reloading the flowchart failed. Please refresh.',
+        flowchart.id
+      );
       setMiniCatalogMessage(`Added ${selectedMiniCourse.courseIdent} to your flowchart.`);
     } catch (err: any) {
       const message =
@@ -615,6 +707,41 @@ export default function Dashboard() {
               </div>
             </>
           )}
+          <div className="p-4 w-full space-y-2">
+            <div className="text-sm font-semibold text-slate-700">
+              {readOnlyMode ? 'Viewed Plan Version' : 'Plan Versions'}
+            </div>
+            <select
+              className="w-full rounded-md border border-slate-300 p-2 text-sm"
+              value={selectedFlowchartId ?? ''}
+              onChange={(e) => {
+                const nextId = e.target.value ? Number(e.target.value) : null;
+                if (nextId !== null) {
+                  handleSelectFlowchartVersion(nextId);
+                }
+              }}
+              disabled={!flowchartVersions.length || loading}
+            >
+              {flowchartVersions.length === 0 && <option value="">No flowchart versions</option>}
+              {flowchartVersions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  {(version.title ?? '').trim() || `Plan ${version.id}`} ({(version.semesters ?? []).length} terms)
+                </option>
+              ))}
+            </select>
+            {!readOnlyMode && (
+              <Button
+                className="w-full text-center"
+                label={creatingBackupVersion ? 'Creating Backup...' : 'Create Backup Version'}
+                icon="pi pi-copy"
+                outlined
+                onClick={() => void handleCreateBackupVersion()}
+                disabled={!flowchart || creatingBackupVersion}
+              />
+            )}
+            {versionStatusError && <div className="text-xs text-red-600">{versionStatusError}</div>}
+            {versionStatusMessage && <div className="text-xs text-emerald-700">{versionStatusMessage}</div>}
+          </div>
           <div className="p-4 w-full">
             <Button
               className="w-full text-center"

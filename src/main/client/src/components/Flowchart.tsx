@@ -1,19 +1,19 @@
 // src/components/Flowchart.tsx
-import { useEffect, memo } from 'react';
+import { memo, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   MarkerType,
   addEdge,
-  useNodesState,
   useEdgesState,
+  useNodesState,
   Handle,
   Position,
-  type Node,
-  type Edge,
-  type NodeProps,
   type Connection,
+  type Edge,
+  type Node,
+  type NodeProps,
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
@@ -27,31 +27,61 @@ type CourseData = {
   status?: CourseStatus;
   course?: FlowchartCourse;
 };
-type SemesterData = { title: string };
+
+type SemesterData = {
+  title: string;
+  meta: string;
+};
 
 const CourseNode = memo(({ data }: NodeProps<CourseData>) => {
   const normalizedStatus = String(data.status ?? '')
     .trim()
     .toUpperCase()
     .replace(/[\s-]+/g, '_');
-  const isInProgress = normalizedStatus === 'IN_PROGRESS';
+
+  const [dept, ...rest] = String(data.label ?? '').trim().split(/\s+/);
+  const courseNumber = rest.join(' ');
+
+  const statusTone: Record<string, string> = {
+    COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    IN_PROGRESS: 'bg-amber-100 text-amber-800 border-amber-200',
+    UNFULFILLED: 'bg-rose-100 text-rose-800 border-rose-200',
+  };
+  const statusShortLabel: Record<string, string> = {
+    COMPLETED: 'Done',
+    IN_PROGRESS: 'IP',
+    UNFULFILLED: 'Todo',
+  };
+  const statusClass = statusTone[normalizedStatus] ?? 'bg-slate-100 text-slate-700 border-slate-200';
+  const statusLabel = statusShortLabel[normalizedStatus] ?? 'Plan';
 
   return (
     <div
       title={data.title}
       className={[
-        'h-[4.5rem] w-[4.5rem] rounded-full',
-        'flex items-center justify-center text-center',
-        'px-1 font-semibold text-[11px] leading-tight shadow-sm cursor-pointer select-none relative',
+        'relative h-[5.1rem] w-[5.4rem] rounded-2xl border',
+        'flex flex-col items-center justify-center text-center',
+        'px-1.5 shadow-sm cursor-pointer select-none',
         data.cls,
       ].join(' ')}
     >
-      {data.label}
-      {isInProgress && (
-        <span className="absolute -bottom-1 -right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-black shadow-sm">
-          IP
-        </span>
-      )}
+      <span
+        className={[
+          'absolute -right-2 -top-2 rounded-full border px-1.5 py-0.5',
+          'text-[9px] font-semibold uppercase leading-none shadow-sm',
+          statusClass,
+        ].join(' ')}
+      >
+        {statusLabel}
+      </span>
+
+      <div className="text-[9px] font-semibold uppercase tracking-[0.08em] opacity-85">
+        {dept || 'COURSE'}
+      </div>
+      <div className="mt-0.5 text-[13px] font-bold tracking-tight">
+        {courseNumber || dept || '----'}
+      </div>
+
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -59,8 +89,13 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => {
 });
 
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
-  <div className="h-full w-full rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm">
-    <div className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">{data.title}</div>
+  <div className="h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/90 shadow-sm">
+    <div className="flex items-center justify-between border-b border-slate-200/90 bg-white/90 px-3 py-2">
+      <div className="text-sm font-bold uppercase tracking-wide text-slate-700">{data.title}</div>
+      <div className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        {data.meta}
+      </div>
+    </div>
   </div>
 ));
 
@@ -69,30 +104,30 @@ const nodeTypes = {
   semester: SemesterNode,
 };
 
-const SEMESTER_WIDTH = 760;
-const COURSE_PER_ROW = 8;
-const COURSE_GAP_X = 84;
-const COURSE_GAP_Y = 94;
-const INNER_PADDING_X = 38;
-const INNER_PADDING_Y = 38;
-const MIN_SEMESTER_HEIGHT = 150;
-const Y_SPACING = 42;
+const SEMESTER_WIDTH = 790;
+const COURSE_PER_ROW = 7;
+const COURSE_GAP_X = 98;
+const COURSE_GAP_Y = 98;
+const INNER_PADDING_X = 32;
+const INNER_PADDING_Y = 56;
+const MIN_SEMESTER_HEIGHT = 176;
+const Y_SPACING = 34;
 
 const deptClasses: Record<string, string> = {
-  COMS: 'bg-sky-500 text-white',
-  SE: 'bg-rose-500 text-white',
-  CPRE: 'bg-orange-400 text-white',
-  MATH: 'bg-pink-400 text-white',
-  PHYS: 'bg-green-400 text-white',
-  ENGL: 'bg-yellow-300 text-black',
-  STAT: 'bg-purple-500 text-white',
-  CHEM: 'bg-emerald-400 text-white',
-  ECON: 'bg-cyan-400 text-white',
-  LIB: 'bg-blue-400 text-white',
-  IE: 'bg-amber-500 text-white',
-  SPCM: 'bg-amber-300 text-black',
-  ART: 'bg-indigo-400 text-white',
-  DEFAULT: 'bg-gray-400 text-white',
+  COMS: 'border-sky-200 bg-sky-50 text-sky-800',
+  SE: 'border-rose-200 bg-rose-50 text-rose-800',
+  CPRE: 'border-orange-200 bg-orange-50 text-orange-800',
+  MATH: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  PHYS: 'border-teal-200 bg-teal-50 text-teal-800',
+  ENGL: 'border-yellow-200 bg-yellow-50 text-yellow-900',
+  STAT: 'border-violet-200 bg-violet-50 text-violet-800',
+  CHEM: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  ECON: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+  LIB: 'border-blue-200 bg-blue-50 text-blue-800',
+  IE: 'border-amber-200 bg-amber-50 text-amber-800',
+  SPCM: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
+  ART: 'border-pink-200 bg-pink-50 text-pink-800',
+  DEFAULT: 'border-slate-200 bg-slate-100 text-slate-700',
 };
 
 function normalizeCourseIdent(ident: string | undefined | null): string {
@@ -151,10 +186,7 @@ export default function Flowchart({
     const sortedSems = [...semesters].sort(
       (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
     );
-    const courseNodeRefsByIdent = new Map<
-      string,
-      Array<{ nodeId: string; semRank: number }>
-    >();
+    const courseNodeRefsByIdent = new Map<string, Array<{ nodeId: string; semRank: number }>>();
     const targetNodeRefs: Array<{ nodeId: string; semRank: number; course: FlowchartCourse }> = [];
 
     let currentY = 0;
@@ -167,17 +199,19 @@ export default function Flowchart({
         if (!ident) return false;
         return arr.findIndex((x) => x?.courseIdent === ident) === idx;
       });
+
       const rowsNeeded = Math.max(1, Math.ceil(uniqueSemesterCourses.length / COURSE_PER_ROW));
-      const semesterHeight = Math.max(
-        MIN_SEMESTER_HEIGHT,
-        INNER_PADDING_Y + rowsNeeded * COURSE_GAP_Y
-      );
+      const semesterHeight = Math.max(MIN_SEMESTER_HEIGHT, INNER_PADDING_Y + rowsNeeded * COURSE_GAP_Y);
+      const semesterCredits = uniqueSemesterCourses.reduce((sum, course) => sum + Number(course?.credits ?? 0), 0);
 
       newNodes.push({
         id: semId,
         type: 'semester',
         position: { x: 80, y: currentY },
-        data: { title: sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}` },
+        data: {
+          title: sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`,
+          meta: `${uniqueSemesterCourses.length} courses - ${semesterCredits} cr`,
+        },
         style: { width: SEMESTER_WIDTH, height: semesterHeight },
         draggable: false,
       });
@@ -192,14 +226,16 @@ export default function Flowchart({
         const prefix = courseIdent.split('_')[0];
         const status = resolveCourseStatus(statusLookup, courseIdent);
         const normalizedStatus = normalizeStatus(status);
-        const isCompleted = normalizedStatus === 'COMPLETED';
-        const isInProgress = normalizedStatus === 'IN_PROGRESS';
-        const color = deptClasses[prefix] || deptClasses.DEFAULT;
-        const cls = isCompleted
-          ? `${color} ring-2 ring-emerald-300`
-          : isInProgress
-            ? `${color} ring-2 ring-amber-300`
-            : `${color} opacity-95`;
+        const deptTone = deptClasses[prefix] || deptClasses.DEFAULT;
+        const statusTone =
+          normalizedStatus === 'COMPLETED'
+            ? 'ring-2 ring-emerald-200'
+            : normalizedStatus === 'IN_PROGRESS'
+              ? 'ring-2 ring-amber-200'
+              : normalizedStatus === 'UNFULFILLED'
+                ? 'ring-2 ring-rose-200'
+                : '';
+        const cls = `${deptTone} ${statusTone}`.trim();
         const nodeId = `${semId}__${courseIdent}__${placedCount}`;
 
         newNodes.push({
@@ -214,6 +250,7 @@ export default function Flowchart({
           },
           parentNode: semId,
           extent: 'parent',
+          draggable: false,
           position: {
             x: INNER_PADDING_X + colIndex * COURSE_GAP_X,
             y: INNER_PADDING_Y + rowIndex * COURSE_GAP_Y,
@@ -256,8 +293,8 @@ export default function Flowchart({
           target: nodeId,
           type: 'smoothstep',
           animated: false,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
-          style: { stroke: '#64748b', strokeWidth: 1.8 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 13, height: 13, color: '#64748b' },
+          style: { stroke: '#94a3b8', strokeWidth: 1.6 },
         });
       });
     });
@@ -277,12 +314,25 @@ export default function Flowchart({
   const hasRenderableData = nodes.length > 0;
 
   return (
-    <div className="relative h-[80vh] min-h-[560px] w-full max-w-[980px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="flowchart-shell relative h-[80vh] min-h-[560px] w-full max-w-[1000px] overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white via-white to-slate-50 shadow-md">
+      <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-lg border border-slate-200/90 bg-white/90 px-3 py-2 text-[11px] text-slate-600 shadow-sm md:block">
+        <div className="mb-1 font-semibold uppercase tracking-wide text-slate-700">Legend</div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          Completed
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          In Progress
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+          Planned
+        </div>
+      </div>
+
       {!hasRenderableData && (
         <div className="absolute z-10 p-3 text-sm text-slate-600">
           Flowchart loaded, but no renderable courses were found.
         </div>
       )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -292,7 +342,12 @@ export default function Flowchart({
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.03, minZoom: 1.1, maxZoom: 1.1 }}
+        minZoom={0.55}
+        maxZoom={1.45}
+        fitViewOptions={{ padding: 0.1 }}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
         defaultEdgeOptions={{ type: 'smoothstep' }}
         proOptions={{ hideAttribution: true }}
       >
@@ -300,10 +355,10 @@ export default function Flowchart({
           zoomable
           pannable
           nodeColor={(node: Node) => (node.type === 'semester' ? '#cbd5e1' : '#60a5fa')}
-          className="!bg-white"
+          className="!rounded-lg !border !border-slate-200 !bg-white/90"
         />
         <Controls />
-        <Background gap={14} color="#e2e8f0" />
+        <Background gap={18} color="#dbe3ee" />
       </ReactFlow>
     </div>
   );
