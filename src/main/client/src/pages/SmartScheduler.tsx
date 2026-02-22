@@ -3,6 +3,7 @@ import Header from '../components/header';
 import api from '../api/axiosClient';
 import { getUserFlowchart, type Flowchart } from '../api/flowchartApi';
 import { createStatusLookup, normalizeCourseIdent, normalizeStatus } from '../utils/flowchartStatus';
+import { publishAppNotification } from '../utils/notifications';
 
 type DraftOption = {
   id: string;
@@ -12,6 +13,7 @@ type DraftOption = {
   courses: SchedulerCourse[];
   notes: string;
   blockedCount: number;
+  invalidCreditCount: number;
 };
 
 type SchedulerCourse = {
@@ -358,6 +360,7 @@ export default function SmartScheduler() {
         courses: selected,
         notes: notesParts.join(' '),
         blockedCount,
+        invalidCreditCount,
       };
     };
 
@@ -370,6 +373,20 @@ export default function SmartScheduler() {
       buildOption('light', 'Light Load Path', 'Lower-credit schedule prioritizing near-term momentum.', lightMax, 4),
     ];
   }, [generated, majorData, targetTerm, maxCredits, requirementPool, statusSets.completed, statusSets.inProgress, preferredMode]);
+
+  useEffect(() => {
+    if (!generated || generatedSchedules.length === 0) return;
+    const excluded = generatedSchedules.reduce((sum, option) => sum + option.invalidCreditCount, 0);
+    if (excluded <= 0) return;
+    publishAppNotification({
+      level: 'warning',
+      title: 'Data Mismatch Detected',
+      message: `${excluded} course entries were excluded from scheduling due to invalid credit values. Re-import course data to improve schedule quality.`,
+      actionLabel: 'Import Data',
+      actionPath: '/courseflow',
+      ttlMs: 12000,
+    });
+  }, [generated, generatedSchedules]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100">

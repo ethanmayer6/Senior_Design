@@ -9,10 +9,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/majors/isu")
 public class IsuDegreeImportController {
     private final IsuDegreeImportService importService;
+    private final IsuImportJobService importJobService;
     private final ObjectMapper objectMapper;
 
-    public IsuDegreeImportController(IsuDegreeImportService importService, ObjectMapper objectMapper) {
+    public IsuDegreeImportController(
+            IsuDegreeImportService importService,
+            IsuImportJobService importJobService,
+            ObjectMapper objectMapper) {
         this.importService = importService;
+        this.importJobService = importJobService;
         this.objectMapper = objectMapper;
     }
 
@@ -50,6 +55,29 @@ public class IsuDegreeImportController {
         IsuDegreeDataset dataset = objectMapper.readValue(file.getInputStream(), IsuDegreeDataset.class);
         IsuDegreeImportResult result = importService.importMajorsOnly(dataset);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/import/file/async")
+    public ResponseEntity<IsuImportJobResponse> importJsonFileAsync(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "mode", defaultValue = "ALL") IsuImportMode mode,
+            @RequestParam(value = "chunkSize", defaultValue = "100") int chunkSize) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is required.");
+        }
+        IsuDegreeDataset dataset = objectMapper.readValue(file.getInputStream(), IsuDegreeDataset.class);
+        IsuImportJobResponse response = importJobService.startJob(dataset, mode, chunkSize);
+        return ResponseEntity.accepted().body(response);
+    }
+
+    @GetMapping("/import/jobs/{jobId}")
+    public ResponseEntity<IsuImportJobResponse> getImportJob(@PathVariable String jobId) {
+        return ResponseEntity.ok(importJobService.getJob(jobId));
+    }
+
+    @PostMapping("/import/jobs/{jobId}/retry")
+    public ResponseEntity<IsuImportJobResponse> retryFailedChunks(@PathVariable String jobId) {
+        return ResponseEntity.accepted().body(importJobService.retryFailedChunks(jobId));
     }
 
     @GetMapping("/template")

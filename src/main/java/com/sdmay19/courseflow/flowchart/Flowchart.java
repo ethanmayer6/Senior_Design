@@ -9,6 +9,7 @@ import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.semester.Semester;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,19 @@ public class Flowchart {
     @MapKeyColumn(name = "requirement_name")
     @Column(name = "status")
     private Map<String, String> requirementStatusMap;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status")
+    private FlowchartReviewStatus reviewStatus = FlowchartReviewStatus.PENDING;
+
+    @Column(name = "review_notes", columnDefinition = "TEXT")
+    private String reviewNotes;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "reviewed_by_user_id")
+    private Long reviewedByUserId;
 
     public Flowchart() {
     }
@@ -112,6 +126,22 @@ public class Flowchart {
         return requirementStatusMap;
     }
 
+    public FlowchartReviewStatus getReviewStatus() {
+        return reviewStatus == null ? FlowchartReviewStatus.PENDING : reviewStatus;
+    }
+
+    public String getReviewNotes() {
+        return reviewNotes;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public Long getReviewedByUserId() {
+        return reviewedByUserId;
+    }
+
     // SETTERS
     public void setId(long id) {
         this.id = id;
@@ -151,5 +181,21 @@ public class Flowchart {
 
     public void setRequirementStatusMap(Map<String, String> requirementStatusMap) {
         this.requirementStatusMap = requirementStatusMap;
+    }
+
+    public void setReviewStatus(FlowchartReviewStatus reviewStatus) {
+        this.reviewStatus = reviewStatus == null ? FlowchartReviewStatus.PENDING : reviewStatus;
+    }
+
+    public void setReviewNotes(String reviewNotes) {
+        this.reviewNotes = reviewNotes;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public void setReviewedByUserId(Long reviewedByUserId) {
+        this.reviewedByUserId = reviewedByUserId;
     }
 }

@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import Header from '../components/header';
-import { getMajorById, getMajorSummaries, type Major, type MajorSummary } from '../api/majorsApi';
+import { getMajorById, getMajorByName, getMajorSummaries, type Major, type MajorSummary } from '../api/majorsApi';
 import api from '../api/axiosClient';
-import { getUserFlowchart, type Flowchart } from '../api/flowchartApi';
+import {
+  getFlowchartRequirementCoverage,
+  getMyFlowchartById,
+  getUserFlowchart,
+  type Flowchart,
+  type FlowchartRequirementCoverage
+} from '../api/flowchartApi';
 import { createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import { publishAppNotification } from '../utils/notifications';
 
 export default function MajorsBrowse() {
   const [majorSummaries, setMajorSummaries] = useState<MajorSummary[]>([]);
@@ -16,32 +23,88 @@ export default function MajorsBrowse() {
   const [loadingMajor, setLoadingMajor] = useState(false);
   const [majorError, setMajorError] = useState<string | null>(null);
   const [userMajorName, setUserMajorName] = useState<string | null>(null);
+  const [didAttemptAutoSelect, setDidAttemptAutoSelect] = useState(false);
+  const [hasManualMajorSelection, setHasManualMajorSelection] = useState(false);
   const [userFlowchart, setUserFlowchart] = useState<Flowchart | null>(null);
+  const [flowchartCoverage, setFlowchartCoverage] = useState<FlowchartRequirementCoverage | null>(null);
+
+  const normalizeMajorName = (value: string | null | undefined): string =>
+    String(value ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+  useEffect(() => {
+    async function loadCurrentUserMajor() {
+      try {
+        const meResponse = await api.get<{ major?: string | null }>('/users/me');
+        const majorFromProfile = meResponse?.data?.major?.trim() ?? '';
+        setUserMajorName((current) => current ?? (majorFromProfile || null));
+      } catch {
+        setUserMajorName((current) => current ?? null);
+      }
+    }
+    void loadCurrentUserMajor();
+  }, []);
+
+  useEffect(() => {
+    if (!userMajorName || didAttemptAutoSelect || hasManualMajorSelection) {
+      return;
+    }
+    const majorName = userMajorName;
+    let active = true;
+    async function autoSelectMajorByName() {
+      try {
+        const major = await getMajorByName(majorName);
+        if (!active || !major?.id) return;
+        setSelectedMajorId(major.id);
+      } catch {
+        const normalizedTarget = normalizeMajorName(majorName);
+        const fallback = majorSummaries.find((major) => {
+          const normalizedName = normalizeMajorName(major.name);
+          return (
+            normalizedName === normalizedTarget
+            || normalizedName.includes(normalizedTarget)
+            || normalizedTarget.includes(normalizedName)
+          );
+        });
+        if (active && fallback?.id) {
+          setSelectedMajorId(fallback.id);
+        }
+      } finally {
+        if (active) {
+          setDidAttemptAutoSelect(true);
+        }
+      }
+    }
+    void autoSelectMajorByName();
+    return () => {
+      active = false;
+    };
+  }, [userMajorName, didAttemptAutoSelect, hasManualMajorSelection, majorSummaries]);
 
   useEffect(() => {
     async function loadMajors() {
       setLoadingSummaries(true);
       setSummariesError(null);
       try {
-        const [allMajors, meResponse] = await Promise.all([
-          getMajorSummaries(),
-          api.get<{ major?: string | null }>('/users/me').catch(() => null),
-        ]);
-        allMajors.sort((a, b) =>
-          `${a.name} ${a.college}`.localeCompare(`${b.name} ${b.college}`)
-        );
-        setMajorSummaries(allMajors);
-        const majorFromProfile = meResponse?.data?.major?.trim() ?? '';
-        setUserMajorName(majorFromProfile || null);
-
-        if (allMajors.length > 0) {
-          const preferredMajor =
-            majorFromProfile.length > 0
-              ? allMajors.find(
-                  (major) => major.name.trim().toLowerCase() === majorFromProfile.toLowerCase()
-                )
-              : null;
-          setSelectedMajorId((current) => current ?? preferredMajor?.id ?? allMajors[0].id);
+        const majors = await getMajorSummaries();
+        setMajorSummaries(majors);
+        if (majors.length > 0) {
+          setSelectedMajorId((current) => {
+            if (current && majors.some((major) => major.id === current)) {
+              return current;
+            }
+            if (current) {
+              return current;
+            }
+            const preferredMajor =
+              userMajorName
+                ? majors.find(
+                    (major) => normalizeMajorName(major.name) === normalizeMajorName(userMajorName)
+                  )
+                : null;
+            return preferredMajor?.id ?? majors[0].id;
+          });
         }
       } catch (err: any) {
         setSummariesError(err?.response?.data?.message || 'Failed to load majors.');
@@ -51,15 +114,36 @@ export default function MajorsBrowse() {
     }
 
     void loadMajors();
-  }, []);
+  }, [userMajorName]);
 
   useEffect(() => {
     async function loadFlowchart() {
       try {
-        const flowchart = await getUserFlowchart();
+        let flowchart: Flowchart | null = null;
+        try {
+          const storedUserRaw = localStorage.getItem('user');
+          const storedUser = storedUserRaw ? (JSON.parse(storedUserRaw) as { id?: number }) : null;
+          const activeKey = storedUser?.id ? `activeFlowchartId:${storedUser.id}` : null;
+          const activeId = activeKey ? Number(localStorage.getItem(activeKey)) : NaN;
+          if (Number.isFinite(activeId) && activeId > 0) {
+            flowchart = await getMyFlowchartById(activeId);
+          }
+        } catch {
+          flowchart = null;
+        }
+        if (!flowchart) {
+          flowchart = await getUserFlowchart();
+        }
         setUserFlowchart(flowchart);
+        const flowchartMajorName = String(flowchart?.major?.name ?? '').trim();
+        if (flowchartMajorName) {
+          setUserMajorName(flowchartMajorName);
+        }
+        const coverage = await getFlowchartRequirementCoverage();
+        setFlowchartCoverage(coverage);
       } catch {
         setUserFlowchart(null);
+        setFlowchartCoverage(null);
       }
     }
     void loadFlowchart();
@@ -86,17 +170,6 @@ export default function MajorsBrowse() {
     }
     void loadSelectedMajor();
   }, [selectedMajorId]);
-
-  const filteredMajors = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) {
-      return majorSummaries;
-    }
-    return majorSummaries.filter((major) => {
-      const display = `${major.name} ${major.college}`.toLowerCase();
-      return display.includes(normalized);
-    });
-  }, [majorSummaries, query]);
 
   const displayCredits = (credits: number | null | undefined): string => {
     if (!credits || credits <= 0) {
@@ -241,6 +314,57 @@ export default function MajorsBrowse() {
     };
   }, [selectedMajor?.degreeRequirements, requirementProgressById]);
 
+  const filteredMajorSummaries = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return majorSummaries;
+    }
+    return majorSummaries.filter((major) => {
+      const name = major.name?.toLowerCase() ?? '';
+      const college = major.college?.replaceAll('_', ' ').toLowerCase() ?? '';
+      return name.includes(normalizedQuery) || college.includes(normalizedQuery);
+    });
+  }, [majorSummaries, query]);
+
+  const strictViewCounts = useMemo(() => {
+    const requirements = selectedMajor?.degreeRequirements ?? [];
+    let satisfied = 0;
+    let inProgress = 0;
+    let unmet = 0;
+    for (const requirement of requirements) {
+      const progress = requirementProgressById.get(requirement.id);
+      if (!progress) continue;
+      if (progress.totalSlots === 0 || progress.completedSlots >= progress.totalSlots) {
+        satisfied += 1;
+      } else if (progress.inProgressSlots > 0) {
+        inProgress += 1;
+      } else {
+        unmet += 1;
+      }
+    }
+    return { total: requirements.length, satisfied, inProgress, unmet };
+  }, [selectedMajor?.degreeRequirements, requirementProgressById]);
+
+  useEffect(() => {
+    if (!flowchartCoverage || !selectedMajor) return;
+    const reqDiff = Math.abs((flowchartCoverage.totalRequirements ?? 0) - strictViewCounts.total);
+    const satDiff = Math.abs((flowchartCoverage.satisfiedRequirements ?? 0) - strictViewCounts.satisfied);
+    const ipDiff = Math.abs((flowchartCoverage.inProgressRequirements ?? 0) - strictViewCounts.inProgress);
+    const unmetDiff = Math.abs((flowchartCoverage.unmetRequirements ?? 0) - strictViewCounts.unmet);
+    const diverged = reqDiff > 2 || satDiff > 2 || ipDiff > 2 || unmetDiff > 2;
+    if (!diverged) return;
+
+    publishAppNotification({
+      level: 'warning',
+      title: 'Coverage Consistency Warning',
+      message:
+        'Majors Browse coverage and Flowchart coverage are out of sync. Re-import progress report or refresh major data.',
+      actionLabel: 'Open Dashboard',
+      actionPath: '/dashboard',
+      ttlMs: 12000,
+    });
+  }, [flowchartCoverage, strictViewCounts, selectedMajor?.id]);
+
   const inferredGroupCredits = (requirementCredits: number, group: { satisfyingCredits: number; courses: { credits: number }[] }): number => {
     if (group.satisfyingCredits > 0) {
       return group.satisfyingCredits;
@@ -301,6 +425,9 @@ export default function MajorsBrowse() {
                 className="w-full rounded-lg border border-slate-300 py-2 pl-8 pr-3 text-sm text-slate-700"
               />
             </div>
+            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+              <span>{filteredMajorSummaries.length} result(s)</span>
+            </div>
 
             <div className="mt-3 max-h-[34rem] overflow-y-auto pr-1 lg:max-h-[calc(100vh-14rem)]">
               {loadingSummaries && <div className="text-sm text-gray-600">Loading majors...</div>}
@@ -309,19 +436,22 @@ export default function MajorsBrowse() {
                   {summariesError}
                 </div>
               )}
-              {!loadingSummaries && !summariesError && filteredMajors.length === 0 && (
+              {!loadingSummaries && !summariesError && filteredMajorSummaries.length === 0 && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
                   No majors match your search.
                 </div>
               )}
 
-              {!loadingSummaries && !summariesError && filteredMajors.length > 0 && (
+              {!loadingSummaries && !summariesError && filteredMajorSummaries.length > 0 && (
                 <div className="space-y-2">
-                  {filteredMajors.map((major) => (
+                  {filteredMajorSummaries.map((major) => (
                     <button
                       key={major.id}
                       type="button"
-                      onClick={() => setSelectedMajorId(major.id)}
+                      onClick={() => {
+                        setHasManualMajorSelection(true);
+                        setSelectedMajorId(major.id);
+                      }}
                       className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
                         selectedMajorId === major.id
                           ? 'border-red-300 bg-red-50 text-red-700 shadow-sm'

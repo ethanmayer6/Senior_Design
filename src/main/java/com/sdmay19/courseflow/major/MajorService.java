@@ -6,6 +6,12 @@ import com.sdmay19.courseflow.degree_requirement.DegreeRequirementService;
 import com.sdmay19.courseflow.exception.major.MajorCreationException;
 import com.sdmay19.courseflow.exception.major.MajorNotFoundException;
 import jakarta.transaction.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,6 +31,7 @@ public class MajorService {
     }
 
     // CREATE
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public Major createMajor(MajorDTO majorDTO) {
         Major major = buildMajor(majorDTO);
         checkMajor(major);
@@ -58,11 +65,28 @@ public class MajorService {
     public List<Major> getAllMajors() {
         return majorRepository.findAll();
     }
+    @Cacheable("majorNames")
     public List<String> getAllMajorNames() {
         return majorRepository.findAllMajorNames();
     }
+    @Cacheable("majorSummaries")
     public List<MajorSummaryDTO> getAllMajorSummaries() {
         return majorRepository.findAllMajorSummaries();
+    }
+    @Cacheable(value = "majorSummaryPages", key = "'p=' + #page + ',s=' + #size + ',q=' + (#query == null ? '' : #query.toLowerCase())")
+    public Page<MajorSummaryDTO> getMajorSummariesPage(int page, int size, String query) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 200);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        if (query == null || query.isBlank()) {
+            return majorRepository.findMajorSummaries(pageable);
+        }
+
+        Page<Major> matches = majorRepository.findByNameContainingIgnoreCaseOrderByNameAscCollegeAsc(query.trim(), pageable);
+        List<MajorSummaryDTO> mapped = matches.getContent().stream()
+                .map(m -> new MajorSummaryDTO(m.getId(), m.getName(), m.getCollege()))
+                .toList();
+        return new PageImpl<>(mapped, pageable, matches.getTotalElements());
     }
     public Major getMajorById(long id) {
         return majorRepository.findById(id)
@@ -89,6 +113,7 @@ public class MajorService {
 
     // UPDATE
     @Transactional
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public Major updateMajor(long id, MajorDTO updater) {
         Major major = majorRepository.findById(id)
                 .orElseThrow(() -> new MajorNotFoundException("Major with Id " + id + " not found"));
@@ -115,6 +140,7 @@ public class MajorService {
 
     // Delete
     @Transactional
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public void deleteById(long id) { majorRepository.deleteById(id); }
 
     private int requirementScore(Major major) {

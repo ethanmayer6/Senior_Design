@@ -10,6 +10,23 @@ export interface IsuDegreeImportResult {
   warnings: string[];
 }
 
+export type IsuImportMode = 'ALL' | 'MAJORS_ONLY' | 'COURSES_ONLY';
+export type IsuImportJobStatus = 'RUNNING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS' | 'FAILED';
+
+export interface IsuImportJob {
+  jobId: string;
+  status: IsuImportJobStatus;
+  mode: IsuImportMode;
+  progressPercent: number;
+  totalChunks: number;
+  processedChunks: number;
+  failedChunks: Record<string, string>;
+  result?: IsuDegreeImportResult;
+  message?: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
 export interface MajorCourse {
   id: number;
   courseIdent: string;
@@ -46,6 +63,16 @@ export interface MajorSummary {
   college: string;
 }
 
+export interface PagedResponse<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
 export async function getMajorNames(): Promise<string[]> {
   const res = await api.get<string[]>('/majors/names');
   return (res.data ?? []).filter((name): name is string => typeof name === 'string' && name.length > 0);
@@ -64,6 +91,21 @@ export async function getMajorById(id: number): Promise<Major> {
 export async function getMajorSummaries(): Promise<MajorSummary[]> {
   const res = await api.get<MajorSummary[]>('/majors/summaries');
   return res.data ?? [];
+}
+
+export async function getMajorSummariesPage(
+  page = 0,
+  size = 40,
+  query?: string
+): Promise<PagedResponse<MajorSummary>> {
+  const res = await api.get<PagedResponse<MajorSummary>>('/majors/summaries/page', {
+    params: {
+      page,
+      size,
+      query: query?.trim() ? query.trim() : undefined,
+    },
+  });
+  return res.data;
 }
 
 export async function importIsuDatasetFromPublicFile(
@@ -135,5 +177,37 @@ export async function importIsuCoursesFromPublicFile(
     },
   });
 
+  return res.data;
+}
+
+export async function startIsuImportJobFromPublicFile(
+  mode: IsuImportMode,
+  publicPath = '/isu-degree-dataset.json',
+  chunkSize = 100
+): Promise<IsuImportJob> {
+  const response = await fetch(publicPath, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Unable to load dataset file (${response.status})`);
+  }
+  const blob = await response.blob();
+  const file = new File([blob], 'isu-degree-dataset.json', { type: 'application/json' });
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await api.post<IsuImportJob>('/majors/isu/import/file/async', formData, {
+    params: { mode, chunkSize },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return res.data;
+}
+
+export async function getIsuImportJob(jobId: string): Promise<IsuImportJob> {
+  const res = await api.get<IsuImportJob>(`/majors/isu/import/jobs/${jobId}`);
+  return res.data;
+}
+
+export async function retryIsuImportJob(jobId: string): Promise<IsuImportJob> {
+  const res = await api.post<IsuImportJob>(`/majors/isu/import/jobs/${jobId}/retry`);
   return res.data;
 }

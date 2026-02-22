@@ -111,6 +111,7 @@ export interface FlowchartRequirementCoverage {
 export interface FlowchartComment {
   id: number;
   flowchartId: number;
+  parentCommentId: number | null;
   authorId: number;
   authorName: string;
   authorRole: string;
@@ -124,8 +125,44 @@ export interface FlowchartComment {
 
 export interface FlowchartCommentInput {
   body: string;
+  parentCommentId?: number | null;
   noteX?: number | null;
   noteY?: number | null;
+}
+
+export type FlowchartReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface FlowchartReview {
+  flowchartId: number;
+  status: FlowchartReviewStatus;
+  reviewNotes: string | null;
+  reviewedByUserId: number | null;
+  reviewedAt: string | null;
+}
+
+export interface FlowchartReviewInput {
+  status: FlowchartReviewStatus;
+  reviewNotes?: string | null;
+}
+
+export interface FlowchartRequiredChange {
+  id: number;
+  flowchartId: number;
+  authorId: number;
+  authorName: string;
+  label: string;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlowchartRequiredChangeCreateInput {
+  label: string;
+}
+
+export interface FlowchartRequiredChangeUpdateInput {
+  label?: string;
+  completed?: boolean;
 }
 
 export interface FlowchartTab {
@@ -364,4 +401,42 @@ export async function deleteFlowchartComment(commentId: number): Promise<void> {
 export async function dismissFlowchartComment(commentId: number, dismissed: boolean): Promise<FlowchartComment> {
   const res = await api.patch<FlowchartComment>(`/flowchart/comments/${commentId}/dismiss`, { dismissed });
   return res.data;
+}
+
+export async function getFlowchartReview(flowchartId: number): Promise<FlowchartReview> {
+  const res = await api.get<FlowchartReview>(`/flowchart/${flowchartId}/review`);
+  return res.data;
+}
+
+export async function updateFlowchartReview(
+  flowchartId: number,
+  payload: FlowchartReviewInput
+): Promise<FlowchartReview> {
+  const res = await api.put<FlowchartReview>(`/flowchart/${flowchartId}/review`, payload);
+  return res.data;
+}
+
+export async function getFlowchartRequiredChanges(flowchartId: number): Promise<FlowchartRequiredChange[]> {
+  const res = await api.get<FlowchartRequiredChange[]>(`/flowchart/${flowchartId}/required-changes`);
+  return res.data ?? [];
+}
+
+export async function createFlowchartRequiredChange(
+  flowchartId: number,
+  payload: FlowchartRequiredChangeCreateInput
+): Promise<FlowchartRequiredChange> {
+  const res = await api.post<FlowchartRequiredChange>(`/flowchart/${flowchartId}/required-changes`, payload);
+  return res.data;
+}
+
+export async function updateFlowchartRequiredChange(
+  itemId: number,
+  payload: FlowchartRequiredChangeUpdateInput
+): Promise<FlowchartRequiredChange> {
+  const res = await api.patch<FlowchartRequiredChange>(`/flowchart/required-changes/${itemId}`, payload);
+  return res.data;
+}
+
+export async function deleteFlowchartRequiredChange(itemId: number): Promise<void> {
+  await api.delete(`/flowchart/required-changes/${itemId}`);
 }

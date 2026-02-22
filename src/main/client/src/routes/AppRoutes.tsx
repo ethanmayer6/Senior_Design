@@ -14,10 +14,14 @@ import Settings from '../pages/Settings.tsx';
 import SmartScheduler from '../pages/SmartScheduler.tsx';
 import CurrentClasses from '../pages/CurrentClasses.tsx';
 import MajorsBrowse from '../pages/MajorsBrowse.tsx';
+import NotificationCenter from '../components/NotificationCenter.tsx';
+import GlobalCommandPalette from '../components/GlobalCommandPalette.tsx';
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <NotificationCenter />
+      <GlobalCommandPalette />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/admin" element={<AdminDashboard />} />

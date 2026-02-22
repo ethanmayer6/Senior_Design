@@ -4,14 +4,18 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
 import {
+  createFlowchartRequiredChange,
   deleteFlowchart,
   createFlowchartComment,
   deleteFlowchartComment,
+  deleteFlowchartRequiredChange,
   dismissFlowchartComment,
   getFlowchartInsightsByFlowchartId,
   getFlowchartComments,
   getFlowchartByUserId,
   getFlowchartInsights,
+  getFlowchartReview,
+  getFlowchartRequiredChanges,
   getFlowchartInsightsByUserId,
   getFlowchartRequirementCoverageByFlowchartId,
   getFlowchartRequirementCoverage,
@@ -19,10 +23,20 @@ import {
   getMyFlowchartById,
   getMyFlowcharts,
   getUserFlowchart,
+  updateFlowchartRequiredChange,
+  updateFlowchartReview,
   updateFlowchartComment,
   updateSemesterCourses,
 } from '../api/flowchartApi';
-import type { Course as FlowchartCourse, Flowchart as FlowchartType, FlowchartComment, FlowchartTab } from '../api/flowchartApi';
+import type {
+  Course as FlowchartCourse,
+  Flowchart as FlowchartType,
+  FlowchartComment,
+  FlowchartRequiredChange,
+  FlowchartReview,
+  FlowchartReviewStatus,
+  FlowchartTab
+} from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
 import Header from '../components/header';
@@ -88,10 +102,20 @@ export default function Dashboard() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
+  const [replyParentCommentId, setReplyParentCommentId] = useState<number | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentActionLoadingId, setCommentActionLoadingId] = useState<number | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentBody, setEditingCommentBody] = useState('');
+  const [flowchartReview, setFlowchartReview] = useState<FlowchartReview | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewNotesDraft, setReviewNotesDraft] = useState('');
+  const [requiredChanges, setRequiredChanges] = useState<FlowchartRequiredChange[]>([]);
+  const [requiredChangesLoading, setRequiredChangesLoading] = useState(false);
+  const [requiredChangesError, setRequiredChangesError] = useState<string | null>(null);
+  const [requiredChangeDraft, setRequiredChangeDraft] = useState('');
+  const [requiredChangeActionLoadingId, setRequiredChangeActionLoadingId] = useState<number | null>(null);
   const [flowchartTabs, setFlowchartTabs] = useState<FlowchartTab[]>([]);
   const [activeFlowchartId, setActiveFlowchartId] = useState<number | null>(null);
   const requestedStudentId = Number(searchParams.get('studentId'));
@@ -110,6 +134,7 @@ export default function Dashboard() {
     }
   })();
   const canDismissComments = !readOnlyMode || currentUserRole === 'ADMIN';
+  const canReviewFlowchart = currentUserRole === 'ADVISOR' || currentUserRole === 'FACULTY' || currentUserRole === 'ADMIN';
   const maxFlowchartTabs = 10;
   const canCreateMoreFlowcharts = flowchartTabs.length < maxFlowchartTabs;
   const activeFlowchartStorageKey = (() => {
@@ -155,6 +180,34 @@ export default function Dashboard() {
       ? Math.min((inProgressCredits / progressTotal) * 100, Math.max(0, 100 - completedWidthPercent))
       : 0;
   const visibleComments = showDismissedComments ? comments : comments.filter((comment) => !comment.dismissed);
+  const commentDepthMap = (() => {
+    const byId = new Map<number, FlowchartComment>();
+    comments.forEach((comment) => byId.set(comment.id, comment));
+    const cache = new Map<number, number>();
+    const depthFor = (comment: FlowchartComment): number => {
+      if (cache.has(comment.id)) return cache.get(comment.id)!;
+      let depth = 0;
+      let cursor = comment;
+      const seen = new Set<number>([comment.id]);
+      while (cursor.parentCommentId) {
+        const parent = byId.get(cursor.parentCommentId);
+        if (!parent || seen.has(parent.id)) break;
+        depth += 1;
+        seen.add(parent.id);
+        cursor = parent;
+      }
+      const normalized = Math.min(depth, 4);
+      cache.set(comment.id, normalized);
+      return normalized;
+    };
+    return cache.size === comments.length ? cache : new Map(comments.map((c) => [c.id, depthFor(c)]));
+  })();
+
+  const reviewStatusStyles: Record<FlowchartReviewStatus, string> = {
+    PENDING: 'border-amber-200 bg-amber-50 text-amber-800',
+    APPROVED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
 
   const loadInsightsAndCoverage = async () => {
     try {
@@ -287,6 +340,31 @@ export default function Dashboard() {
     }
   };
 
+  const loadReviewAndChecklist = async (flowchartId: number) => {
+    setReviewLoading(true);
+    setRequiredChangesLoading(true);
+    setReviewError(null);
+    setRequiredChangesError(null);
+    try {
+      const [reviewData, checklistData] = await Promise.all([
+        getFlowchartReview(flowchartId),
+        getFlowchartRequiredChanges(flowchartId),
+      ]);
+      setFlowchartReview(reviewData);
+      setReviewNotesDraft(reviewData.reviewNotes ?? '');
+      setRequiredChanges(checklistData);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to load advisor review data.';
+      setReviewError(message);
+      setRequiredChangesError(message);
+      setFlowchartReview(null);
+      setRequiredChanges([]);
+    } finally {
+      setReviewLoading(false);
+      setRequiredChangesLoading(false);
+    }
+  };
+
   const handleCreateComment = async () => {
     if (!flowchart) return;
     const body = commentDraft.trim();
@@ -298,9 +376,15 @@ export default function Dashboard() {
     setCommentSubmitting(true);
     setCommentsError(null);
     try {
-      const created = await createFlowchartComment(flowchart.id, { body, noteX: null, noteY: null });
-      setComments((current) => [created, ...current]);
+      const created = await createFlowchartComment(flowchart.id, {
+        body,
+        parentCommentId: replyParentCommentId,
+        noteX: null,
+        noteY: null,
+      });
+      setComments((current) => [...current, created]);
       setCommentDraft('');
+      setReplyParentCommentId(null);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || 'Failed to save comment.';
       setCommentsError(message);
@@ -375,6 +459,91 @@ export default function Dashboard() {
       setCommentsError(message);
     } finally {
       setCommentActionLoadingId(null);
+    }
+  };
+
+  const handleReviewStatusUpdate = async (status: FlowchartReviewStatus) => {
+    if (!flowchart) return;
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const updated = await updateFlowchartReview(flowchart.id, {
+        status,
+        reviewNotes: reviewNotesDraft.trim() || null,
+      });
+      setFlowchartReview(updated);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update review status.';
+      setReviewError(message);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleSaveReviewNotes = async () => {
+    if (!flowchart || !flowchartReview) return;
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const updated = await updateFlowchartReview(flowchart.id, {
+        status: flowchartReview.status,
+        reviewNotes: reviewNotesDraft.trim() || null,
+      });
+      setFlowchartReview(updated);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save review notes.';
+      setReviewError(message);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleCreateRequiredChange = async () => {
+    if (!flowchart) return;
+    const label = requiredChangeDraft.trim();
+    if (!label) {
+      setRequiredChangesError('Checklist item text cannot be empty.');
+      return;
+    }
+    setRequiredChangesError(null);
+    setRequiredChangesLoading(true);
+    try {
+      const created = await createFlowchartRequiredChange(flowchart.id, { label });
+      setRequiredChanges((current) => [...current, created]);
+      setRequiredChangeDraft('');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to create checklist item.';
+      setRequiredChangesError(message);
+    } finally {
+      setRequiredChangesLoading(false);
+    }
+  };
+
+  const handleToggleRequiredChange = async (item: FlowchartRequiredChange, completed: boolean) => {
+    setRequiredChangeActionLoadingId(item.id);
+    setRequiredChangesError(null);
+    try {
+      const updated = await updateFlowchartRequiredChange(item.id, { completed });
+      setRequiredChanges((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to update checklist item.';
+      setRequiredChangesError(message);
+    } finally {
+      setRequiredChangeActionLoadingId(null);
+    }
+  };
+
+  const handleDeleteRequiredChange = async (itemId: number) => {
+    setRequiredChangeActionLoadingId(itemId);
+    setRequiredChangesError(null);
+    try {
+      await deleteFlowchartRequiredChange(itemId);
+      setRequiredChanges((current) => current.filter((entry) => entry.id !== itemId));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to delete checklist item.';
+      setRequiredChangesError(message);
+    } finally {
+      setRequiredChangeActionLoadingId(null);
     }
   };
 
@@ -458,9 +627,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!flowchart) {
       setComments([]);
+      setFlowchartReview(null);
+      setRequiredChanges([]);
+      setReplyParentCommentId(null);
       return;
     }
     void loadComments(flowchart.id);
+    void loadReviewAndChecklist(flowchart.id);
   }, [flowchart?.id]);
 
   // After import completes, reload flowchart from backend
@@ -958,18 +1131,134 @@ export default function Dashboard() {
                         : 'Review advisor recommendations and add your own notes.'}
                     </div>
 
+                    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Advisor Review</div>
+                        <span
+                          className={`rounded border px-2 py-0.5 text-[11px] font-semibold ${
+                            reviewStatusStyles[flowchartReview?.status ?? 'PENDING']
+                          }`}
+                        >
+                          {(flowchartReview?.status ?? 'PENDING').toLowerCase()}
+                        </span>
+                      </div>
+                      <textarea
+                        className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm"
+                        rows={2}
+                        placeholder="Review notes for this plan..."
+                        value={reviewNotesDraft}
+                        onChange={(e) => setReviewNotesDraft(e.target.value)}
+                        disabled={reviewLoading}
+                      />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {canReviewFlowchart && (
+                          <>
+                            <Button
+                              size="small"
+                              label="Approve"
+                              onClick={() => void handleReviewStatusUpdate('APPROVED')}
+                              disabled={reviewLoading || !flowchart}
+                            />
+                            <Button
+                              size="small"
+                              severity="danger"
+                              outlined
+                              label="Reject"
+                              onClick={() => void handleReviewStatusUpdate('REJECTED')}
+                              disabled={reviewLoading || !flowchart}
+                            />
+                          </>
+                        )}
+                        <Button
+                          size="small"
+                          text
+                          label="Save Notes"
+                          onClick={() => void handleSaveReviewNotes()}
+                          disabled={reviewLoading || !flowchartReview}
+                        />
+                      </div>
+                      {reviewError && <div className="mt-2 text-xs text-red-600">{reviewError}</div>}
+                    </div>
+
+                    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        Required Changes Checklist
+                      </div>
+                      {canReviewFlowchart && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                            placeholder="Add required change item..."
+                            value={requiredChangeDraft}
+                            onChange={(e) => setRequiredChangeDraft(e.target.value)}
+                            disabled={requiredChangesLoading}
+                          />
+                          <Button
+                            size="small"
+                            label="Add"
+                            onClick={() => void handleCreateRequiredChange()}
+                            disabled={requiredChangesLoading || !flowchart}
+                          />
+                        </div>
+                      )}
+                      <div className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-white p-2">
+                        {requiredChangesLoading ? (
+                          <div className="text-sm text-slate-600">Loading checklist...</div>
+                        ) : requiredChanges.length === 0 ? (
+                          <div className="text-sm text-slate-600">No required changes listed.</div>
+                        ) : (
+                          requiredChanges.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between gap-2 rounded border border-slate-100 px-2 py-1">
+                              <label className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={item.completed}
+                                  onChange={(e) => void handleToggleRequiredChange(item, e.target.checked)}
+                                  disabled={requiredChangeActionLoadingId === item.id}
+                                />
+                                <span className={`${item.completed ? 'line-through text-slate-500' : ''}`}>{item.label}</span>
+                              </label>
+                              {canReviewFlowchart && (
+                                <Button
+                                  size="small"
+                                  text
+                                  severity="danger"
+                                  label="Delete"
+                                  onClick={() => void handleDeleteRequiredChange(item.id)}
+                                  disabled={requiredChangeActionLoadingId === item.id}
+                                />
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {requiredChangesError && <div className="mt-2 text-xs text-red-600">{requiredChangesError}</div>}
+                    </div>
+
                     <div className="mt-3 space-y-2">
+                      {replyParentCommentId !== null && (
+                        <div className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-800">
+                          Replying to comment #{replyParentCommentId}
+                          <button
+                            type="button"
+                            className="ml-2 text-blue-700 underline"
+                            onClick={() => setReplyParentCommentId(null)}
+                          >
+                            cancel
+                          </button>
+                        </div>
+                      )}
                       <textarea
                         className="w-full rounded-md border border-slate-300 p-2 text-sm"
                         rows={3}
-                        placeholder="Add a recommendation or planning note..."
+                        placeholder={replyParentCommentId ? 'Write a reply...' : 'Add a recommendation or planning note...'}
                         value={commentDraft}
                         onChange={(e) => setCommentDraft(e.target.value)}
                         disabled={commentSubmitting}
                       />
                       <Button
                         className="w-full"
-                        label={commentSubmitting ? 'Posting...' : 'Post Note'}
+                        label={commentSubmitting ? 'Posting...' : (replyParentCommentId ? 'Post Reply' : 'Post Note')}
                         icon="pi pi-send"
                         onClick={() => void handleCreateComment()}
                         disabled={commentSubmitting || !flowchart}
@@ -995,6 +1284,7 @@ export default function Dashboard() {
                                   ? 'border-slate-200 bg-slate-100 text-slate-500'
                                   : 'border-slate-200 bg-white text-slate-700'
                               }`}
+                              style={{ marginLeft: `${(commentDepthMap.get(comment.id) ?? 0) * 12}px` }}
                             >
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
@@ -1003,6 +1293,9 @@ export default function Dashboard() {
                                     {normalizeRole(comment.authorRole) || 'USER'}
                                     {comment.updatedAt ? ` - ${formatCommentDate(comment.updatedAt)}` : ''}
                                   </div>
+                                  {comment.parentCommentId && (
+                                    <div className="text-[11px] text-slate-500">Reply to #{comment.parentCommentId}</div>
+                                  )}
                                 </div>
                                 {comment.dismissed && (
                                   <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
@@ -1047,6 +1340,13 @@ export default function Dashboard() {
                                       label="Edit"
                                       text
                                       onClick={() => handleStartEditComment(comment)}
+                                      disabled={commentActionLoadingId === comment.id}
+                                    />
+                                    <Button
+                                      size="small"
+                                      label="Reply"
+                                      text
+                                      onClick={() => setReplyParentCommentId(comment.id)}
                                       disabled={commentActionLoadingId === comment.id}
                                     />
                                     <Button

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FileUpload } from 'primereact/fileupload';
 import type { FileUploadSelectEvent } from 'primereact/fileupload';
 import api from '../api/axiosClient';
+import { publishAppNotification } from '../utils/notifications';
 
 interface ImportProgressReportProps {
   onImported: () => void;
@@ -30,6 +31,11 @@ export default function ImportProgressReport({ onImported, disabled = false }: I
       onImported();
     } catch (err) {
       console.error(err);
+      publishAppNotification({
+        level: 'error',
+        title: 'Progress Report Import Failed',
+        message: 'The upload could not be processed. Check the Excel format and try again.',
+      });
     }
 
     setLoading(false);

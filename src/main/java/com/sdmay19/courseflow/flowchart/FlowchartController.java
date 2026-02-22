@@ -131,6 +131,7 @@ public class FlowchartController {
         FlowchartComment created = flowchartCommentService.createComment(
                 requester,
                 flowchartId,
+                request.parentCommentId(),
                 request.body(),
                 request.noteX(),
                 request.noteY());
@@ -168,6 +169,68 @@ public class FlowchartController {
         boolean dismissed = request.dismissed() == null || request.dismissed();
         FlowchartComment updated = flowchartCommentService.setDismissed(requester, commentId, dismissed);
         return FlowchartCommentResponse.from(updated);
+    }
+
+    @GetMapping("/{flowchartId}/review")
+    public FlowchartCommentService.FlowchartReviewResponse getFlowchartReview(
+            Authentication auth,
+            @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        return flowchartCommentService.getReview(requester, flowchartId);
+    }
+
+    @PutMapping("/{flowchartId}/review")
+    public FlowchartCommentService.FlowchartReviewResponse updateFlowchartReview(
+            Authentication auth,
+            @PathVariable long flowchartId,
+            @RequestBody FlowchartReviewUpdateRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        return flowchartCommentService.updateReview(
+                requester,
+                flowchartId,
+                request.status(),
+                request.reviewNotes());
+    }
+
+    @GetMapping("/{flowchartId}/required-changes")
+    public List<FlowchartRequiredChangeResponse> getFlowchartRequiredChanges(
+            Authentication auth,
+            @PathVariable long flowchartId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        return flowchartCommentService.listRequiredChanges(requester, flowchartId).stream()
+                .map(FlowchartRequiredChangeResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/{flowchartId}/required-changes")
+    public ResponseEntity<FlowchartRequiredChangeResponse> createFlowchartRequiredChange(
+            Authentication auth,
+            @PathVariable long flowchartId,
+            @RequestBody FlowchartRequiredChangeCreateRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        FlowchartRequiredChange created = flowchartCommentService.createRequiredChange(requester, flowchartId, request.label());
+        return ResponseEntity.status(HttpStatus.CREATED).body(FlowchartRequiredChangeResponse.from(created));
+    }
+
+    @PatchMapping("/required-changes/{itemId}")
+    public FlowchartRequiredChangeResponse updateFlowchartRequiredChange(
+            Authentication auth,
+            @PathVariable long itemId,
+            @RequestBody FlowchartRequiredChangeUpdateRequest request) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        FlowchartRequiredChange updated = flowchartCommentService.updateRequiredChange(
+                requester,
+                itemId,
+                request.label(),
+                request.completed());
+        return FlowchartRequiredChangeResponse.from(updated);
+    }
+
+    @DeleteMapping("/required-changes/{itemId}")
+    public ResponseEntity<Void> deleteFlowchartRequiredChange(Authentication auth, @PathVariable long itemId) {
+        AppUser requester = (AppUser) auth.getPrincipal();
+        flowchartCommentService.deleteRequiredChange(requester, itemId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/id/{id}")
@@ -277,7 +340,7 @@ public class FlowchartController {
         }
     }
 
-    public record FlowchartCommentRequest(String body, Double noteX, Double noteY) {
+    public record FlowchartCommentRequest(String body, Long parentCommentId, Double noteX, Double noteY) {
     }
 
     public record FlowchartCommentDismissRequest(Boolean dismissed) {
@@ -286,6 +349,7 @@ public class FlowchartController {
     public record FlowchartCommentResponse(
             long id,
             long flowchartId,
+            Long parentCommentId,
             long authorId,
             String authorName,
             String authorRole,
@@ -307,6 +371,7 @@ public class FlowchartController {
             return new FlowchartCommentResponse(
                     comment.getId(),
                     comment.getFlowchart().getId(),
+                    comment.getParentComment() == null ? null : comment.getParentComment().getId(),
                     author == null ? 0L : author.getId(),
                     authorName,
                     authorRole,
@@ -316,6 +381,45 @@ public class FlowchartController {
                     comment.isDismissed(),
                     comment.getCreatedAt(),
                     comment.getUpdatedAt());
+        }
+    }
+
+    public record FlowchartReviewUpdateRequest(
+            FlowchartReviewStatus status,
+            String reviewNotes) {
+    }
+
+    public record FlowchartRequiredChangeCreateRequest(String label) {
+    }
+
+    public record FlowchartRequiredChangeUpdateRequest(String label, Boolean completed) {
+    }
+
+    public record FlowchartRequiredChangeResponse(
+            long id,
+            long flowchartId,
+            long authorId,
+            String authorName,
+            String label,
+            boolean completed,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+        static FlowchartRequiredChangeResponse from(FlowchartRequiredChange item) {
+            AppUser author = item.getAuthor();
+            String firstName = author == null || author.getFirstName() == null ? "" : author.getFirstName().trim();
+            String lastName = author == null || author.getLastName() == null ? "" : author.getLastName().trim();
+            String fullName = (firstName + " " + lastName).trim();
+            String fallbackName = author == null ? "Unknown User" : author.getUsername();
+            String authorName = fullName.isBlank() ? fallbackName : fullName;
+            return new FlowchartRequiredChangeResponse(
+                    item.getId(),
+                    item.getFlowchart().getId(),
+                    author == null ? 0L : author.getId(),
+                    authorName,
+                    item.getLabel(),
+                    item.isCompleted(),
+                    item.getCreatedAt(),
+                    item.getUpdatedAt());
         }
     }
 

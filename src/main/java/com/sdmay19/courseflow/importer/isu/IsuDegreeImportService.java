@@ -9,6 +9,7 @@ import com.sdmay19.courseflow.major.Major;
 import com.sdmay19.courseflow.major.MajorRepository;
 import com.sdmay19.courseflow.requirement_group.RequirementGroup;
 import com.sdmay19.courseflow.requirement_group.RequirementGroupRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ public class IsuDegreeImportService {
     }
 
     @Transactional
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public IsuDegreeImportResult importDataset(IsuDegreeDataset dataset) {
         if (dataset == null) {
             throw new IllegalArgumentException("Import dataset cannot be null.");
@@ -54,6 +56,7 @@ public class IsuDegreeImportService {
     }
 
     @Transactional
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public IsuDegreeImportResult importCoursesOnly(IsuDegreeDataset dataset) {
         if (dataset == null) {
             throw new IllegalArgumentException("Import dataset cannot be null.");
@@ -68,6 +71,14 @@ public class IsuDegreeImportService {
     }
 
     @Transactional
+    public IsuDegreeImportResult importCoursesChunk(List<IsuDegreeDataset.CourseImport> courses) {
+        IsuDegreeImportResult result = new IsuDegreeImportResult();
+        upsertCourses(courses, result);
+        return result;
+    }
+
+    @Transactional
+    @CacheEvict(value = {"majorNames", "majorSummaries", "majorSummaryPages"}, allEntries = true)
     public IsuDegreeImportResult importMajorsOnly(IsuDegreeDataset dataset) {
         if (dataset == null) {
             throw new IllegalArgumentException("Import dataset cannot be null.");
@@ -76,6 +87,14 @@ public class IsuDegreeImportService {
         IsuDegreeImportResult result = new IsuDegreeImportResult();
         Map<String, Course> courseCache = preloadReferencedCourses(dataset.majors());
         upsertMajors(dataset.majors(), courseCache, result);
+        return result;
+    }
+
+    @Transactional
+    public IsuDegreeImportResult importMajorsChunk(List<IsuDegreeDataset.MajorImport> majors) {
+        IsuDegreeImportResult result = new IsuDegreeImportResult();
+        Map<String, Course> courseCache = preloadReferencedCourses(majors);
+        upsertMajors(majors, courseCache, result);
         return result;
     }
 

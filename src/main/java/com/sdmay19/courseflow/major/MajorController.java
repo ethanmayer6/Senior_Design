@@ -1,6 +1,7 @@
 package com.sdmay19.courseflow.major;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,8 +15,6 @@ public class MajorController {
 
     @Autowired
     private MajorService majorService;
-    @Autowired
-    private MajorRepository majorRepository;
 
     // CREATE
     @PostMapping("/create")
@@ -38,6 +37,13 @@ public class MajorController {
     public ResponseEntity<List<MajorSummaryDTO>> getMajorSummaries() {
         return ResponseEntity.ok(majorService.getAllMajorSummaries());
     }
+    @GetMapping("/summaries/page")
+    public ResponseEntity<Page<MajorSummaryDTO>> getMajorSummariesPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "40") int size,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(majorService.getMajorSummariesPage(page, size, query));
+    }
     @GetMapping("ident/{id}")
     public ResponseEntity<Major> getMajorById(@PathVariable long id) {
         return ResponseEntity.ok(majorService.getMajorById(id));
@@ -58,8 +64,7 @@ public class MajorController {
     // DELETE
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteMajor(Authentication auth, @PathVariable long id) {
-        // ADD DELETE HERE
-        majorRepository.deleteById(id);
+        majorService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }

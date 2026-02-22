@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Env } from '../Env';
+import { publishAppNotification } from '../utils/notifications';
 
 const rawBaseUrl = (Env.API_BASE_URL || '/api').trim();
 const baseURL =
@@ -32,6 +33,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
+      publishAppNotification({
+        level: 'warning',
+        title: 'Session Expired',
+        message: 'Your login token is stale or expired. Sign in again to continue.',
+        actionLabel: 'Go to Login',
+        actionPath: '/login',
+      });
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 

@@ -16,8 +16,8 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "flowchart_comment")
-public class FlowchartComment {
+@Table(name = "flowchart_required_change")
+public class FlowchartRequiredChange {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,22 +32,11 @@ public class FlowchartComment {
     @JoinColumn(name = "author_id", nullable = false)
     private AppUser author;
 
-    @ManyToOne
-    @JoinColumn(name = "parent_comment_id")
-    @JsonIgnore
-    private FlowchartComment parentComment;
-
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String body;
-
-    @Column(name = "note_x")
-    private Double noteX;
-
-    @Column(name = "note_y")
-    private Double noteY;
+    private String label;
 
     @Column(nullable = false)
-    private boolean dismissed;
+    private boolean completed;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -55,24 +44,14 @@ public class FlowchartComment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public FlowchartComment() {
+    public FlowchartRequiredChange() {
     }
 
-    public FlowchartComment(
-            Flowchart flowchart,
-            AppUser author,
-            FlowchartComment parentComment,
-            String body,
-            Double noteX,
-            Double noteY,
-            boolean dismissed) {
+    public FlowchartRequiredChange(Flowchart flowchart, AppUser author, String label, boolean completed) {
         this.flowchart = flowchart;
         this.author = author;
-        this.parentComment = parentComment;
-        this.body = body;
-        this.noteX = noteX;
-        this.noteY = noteY;
-        this.dismissed = dismissed;
+        this.label = label;
+        this.completed = completed;
     }
 
     @PrePersist
@@ -99,24 +78,12 @@ public class FlowchartComment {
         return author;
     }
 
-    public FlowchartComment getParentComment() {
-        return parentComment;
+    public String getLabel() {
+        return label;
     }
 
-    public String getBody() {
-        return body;
-    }
-
-    public Double getNoteX() {
-        return noteX;
-    }
-
-    public Double getNoteY() {
-        return noteY;
-    }
-
-    public boolean isDismissed() {
-        return dismissed;
+    public boolean isCompleted() {
+        return completed;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -139,24 +106,12 @@ public class FlowchartComment {
         this.author = author;
     }
 
-    public void setParentComment(FlowchartComment parentComment) {
-        this.parentComment = parentComment;
+    public void setLabel(String label) {
+        this.label = label;
     }
 
-    public void setBody(String body) {
-        this.body = body;
-    }
-
-    public void setNoteX(Double noteX) {
-        this.noteX = noteX;
-    }
-
-    public void setNoteY(Double noteY) {
-        this.noteY = noteY;
-    }
-
-    public void setDismissed(boolean dismissed) {
-        this.dismissed = dismissed;
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
