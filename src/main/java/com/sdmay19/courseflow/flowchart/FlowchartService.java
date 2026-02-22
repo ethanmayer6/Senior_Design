@@ -562,12 +562,33 @@ public class FlowchartService {
             }
 
             Map<String, Course> requirementCourses = new LinkedHashMap<>();
+            Set<String> groupedCourseKeys = new HashSet<>();
 
             if (requirement.getCourses() != null) {
                 for (Course course : requirement.getCourses()) {
                     addRequirementCourse(requirementCourses, course);
                 }
             }
+            if (requirement.getRequirementGroups() != null) {
+                for (RequirementGroup group : requirement.getRequirementGroups()) {
+                    if (group == null || group.getCourses() == null) {
+                        continue;
+                    }
+                    for (Course groupCourse : group.getCourses()) {
+                        if (groupCourse == null || groupCourse.getCourseIdent() == null) {
+                            continue;
+                        }
+                        String normalized = normalizeCourseIdent(groupCourse.getCourseIdent());
+                        if (!normalized.isBlank()) {
+                            groupedCourseKeys.add(normalized);
+                        }
+                    }
+                }
+            }
+            if (!groupedCourseKeys.isEmpty()) {
+                requirementCourses.entrySet().removeIf(entry -> groupedCourseKeys.contains(entry.getKey()));
+            }
+
             int completedCredits = 0;
             int inProgressCredits = 0;
             List<String> completedCourses = new ArrayList<>();
@@ -597,10 +618,7 @@ public class FlowchartService {
                     if (group == null || group.getCourses() == null || group.getCourses().isEmpty()) {
                         continue;
                     }
-                    int groupRequired = group.getSatisfyingCredits();
-                    if (groupRequired <= 0) {
-                        groupRequired = group.getCourses().stream().mapToInt(c -> Math.max(0, c.getCredits())).sum();
-                    }
+                    int groupRequired = inferRequirementGroupCredits(group);
 
                     int groupCompleted = 0;
                     int groupInProgress = 0;
@@ -654,11 +672,7 @@ public class FlowchartService {
                         if (group == null) {
                             continue;
                         }
-                        if (group.getSatisfyingCredits() > 0) {
-                            groupRequired += group.getSatisfyingCredits();
-                        } else if (group.getCourses() != null) {
-                            groupRequired += group.getCourses().stream().mapToInt(c -> Math.max(0, c.getCredits())).sum();
-                        }
+                        groupRequired += inferRequirementGroupCredits(group);
                     }
                 }
                 requiredCredits = directRequired + groupRequired;
@@ -995,5 +1009,38 @@ public class FlowchartService {
             return normalized;
         }
         return null;
+    }
+
+    /**
+     * If importer did not provide satisfyingCredits for a requirement group,
+     * treat it as a single OR bucket by default and use the smallest non-zero
+     * course credit value rather than summing all option courses.
+     */
+    private int inferRequirementGroupCredits(RequirementGroup group) {
+        if (group == null) {
+            return 0;
+        }
+        if (group.getSatisfyingCredits() > 0) {
+            return group.getSatisfyingCredits();
+        }
+        if (group.getCourses() == null || group.getCourses().isEmpty()) {
+            return 0;
+        }
+
+        int minPositive = Integer.MAX_VALUE;
+        for (Course course : group.getCourses()) {
+            if (course == null) {
+                continue;
+            }
+            int credits = Math.max(0, course.getCredits());
+            if (credits > 0 && credits < minPositive) {
+                minPositive = credits;
+            }
+        }
+        if (minPositive != Integer.MAX_VALUE) {
+            return minPositive;
+        }
+
+        return 0;
     }
 }

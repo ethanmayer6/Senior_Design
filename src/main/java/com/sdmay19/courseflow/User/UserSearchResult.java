@@ -5,5 +5,6 @@ public record UserSearchResult(
         String username,
         String firstName,
         String lastName,
-        String major) {
+        String major,
+        String profilePictureUrl) {
 }

@@ -48,3 +48,21 @@ the tables/data etc, connect to the server via pgAdmin or CLI and connect to the
 * url - sdmay26-19.ece.iastate.edu
 * username - postgres
 * password - password
+
+## Iowa State Degree Data Import
+CourseFlow now includes a JSON importer for major requirement data used by Requirement Coverage and Smart Scheduler.
+
+Endpoints:
+* `GET /api/majors/isu/template` - returns a sample payload structure
+* `POST /api/majors/isu/import` - import JSON payload in request body
+* `POST /api/majors/isu/import/file` - import a `.json` file via multipart form field `file`
+
+Template file:
+* `docs/isu-degree-import-template.json`
+
+Optional scraper to generate a majors dataset from the online ISU catalog:
+* Script: `webscraper/isu_degree_scraper.py`
+* Example:
+  * `python webscraper/isu_degree_scraper.py --output docs/isu-degree-dataset.json --catalog-year 2026-2027 --include-courses`
+* Then import:
+  * `POST /api/majors/isu/import/file` with `docs/isu-degree-dataset.json`

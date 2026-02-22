@@ -110,7 +110,8 @@ public class UserService {
                         u.getUsername(),
                         u.getFirstName(),
                         u.getLastName(),
-                        u.getMajor()))
+                        u.getMajor(),
+                        u.getProfilePictureUrl()))
                 .toList();
     }
 
@@ -122,7 +123,8 @@ public class UserService {
                         u.getUsername(),
                         u.getFirstName(),
                         u.getLastName(),
-                        u.getMajor()))
+                        u.getMajor(),
+                        u.getProfilePictureUrl()))
                 .sorted((a, b) -> String.valueOf(a.username()).compareToIgnoreCase(String.valueOf(b.username())))
                 .toList();
     }

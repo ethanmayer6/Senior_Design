@@ -1,0 +1,44 @@
+{
+  "source": "Iowa State University Catalog",
+  "catalogYear": "2026-2027",
+  "courses": [
+    {
+      "courseIdent": "COM_S_3090",
+      "name": "Software Development Practices",
+      "credits": 4,
+      "prereqTxt": "COM S 2270",
+      "prerequisites": [
+        "COM_S_2270"
+      ],
+      "description": "Introductory software development course.",
+      "hours": "Rec 3, Lab 2",
+      "offered": "FALL, SPRING"
+    }
+  ],
+  "majors": [
+    {
+      "name": "Software Engineering",
+      "college": "ENGINEERING",
+      "description": "Sample payload for CourseFlow import.",
+      "degreeRequirements": [
+        {
+          "name": "SE Core",
+          "satisfyingCredits": 37,
+          "courseIdents": [
+            "COM_S_3090"
+          ],
+          "requirementGroups": [
+            {
+              "name": "SE Technical Electives",
+              "satisfyingCredits": 6,
+              "courseIdents": [
+                "COM_S_3090"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

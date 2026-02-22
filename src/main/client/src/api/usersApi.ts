@@ -6,6 +6,7 @@ export type StudentSearchResult = {
   firstName: string;
   lastName: string;
   major: string;
+  profilePictureUrl?: string | null;
 };
 
 export async function searchUsersByUsername(username: string): Promise<StudentSearchResult[]> {

@@ -61,13 +61,30 @@ public class MajorService {
     public List<String> getAllMajorNames() {
         return majorRepository.findAllMajorNames();
     }
+    public List<MajorSummaryDTO> getAllMajorSummaries() {
+        return majorRepository.findAllMajorSummaries();
+    }
     public Major getMajorById(long id) {
         return majorRepository.findById(id)
                 .orElseThrow(() -> new MajorNotFoundException("Major with Id " + id + " not found"));
     }
     public Major getMajorByName(String name) {
-        return majorRepository.findByName(name)
-                .orElseThrow(() -> new MajorNotFoundException("Major with name " + name + " not found"));
+        List<Major> matches = majorRepository.findAllByNameIgnoreCase(name);
+        if (matches == null || matches.isEmpty()) {
+            throw new MajorNotFoundException("Major with name " + name + " not found");
+        }
+        // If duplicate names exist across colleges, prefer the entry with the
+        // richest requirement payload to reduce under-specified returns.
+        Major best = matches.get(0);
+        int bestScore = requirementScore(best);
+        for (Major major : matches) {
+            int score = requirementScore(major);
+            if (score > bestScore) {
+                best = major;
+                bestScore = score;
+            }
+        }
+        return best;
     }
 
     // UPDATE
@@ -99,4 +116,19 @@ public class MajorService {
     // Delete
     @Transactional
     public void deleteById(long id) { majorRepository.deleteById(id); }
+
+    private int requirementScore(Major major) {
+        if (major == null || major.getDegreeRequirements() == null) {
+            return 0;
+        }
+        int score = major.getDegreeRequirements().size() * 10;
+        for (DegreeRequirement requirement : major.getDegreeRequirements()) {
+            if (requirement == null) {
+                continue;
+            }
+            score += requirement.getCourses() == null ? 0 : requirement.getCourses().size();
+            score += requirement.getRequirementGroups() == null ? 0 : requirement.getRequirementGroups().size();
+        }
+        return score;
+    }
 }

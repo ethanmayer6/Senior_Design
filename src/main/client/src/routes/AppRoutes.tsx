@@ -13,6 +13,7 @@ import StudentSearch from '../pages/StudentSearch.tsx';
 import Settings from '../pages/Settings.tsx';
 import SmartScheduler from '../pages/SmartScheduler.tsx';
 import CurrentClasses from '../pages/CurrentClasses.tsx';
+import MajorsBrowse from '../pages/MajorsBrowse.tsx';
 
 export default function AppRoutes() {
   return (
@@ -31,6 +32,7 @@ export default function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/smart-scheduler" element={<SmartScheduler />} />
         <Route path="/current-classes" element={<CurrentClasses />} />
+        <Route path="/majors" element={<MajorsBrowse />} />
       </Routes>
     </BrowserRouter>
   );
