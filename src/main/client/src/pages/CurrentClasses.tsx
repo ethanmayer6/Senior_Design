@@ -4,6 +4,14 @@ import Header from '../components/header';
 import { getUserFlowchart } from '../api/flowchartApi';
 import type { CourseStatus, Flowchart } from '../api/flowchartApi';
 import { createStatusLookup, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import { FileUpload } from 'primereact/fileupload';
+import type { FileUploadSelectEvent } from 'primereact/fileupload';
+import {
+  getCurrentClassSchedule,
+  importClassSchedule,
+  type ClassScheduleEntry,
+} from '../api/classScheduleApi';
+import { publishAppNotification } from '../utils/notifications';
 
 function getCurrentTerm(date: Date): 'SPRING' | 'SUMMER' | 'FALL' {
   const month = date.getMonth() + 1;
@@ -14,7 +22,9 @@ function getCurrentTerm(date: Date): 'SPRING' | 'SUMMER' | 'FALL' {
 
 export default function CurrentClasses() {
   const [flowchart, setFlowchart] = useState<Flowchart | null>(null);
+  const [scheduleEntries, setScheduleEntries] = useState<ClassScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const today = useMemo(() => new Date(), []);
@@ -22,12 +32,16 @@ export default function CurrentClasses() {
   const currentTerm = getCurrentTerm(today);
 
   useEffect(() => {
-    async function loadFlowchart() {
+    async function loadData() {
       setLoading(true);
       setError(null);
       try {
-        const result = await getUserFlowchart();
-        setFlowchart(result);
+        const [flowchartResult, scheduleResult] = await Promise.all([
+          getUserFlowchart(),
+          getCurrentClassSchedule().catch(() => []),
+        ]);
+        setFlowchart(flowchartResult);
+        setScheduleEntries(scheduleResult);
       } catch (err: any) {
         const message = err?.response?.data?.message || err?.message || 'Failed to load current classes.';
         setError(message);
@@ -35,7 +49,7 @@ export default function CurrentClasses() {
         setLoading(false);
       }
     }
-    loadFlowchart();
+    loadData();
   }, []);
 
   const statusLookup = useMemo(() => createStatusLookup(flowchart?.courseStatusMap), [flowchart?.courseStatusMap]);
@@ -63,6 +77,37 @@ export default function CurrentClasses() {
       }),
     [today]
   );
+
+  const onScheduleImport = async (e: FileUploadSelectEvent) => {
+    const file = e.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const result = await importClassSchedule(file);
+      const [flowchartResult, scheduleResult] = await Promise.all([
+        getUserFlowchart(),
+        getCurrentClassSchedule(),
+      ]);
+      setFlowchart(flowchartResult);
+      setScheduleEntries(scheduleResult);
+
+      publishAppNotification({
+        level: 'success',
+        title: 'Schedule Imported',
+        message: `${result.importedRows} row(s) imported and synced to your current term.`,
+      });
+    } catch (err: any) {
+      const message = err?.response?.data || err?.message || 'Failed to import class schedule.';
+      publishAppNotification({
+        level: 'error',
+        title: 'Schedule Import Failed',
+        message: String(message),
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const statusClass = (status: CourseStatus | undefined) => {
     const normalized = normalizeStatus(status);
@@ -94,6 +139,26 @@ export default function CurrentClasses() {
               Back
             </Link>
           </div>
+          <div className="mt-4 flex max-w-xs items-center gap-3">
+            <FileUpload
+              name="file"
+              accept=".xlsx"
+              mode="basic"
+              auto
+              chooseLabel={importing ? 'Importing...' : 'Import Schedule Excel'}
+              chooseOptions={{ className: 'w-full text-center' }}
+              disabled={importing}
+              customUpload
+              uploadHandler={() => {}}
+              onSelect={onScheduleImport}
+              className="w-full"
+            />
+          </div>
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <span className="font-semibold">Workday export steps:</span>{' '}
+            go to Workday -&gt; Student -&gt; Academics -&gt; scroll down to Current Courses Snapshot -&gt; settings icon
+            -&gt; Download to Excel.
+          </div>
         </section>
 
         <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -118,7 +183,50 @@ export default function CurrentClasses() {
             </div>
           )}
 
-          {!loading && !error && currentSemester && currentCourses.length > 0 && (
+          {!loading && !error && scheduleEntries.length > 0 && (
+            <div>
+              <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
+                Imported schedule details for {currentTerm} {currentYear}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {scheduleEntries.map((entry) => (
+                  <article key={entry.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-900">
+                      {(entry.sectionCode && entry.sectionCode.length > 0 ? entry.sectionCode : entry.courseIdent || 'Course')}
+                    </div>
+                    <div className="mt-1 text-sm text-red-600">
+                      {entry.courseTitle || entry.catalogName || 'Untitled course'}
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                      <div>
+                        <span className="font-semibold">Meeting:</span>{' '}
+                        {entry.meetingPatternRaw || 'No scheduled meeting pattern'}
+                      </div>
+                      {(entry.instructor || entry.deliveryMode) && (
+                        <div>
+                          <span className="font-semibold">Instructor/Mode:</span>{' '}
+                          {[entry.instructor, entry.deliveryMode].filter(Boolean).join(' • ')}
+                        </div>
+                      )}
+                      {entry.locations && (
+                        <div>
+                          <span className="font-semibold">Location:</span> {entry.locations}
+                        </div>
+                      )}
+                      {(entry.freeDropDeadline || entry.withdrawDeadline) && (
+                        <div>
+                          <span className="font-semibold">Deadlines:</span>{' '}
+                          {[entry.freeDropDeadline, entry.withdrawDeadline].filter(Boolean).join(' / ')}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && scheduleEntries.length === 0 && currentSemester && currentCourses.length > 0 && (
             <div>
               <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
                 {currentTerm} {currentYear}

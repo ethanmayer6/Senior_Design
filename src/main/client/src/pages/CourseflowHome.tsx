@@ -3,14 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/header';
 import { logout } from '../utils/auth';
 import { getFriends, type StudentSearchResult } from '../api/usersApi';
-import {
-  getIsuImportJob,
-  retryIsuImportJob,
-  startIsuImportJobFromPublicFile,
-  type IsuImportJob,
-} from '../api/majorsApi';
-import { publishAppNotification } from '../utils/notifications';
 import FocusSafeModal from '../components/FocusSafeModal';
+import { getCurrentClassSchedule, getCourseByIdent, type ClassScheduleEntry } from '../api/classScheduleApi';
+import type { Course } from '../api/flowchartApi';
 
 const featureLinks = [
   {
@@ -18,36 +13,21 @@ const featureLinks = [
     description: 'Import your progress report and keep semester planning in one visual workspace.',
     to: '/dashboard',
     icon: 'pi pi-sitemap',
-  },
-  {
-    title: 'Course Catalog',
-    description: 'Search courses, review details, and find classes that satisfy your requirements.',
-    to: '/catalog',
-    icon: 'pi pi-book',
-  },
-  {
-    title: 'Course Badges',
-    description: 'Track milestones and celebrate your degree progress with achievement badges.',
-    to: '/badges',
-    icon: 'pi pi-star',
-  },
-  {
-    title: 'Student Search',
-    description: 'Search for existing student accounts by username so you can quickly find peers.',
-    to: '/student-search',
-    icon: 'pi pi-users',
+    image: '/feature-flowchart.svg',
   },
   {
     title: 'Smart Scheduler',
     description: 'Generate draft semester schedule options using your planning constraints.',
     to: '/smart-scheduler',
     icon: 'pi pi-calendar-plus',
+    image: '/feature-scheduler.svg',
   },
   {
     title: 'Majors Browse',
     description: 'Browse imported majors and inspect requirement structures and option groups.',
     to: '/majors',
     icon: 'pi pi-list',
+    image: '/feature-majors.svg',
   },
 ];
 
@@ -55,136 +35,17 @@ export default function CourseflowHome() {
   const navigate = useNavigate();
   const [friends, setFriends] = useState<StudentSearchResult[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
+  const [showFriendsList, setShowFriendsList] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<StudentSearchResult | null>(null);
-  const [importLoading, setImportLoading] = useState(false);
-  const [importMessage, setImportMessage] = useState<string | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [majorImportJob, setMajorImportJob] = useState<IsuImportJob | null>(null);
-  const [courseImportLoading, setCourseImportLoading] = useState(false);
-  const [courseImportMessage, setCourseImportMessage] = useState<string | null>(null);
-  const [courseImportError, setCourseImportError] = useState<string | null>(null);
-  const [courseImportJob, setCourseImportJob] = useState<IsuImportJob | null>(null);
+  const [scheduleEntries, setScheduleEntries] = useState<ClassScheduleEntry[]>([]);
+  const [now, setNow] = useState<Date>(new Date());
+  const [selectedTimelineEntry, setSelectedTimelineEntry] = useState<ClassScheduleEntry | null>(null);
+  const [selectedTimelineCourse, setSelectedTimelineCourse] = useState<Course | null>(null);
+  const [timelineDetailsLoading, setTimelineDetailsLoading] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const pollImportJob = async (jobId: string, setter: (job: IsuImportJob) => void): Promise<IsuImportJob> => {
-    let latest = await getIsuImportJob(jobId);
-    setter(latest);
-    while (latest.status === 'RUNNING') {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      latest = await getIsuImportJob(jobId);
-      setter(latest);
-    }
-    return latest;
-  };
-
-  const handleImportIsuData = async () => {
-    setImportLoading(true);
-    setImportMessage(null);
-    setImportError(null);
-    setMajorImportJob(null);
-    try {
-      const started = await startIsuImportJobFromPublicFile('MAJORS_ONLY', '/isu-degree-dataset.json', 80);
-      setMajorImportJob(started);
-      const finished = await pollImportJob(started.jobId, setMajorImportJob);
-      const result = finished.result;
-      setImportMessage(
-        `ISU data imported: ${result?.majorsCreated ?? 0} majors created, ${result?.majorsUpdated ?? 0} updated, ${result?.requirementsCreated ?? 0} requirements loaded.`
-      );
-      if (finished.status === 'COMPLETED_WITH_ERRORS' || finished.status === 'FAILED') {
-        setImportError(finished.message || 'Import completed with errors.');
-        publishAppNotification({
-          level: 'warning',
-          title: 'Major Import Partial Failure',
-          message: `${Object.keys(finished.failedChunks ?? {}).length} chunk(s) failed. Use retry to resume.`,
-        });
-      }
-    } catch (err: any) {
-      const apiMessage = err?.response?.data?.message;
-      const message = apiMessage || err?.message || 'Failed to import ISU degree dataset.';
-      setImportError(message);
-      publishAppNotification({
-        level: 'error',
-        title: 'Degree Import Failed',
-        message: `${message} Verify dataset file and retry import.`,
-      });
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
-  const handleImportCourseData = async () => {
-    setCourseImportLoading(true);
-    setCourseImportMessage(null);
-    setCourseImportError(null);
-    setCourseImportJob(null);
-    try {
-      const started = await startIsuImportJobFromPublicFile('COURSES_ONLY', '/isu-degree-dataset.json', 200);
-      setCourseImportJob(started);
-      const finished = await pollImportJob(started.jobId, setCourseImportJob);
-      const result = finished.result;
-      setCourseImportMessage(
-        `Course data imported: ${result?.coursesCreated ?? 0} courses created, ${result?.coursesUpdated ?? 0} updated.`
-      );
-      if (finished.status === 'COMPLETED_WITH_ERRORS' || finished.status === 'FAILED') {
-        setCourseImportError(finished.message || 'Course import completed with errors.');
-        publishAppNotification({
-          level: 'warning',
-          title: 'Course Import Partial Failure',
-          message: `${Object.keys(finished.failedChunks ?? {}).length} chunk(s) failed. Use retry to resume.`,
-        });
-      }
-    } catch (err: any) {
-      const apiMessage = err?.response?.data?.message;
-      const message = apiMessage || err?.message || 'Failed to import course data.';
-      setCourseImportError(message);
-      publishAppNotification({
-        level: 'error',
-        title: 'Course Import Failed',
-        message: `${message} Regenerate course data and try again.`,
-      });
-    } finally {
-      setCourseImportLoading(false);
-    }
-  };
-
-  const handleRetryMajorImport = async () => {
-    if (!majorImportJob?.jobId) return;
-    setImportLoading(true);
-    setImportError(null);
-    try {
-      await retryIsuImportJob(majorImportJob.jobId);
-      const finished = await pollImportJob(majorImportJob.jobId, setMajorImportJob);
-      if (finished.status === 'COMPLETED') {
-        setImportMessage('Major import retry completed successfully.');
-        setImportError(null);
-      } else {
-        setImportError(finished.message || 'Retry still has failed chunks.');
-      }
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
-  const handleRetryCourseImport = async () => {
-    if (!courseImportJob?.jobId) return;
-    setCourseImportLoading(true);
-    setCourseImportError(null);
-    try {
-      await retryIsuImportJob(courseImportJob.jobId);
-      const finished = await pollImportJob(courseImportJob.jobId, setCourseImportJob);
-      if (finished.status === 'COMPLETED') {
-        setCourseImportMessage('Course import retry completed successfully.');
-        setCourseImportError(null);
-      } else {
-        setCourseImportError(finished.message || 'Retry still has failed chunks.');
-      }
-    } finally {
-      setCourseImportLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -202,162 +63,166 @@ export default function CourseflowHome() {
     void loadFriends();
   }, []);
 
+  useEffect(() => {
+    async function loadSchedule() {
+      try {
+        const rows = await getCurrentClassSchedule();
+        setScheduleEntries(rows);
+      } catch {
+        setScheduleEntries([]);
+      }
+    }
+    void loadSchedule();
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const todayCode = (() => {
+    const day = now.getDay(); // 0=Sun...6=Sat
+    if (day === 0) return 'U';
+    if (day === 1) return 'M';
+    if (day === 2) return 'T';
+    if (day === 3) return 'W';
+    if (day === 4) return 'R';
+    if (day === 5) return 'F';
+    return 'S';
+  })();
+
+  const parseMinutes = (timeValue: string | null | undefined): number | null => {
+    if (!timeValue || typeof timeValue !== 'string') return null;
+    const match = timeValue.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+  };
+
+  const formatTime = (totalMinutes: number): string => {
+    const h24 = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const suffix = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
+  };
+
+  const formatIsoTime = (timeValue: string | null | undefined): string => {
+    const minutes = parseMinutes(timeValue ?? null);
+    if (minutes === null) return 'TBD';
+    return formatTime(minutes);
+  };
+
+  const openTimelineCourse = async (entry: ClassScheduleEntry) => {
+    setSelectedTimelineEntry(entry);
+    setSelectedTimelineCourse(null);
+    if (!entry.courseIdent) return;
+    setTimelineDetailsLoading(true);
+    try {
+      const details = await getCourseByIdent(entry.courseIdent);
+      setSelectedTimelineCourse(details);
+    } catch {
+      setSelectedTimelineCourse(null);
+    } finally {
+      setTimelineDetailsLoading(false);
+    }
+  };
+
+  const todaysSchedule = scheduleEntries
+    .filter((entry) => (entry.meetingDays || '').toUpperCase().includes(todayCode))
+    .map((entry) => {
+      const start = parseMinutes(entry.meetingStartTime);
+      const end = parseMinutes(entry.meetingEndTime);
+      return { entry, start, end };
+    })
+    .filter((x) => x.start !== null && x.end !== null && (x.end as number) > (x.start as number))
+    .sort((a, b) => (a.start as number) - (b.start as number));
+
+  const timelineStart = 7 * 60; // 7:00 AM
+  const timelineEnd = 22 * 60; // 10:00 PM
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const clampedNow = Math.max(timelineStart, Math.min(timelineEnd, nowMinutes));
+  const nowPercent = ((clampedNow - timelineStart) / (timelineEnd - timelineStart)) * 100;
+
+  const timeTicks = [8 * 60, 10 * 60, 12 * 60, 14 * 60, 16 * 60, 18 * 60, 20 * 60];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100">
       <Header />
 
       <main className="pt-24 px-3 pb-10 sm:px-5 lg:px-6">
-        <div className="mx-auto grid w-full max-w-[1820px] items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)_18rem]">
-          <aside className="hidden h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:sticky lg:top-28 lg:block">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Friends List</p>
-                <h2 className="mt-1 text-base font-semibold text-gray-800">Your Friends</h2>
-              </div>
-              <Link
-                to="/student-search"
-                className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-              >
-                <i className="pi pi-user-plus mr-1 text-red-500"></i>
-                Add
-              </Link>
-            </div>
-
-            <div className="mt-4">
-              {friendsLoading ? (
-                <div className="text-sm text-gray-500">Loading friends...</div>
-              ) : friends.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-                  No friends added yet.
-                </div>
-              ) : (
-                <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-                  {friends.map((friend) => (
-                    <button
-                      key={friend.id}
-                      type="button"
-                      onClick={() => setSelectedFriend(friend)}
-                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-red-300 hover:bg-red-50"
-                    >
-                      <div className="text-sm font-semibold text-gray-800">{friend.username}</div>
-                      <div className="mt-1 text-xs text-gray-600">
-                        {`${friend.firstName || ''} ${friend.lastName || ''}`.trim() || 'Name not provided'}
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">Major: {friend.major || 'Not set'}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
+        <div className="mx-auto grid w-full max-w-[1820px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
 
           <section className="mx-auto w-full max-w-none">
-            <div className="rounded-2xl border border-red-100 bg-white/90 p-4 shadow-sm sm:p-5">
-              <div className="flex justify-center">
-                <img
-                  src="/logo.png"
-                  alt="CourseFlow"
-                  className="w-full max-w-[400px] sm:max-w-[500px]"
-                />
-              </div>
-
-              <div className="mt-6 flex gap-3 md:hidden">
-                <button
-                  type="button"
-                  onClick={handleImportIsuData}
-                  disabled={importLoading}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <i className="pi pi-upload mr-2 text-red-500"></i>
-                  {importLoading ? 'Importing...' : 'Import ISU Degree Data'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleImportCourseData}
-                  disabled={courseImportLoading}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <i className="pi pi-database mr-2 text-red-500"></i>
-                  {courseImportLoading ? 'Importing...' : 'Import Course Data'}
-                </button>
-                <Link
-                  to="/settings"
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-                >
-                  <i className="pi pi-cog mr-2 text-red-500"></i>
-                  Settings
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-                >
-                  <i className="pi pi-sign-out mr-2 text-red-500"></i>
-                  Log out
-                </button>
-              </div>
-
-              {importMessage && (
-                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                  {importMessage}
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Today Timeline</p>
+                  <h2 className="text-sm font-semibold text-gray-800">
+                    {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </h2>
                 </div>
-              )}
-            {importError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {importError}
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-gray-700">
+                  {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </div>
               </div>
-            )}
-            {majorImportJob && importLoading && (
-              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                Import progress: {majorImportJob.progressPercent}% ({majorImportJob.processedChunks}/{majorImportJob.totalChunks} chunks)
+
+              <div className="relative mt-4 rounded-xl border border-gray-200 bg-slate-50 p-3">
+                <div className="relative h-16 overflow-hidden rounded-lg bg-white">
+                  {todaysSchedule.map(({ entry, start, end }) => {
+                    const left = (((start as number) - timelineStart) / (timelineEnd - timelineStart)) * 100;
+                    const width = (((end as number) - (start as number)) / (timelineEnd - timelineStart)) * 100;
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => {
+                          void openTimelineCourse(entry);
+                        }}
+                        className="absolute top-2 bottom-2 rounded-md border border-red-300 bg-red-100 px-2 py-1 text-left text-[11px] font-semibold text-gray-700 transition hover:bg-red-200"
+                        style={{ left: `${Math.max(0, left)}%`, width: `${Math.max(4, width)}%` }}
+                        title={`${entry.courseIdent} • ${entry.courseTitle || entry.catalogName || ''}`}
+                      >
+                        <div className="truncate">{entry.courseIdent}</div>
+                        <div className="truncate text-[10px] font-normal text-gray-600">
+                          {formatTime(start as number)} - {formatTime(end as number)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <div className="absolute top-0 bottom-0 w-0.5 bg-blue-500" style={{ left: `${nowPercent}%` }} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
+                  {timeTicks.map((tick) => (
+                    <span key={tick}>{formatTime(tick)}</span>
+                  ))}
+                </div>
+                {todaysSchedule.length === 0 && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    No timed classes found for today. Import your schedule file on Current Classes if needed.
+                  </p>
+                )}
               </div>
-            )}
-            {majorImportJob && !importLoading && Object.keys(majorImportJob.failedChunks ?? {}).length > 0 && (
-              <button
-                type="button"
-                onClick={handleRetryMajorImport}
-                className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-              >
-                Retry Failed Major Import Chunks
-              </button>
-            )}
-            {courseImportMessage && (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                {courseImportMessage}
-              </div>
-            )}
-            {courseImportError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {courseImportError}
-              </div>
-            )}
-            {courseImportJob && courseImportLoading && (
-              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                Course import progress: {courseImportJob.progressPercent}% ({courseImportJob.processedChunks}/{courseImportJob.totalChunks} chunks)
-              </div>
-            )}
-            {courseImportJob && !courseImportLoading && Object.keys(courseImportJob.failedChunks ?? {}).length > 0 && (
-              <button
-                type="button"
-                onClick={handleRetryCourseImport}
-                className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-              >
-                Retry Failed Course Import Chunks
-              </button>
-            )}
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {featureLinks.map((feature) => (
                 <Link
                   key={feature.to}
                   to={feature.to}
                   className="group block rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-md"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-500 transition group-hover:bg-red-100">
-                    <i className={`${feature.icon} text-xl`}></i>
+                  <div className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-slate-50">
+                    <img
+                      src={feature.image}
+                      alt={`${feature.title} illustration`}
+                      className="h-36 w-full object-cover"
+                      loading="lazy"
+                    />
                   </div>
-                  <h2 className="mt-4 text-xl font-semibold text-gray-800">{feature.title}</h2>
+                  <h2 className="text-xl font-semibold text-gray-800">{feature.title}</h2>
                   <p className="mt-2 text-sm text-gray-600">{feature.description}</p>
                 </Link>
               ))}
@@ -382,6 +247,35 @@ export default function CourseflowHome() {
               <i className="pi pi-cog mr-2 text-red-500"></i>
               Settings
             </Link>
+            <button
+              type="button"
+              onClick={() => setShowFriendsList(true)}
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-users mr-2 text-red-500"></i>
+              Friends List
+            </button>
+            <Link
+              to="/catalog"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-book mr-2 text-red-500"></i>
+              Course Catalog
+            </Link>
+            <Link
+              to="/student-search"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-users mr-2 text-red-500"></i>
+              Student Search
+            </Link>
+            <Link
+              to="/badges"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-star mr-2 text-red-500"></i>
+              Course Badges
+            </Link>
             <Link
               to="/current-classes"
               className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
@@ -389,25 +283,15 @@ export default function CourseflowHome() {
               <i className="pi pi-calendar mr-2 text-red-500"></i>
               Current Classes
             </Link>
-
-            <button
-              type="button"
-              onClick={handleImportIsuData}
-              disabled={importLoading}
-              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            <a
+              href="https://canvas.iastate.edu/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
             >
-              <i className="pi pi-upload mr-2 text-red-500"></i>
-              {importLoading ? 'Importing...' : 'Import ISU Degree Data'}
-            </button>
-            <button
-              type="button"
-              onClick={handleImportCourseData}
-              disabled={courseImportLoading}
-              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <i className="pi pi-database mr-2 text-red-500"></i>
-              {courseImportLoading ? 'Importing...' : 'Import Course Data'}
-            </button>
+              <i className="pi pi-external-link mr-2 text-red-500"></i>
+              Canvas
+            </a>
 
             <button
               type="button"
@@ -417,58 +301,57 @@ export default function CourseflowHome() {
               <i className="pi pi-sign-out mr-2 text-red-500"></i>
               Log out
             </button>
-
-            {importMessage && (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                {importMessage}
-              </div>
-            )}
-            {importError && (
-              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {importError}
-              </div>
-            )}
-            {majorImportJob && importLoading && (
-              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                Import progress: {majorImportJob.progressPercent}% ({majorImportJob.processedChunks}/{majorImportJob.totalChunks})
-              </div>
-            )}
-            {majorImportJob && !importLoading && Object.keys(majorImportJob.failedChunks ?? {}).length > 0 && (
-              <button
-                type="button"
-                onClick={handleRetryMajorImport}
-                className="mt-2 w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-              >
-                Retry Failed Major Chunks
-              </button>
-            )}
-            {courseImportMessage && (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                {courseImportMessage}
-              </div>
-            )}
-            {courseImportError && (
-              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {courseImportError}
-              </div>
-            )}
-            {courseImportJob && courseImportLoading && (
-              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                Course progress: {courseImportJob.progressPercent}% ({courseImportJob.processedChunks}/{courseImportJob.totalChunks})
-              </div>
-            )}
-            {courseImportJob && !courseImportLoading && Object.keys(courseImportJob.failedChunks ?? {}).length > 0 && (
-              <button
-                type="button"
-                onClick={handleRetryCourseImport}
-                className="mt-2 w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-              >
-                Retry Failed Course Chunks
-              </button>
-            )}
           </aside>
         </div>
       </main>
+
+      <FocusSafeModal
+        open={showFriendsList}
+        onClose={() => setShowFriendsList(false)}
+        title="Friends List"
+        maxWidthClass="max-w-lg"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">Your Friends</h3>
+          <Link
+            to="/student-search"
+            onClick={() => setShowFriendsList(false)}
+            className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+          >
+            <i className="pi pi-user-plus mr-1 text-red-500"></i>
+            Add
+          </Link>
+        </div>
+        <div className="mt-4">
+          {friendsLoading ? (
+            <div className="text-sm text-gray-500">Loading friends...</div>
+          ) : friends.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+              No friends added yet.
+            </div>
+          ) : (
+            <div className="max-h-[24rem] space-y-2 overflow-y-auto pr-1">
+              {friends.map((friend) => (
+                <button
+                  key={friend.id}
+                  type="button"
+                  onClick={() => {
+                    setShowFriendsList(false);
+                    setSelectedFriend(friend);
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-red-300 hover:bg-red-50"
+                >
+                  <div className="text-sm font-semibold text-gray-800">{friend.username}</div>
+                  <div className="mt-1 text-xs text-gray-600">
+                    {`${friend.firstName || ''} ${friend.lastName || ''}`.trim() || 'Name not provided'}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">Major: {friend.major || 'Not set'}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </FocusSafeModal>
 
       <FocusSafeModal
         open={selectedFriend !== null}
@@ -511,6 +394,93 @@ export default function CourseflowHome() {
               </div>
             </div>
           </>
+        )}
+      </FocusSafeModal>
+
+      <FocusSafeModal
+        open={selectedTimelineEntry !== null}
+        onClose={() => {
+          setSelectedTimelineEntry(null);
+          setSelectedTimelineCourse(null);
+          setTimelineDetailsLoading(false);
+        }}
+        title="Course Details"
+        maxWidthClass="max-w-2xl"
+      >
+        {selectedTimelineEntry && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border border-gray-200 bg-slate-50 p-3">
+              <div className="text-base font-semibold text-gray-800">
+                {selectedTimelineEntry.sectionCode || selectedTimelineEntry.courseIdent || 'Course'}
+              </div>
+              <div className="mt-1 text-gray-700">
+                {selectedTimelineEntry.courseTitle || selectedTimelineEntry.catalogName || 'Untitled course'}
+              </div>
+              <div className="mt-2 grid gap-2 text-xs text-gray-700 sm:grid-cols-2">
+                <div>
+                  <span className="font-semibold">Meeting:</span>{' '}
+                  {selectedTimelineEntry.meetingPatternRaw || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Time:</span>{' '}
+                  {formatIsoTime(selectedTimelineEntry.meetingStartTime)} -{' '}
+                  {formatIsoTime(selectedTimelineEntry.meetingEndTime)}
+                </div>
+                <div>
+                  <span className="font-semibold">Instructor:</span>{' '}
+                  {selectedTimelineEntry.instructor || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Mode:</span>{' '}
+                  {selectedTimelineEntry.deliveryMode || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Location:</span>{' '}
+                  {selectedTimelineEntry.locations || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Format:</span>{' '}
+                  {selectedTimelineEntry.instructionalFormat || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Free Drop:</span>{' '}
+                  {selectedTimelineEntry.freeDropDeadline || 'TBD'}
+                </div>
+                <div>
+                  <span className="font-semibold">Withdraw:</span>{' '}
+                  {selectedTimelineEntry.withdrawDeadline || 'TBD'}
+                </div>
+              </div>
+            </div>
+
+            {timelineDetailsLoading && <div className="text-xs text-gray-500">Loading catalog details...</div>}
+
+            {!timelineDetailsLoading && selectedTimelineCourse && (
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="text-sm font-semibold text-gray-800">
+                  Catalog: {selectedTimelineCourse.courseIdent.replace('_', ' ')}
+                </div>
+                <div className="mt-1 text-xs text-gray-600">
+                  Credits: {selectedTimelineCourse.credits} | Offered: {selectedTimelineCourse.offered || 'TBD'} | Hours:{' '}
+                  {selectedTimelineCourse.hours || 'TBD'}
+                </div>
+                <div className="mt-2 text-xs text-gray-700">
+                  <span className="font-semibold">Prerequisite Text:</span>{' '}
+                  {selectedTimelineCourse.prereq_txt || 'None'}
+                </div>
+                <div className="mt-1 text-xs text-gray-700">
+                  <span className="font-semibold">Prerequisites:</span>{' '}
+                  {selectedTimelineCourse.prerequisites?.length
+                    ? selectedTimelineCourse.prerequisites.join(', ')
+                    : 'None'}
+                </div>
+                <div className="mt-2 text-xs text-gray-700">
+                  <span className="font-semibold">Description:</span>{' '}
+                  {selectedTimelineCourse.description || 'No description.'}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </FocusSafeModal>
     </div>
