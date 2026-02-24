@@ -1,5 +1,5 @@
 // src/components/Flowchart.tsx
-import { useEffect, memo } from 'react';
+import { useEffect, memo, type CSSProperties } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -17,15 +17,16 @@ import ReactFlow, {
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
+import './Flowchart.css';
 import type { Course as FlowchartCourse, CourseStatus, Flowchart as FlowchartEntity } from '../api/flowchartApi';
-import { createStatusLookup, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import { createStatusLookup, resolveCourseStatus } from '../utils/flowchartStatus';
 
 type CourseData = {
   label: string;
-  cls: string;
   title?: string;
   status?: CourseStatus;
   course?: FlowchartCourse;
+  accentColor: string;
 };
 type SemesterData = { title: string };
 
@@ -34,33 +35,39 @@ const CourseNode = memo(({ data }: NodeProps<CourseData>) => {
     .trim()
     .toUpperCase()
     .replace(/[\s-]+/g, '_');
+  const isCompleted = normalizedStatus === 'COMPLETED';
   const isInProgress = normalizedStatus === 'IN_PROGRESS';
+  const statusClass = isCompleted
+    ? 'cf-course-node--completed'
+    : isInProgress
+      ? 'cf-course-node--inprogress'
+      : 'cf-course-node--default';
+  const statusTag = isCompleted ? 'Done' : isInProgress ? 'IP' : null;
+  const statusTagClass = isCompleted
+    ? 'cf-course-status cf-course-status--completed'
+    : 'cf-course-status cf-course-status--inprogress';
 
   return (
     <div
       title={data.title}
-      className={[
-        'h-[4.5rem] w-[4.5rem] rounded-full',
-        'flex items-center justify-center text-center',
-        'px-1 font-semibold text-[11px] leading-tight shadow-sm cursor-pointer select-none relative',
-        data.cls,
-      ].join(' ')}
+      className={`cf-course-node ${statusClass}`}
+      style={{ '--cf-course-accent': data.accentColor } as CSSProperties}
     >
-      {data.label}
-      {isInProgress && (
-        <span className="absolute -bottom-1 -right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-black shadow-sm">
-          IP
-        </span>
-      )}
-      <Handle type="target" position={Position.Top} className="opacity-0" />
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+      <span className="cf-course-node-accent" />
+      <span className="cf-course-node-code">{data.label}</span>
+      {statusTag && <span className={statusTagClass}>{statusTag}</span>}
+      <Handle type="target" position={Position.Top} className="cf-flow-handle" />
+      <Handle type="source" position={Position.Bottom} className="cf-flow-handle" />
     </div>
   );
 });
 
 const SemesterNode = memo(({ data }: NodeProps<SemesterData>) => (
-  <div className="h-full w-full rounded-xl border border-slate-300 bg-slate-50/90 p-3 shadow-sm">
-    <div className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">{data.title}</div>
+  <div className="cf-semester-node h-full w-full">
+    <div className="cf-semester-title">
+      <span className="cf-semester-title-dot" />
+      {data.title}
+    </div>
   </div>
 ));
 
@@ -78,21 +85,21 @@ const INNER_PADDING_Y = 38;
 const MIN_SEMESTER_HEIGHT = 150;
 const Y_SPACING = 42;
 
-const deptClasses: Record<string, string> = {
-  COMS: 'bg-sky-500 text-white',
-  SE: 'bg-rose-500 text-white',
-  CPRE: 'bg-orange-400 text-white',
-  MATH: 'bg-pink-400 text-white',
-  PHYS: 'bg-green-400 text-white',
-  ENGL: 'bg-yellow-300 text-black',
-  STAT: 'bg-purple-500 text-white',
-  CHEM: 'bg-emerald-400 text-white',
-  ECON: 'bg-cyan-400 text-white',
-  LIB: 'bg-blue-400 text-white',
-  IE: 'bg-amber-500 text-white',
-  SPCM: 'bg-amber-300 text-black',
-  ART: 'bg-indigo-400 text-white',
-  DEFAULT: 'bg-gray-400 text-white',
+const deptColors: Record<string, string> = {
+  COMS: '#0ea5e9',
+  SE: '#fb7185',
+  CPRE: '#f97316',
+  MATH: '#ec4899',
+  PHYS: '#10b981',
+  ENGL: '#f59e0b',
+  STAT: '#8b5cf6',
+  CHEM: '#14b8a6',
+  ECON: '#06b6d4',
+  LIB: '#3b82f6',
+  IE: '#d97706',
+  SPCM: '#f59e0b',
+  ART: '#6366f1',
+  DEFAULT: '#64748b',
 };
 
 function normalizeCourseIdent(ident: string | undefined | null): string {
@@ -191,15 +198,7 @@ export default function Flowchart({
         const courseIdent = c.courseIdent || `UNKNOWN_${sem.id}_${placedCount}`;
         const prefix = courseIdent.split('_')[0];
         const status = resolveCourseStatus(statusLookup, courseIdent);
-        const normalizedStatus = normalizeStatus(status);
-        const isCompleted = normalizedStatus === 'COMPLETED';
-        const isInProgress = normalizedStatus === 'IN_PROGRESS';
-        const color = deptClasses[prefix] || deptClasses.DEFAULT;
-        const cls = isCompleted
-          ? `${color} ring-2 ring-emerald-300`
-          : isInProgress
-            ? `${color} ring-2 ring-amber-300`
-            : `${color} opacity-95`;
+        const accentColor = deptColors[prefix] || deptColors.DEFAULT;
         const nodeId = `${semId}__${courseIdent}__${placedCount}`;
 
         newNodes.push({
@@ -207,10 +206,10 @@ export default function Flowchart({
           type: 'course',
           data: {
             label: courseIdent.replace('_', ' '),
-            cls,
             title: `${c.name}${status ? ` (${status})` : ''}`,
             status,
             course: c,
+            accentColor,
           },
           parentNode: semId,
           extent: 'parent',
@@ -256,8 +255,8 @@ export default function Flowchart({
           target: nodeId,
           type: 'smoothstep',
           animated: false,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
-          style: { stroke: '#64748b', strokeWidth: 1.8 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#94a3b8' },
+          style: { stroke: '#94a3b8', strokeWidth: 1.7 },
         });
       });
     });
@@ -277,13 +276,24 @@ export default function Flowchart({
   const hasRenderableData = nodes.length > 0;
 
   return (
-    <div className="relative h-[80vh] min-h-[560px] w-full max-w-[980px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="cf-flowchart-shell relative h-[80vh] min-h-[600px] w-full max-w-none overflow-hidden rounded-2xl border border-slate-200">
+      <div className="cf-flowchart-legend" aria-hidden="true">
+        <span className="cf-flowchart-legend-item">
+          <span className="cf-flowchart-legend-dot cf-flowchart-legend-dot--completed" />
+          Completed
+        </span>
+        <span className="cf-flowchart-legend-item">
+          <span className="cf-flowchart-legend-dot cf-flowchart-legend-dot--inprogress" />
+          In Progress
+        </span>
+      </div>
       {!hasRenderableData && (
         <div className="absolute z-10 p-3 text-sm text-slate-600">
           Flowchart loaded, but no renderable courses were found.
         </div>
       )}
       <ReactFlow
+        className="cf-flowchart-canvas"
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -299,11 +309,11 @@ export default function Flowchart({
         <MiniMap
           zoomable
           pannable
-          nodeColor={(node: Node) => (node.type === 'semester' ? '#cbd5e1' : '#60a5fa')}
-          className="!bg-white"
+          nodeColor={(node: Node) => (node.type === 'semester' ? '#cbd5e1' : '#94a3b8')}
+          className="cf-flowchart-minimap"
         />
-        <Controls />
-        <Background gap={14} color="#e2e8f0" />
+        <Controls className="cf-flowchart-controls" />
+        <Background gap={16} color="#e2e8f0" />
       </ReactFlow>
     </div>
   );
