@@ -1,0 +1,16 @@
+{
+  "source": "https://catalog.iastate.edu/faculty/",
+  "scrapedAt": "2026-02-26T00:00:00Z",
+  "professors": [
+    {
+      "fullName": "Jane Doe",
+      "title": "Professor of Computer Science",
+      "department": "Computer Science",
+      "email": "jdoe@iastate.edu",
+      "profileUrl": "https://www.cs.iastate.edu/people/jane-doe",
+      "bio": "Professor of Computer Science. B.S. ..., Ph.D. ...",
+      "sourceSystem": "ISU_CATALOG",
+      "externalId": "jane-doe"
+    }
+  ]
+}

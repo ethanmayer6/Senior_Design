@@ -66,3 +66,29 @@ Optional scraper to generate a majors dataset from the online ISU catalog:
   * `python webscraper/isu_degree_scraper.py --output docs/isu-degree-dataset.json --catalog-year 2026-2027 --include-courses`
 * Then import:
   * `POST /api/majors/isu/import/file` with `docs/isu-degree-dataset.json`
+
+## Iowa State Professor Reviews Module
+CourseFlow now includes a professor browsing + review module, plus an ISU faculty scraper/import flow.
+
+On startup, the app now auto-seeds the bundled ISU professor dataset only when the `professors` table is empty. Manual admin import is still available if you want to refresh or overwrite the directory later.
+Existing professor rows are also normalized on startup so department filters stay clean even if older imported records included title or degree noise.
+
+Endpoints:
+* `GET /api/professors` - browse/search professors
+* `GET /api/professors/status` - directory readiness for first-time seeding
+* `GET /api/professors/{id}` - professor detail + rating summary
+* `GET /api/professors/{id}/reviews` - paged reviews
+* `POST /api/professors/{id}/reviews` - create review (student role)
+* `PUT /api/professors/{id}/reviews/me` - update own review
+* `DELETE /api/professors/{id}/reviews/me` - delete own review
+
+Admin import endpoints:
+* `POST /api/admin/professors/import` - import JSON payload
+* `POST /api/admin/professors/import/file` - import JSON file with multipart `file`
+
+Faculty scraper:
+* Script: `webscraper/isu_professor_scraper.py`
+* Example:
+  * `python webscraper/isu_professor_scraper.py --output docs/isu-professors-dataset.json`
+* Import scraped data:
+  * `POST /api/admin/professors/import/file` with `docs/isu-professors-dataset.json`
