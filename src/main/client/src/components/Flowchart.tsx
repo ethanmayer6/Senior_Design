@@ -162,7 +162,12 @@ export default function Flowchart({
       string,
       Array<{ nodeId: string; semRank: number }>
     >();
-    const targetNodeRefs: Array<{ nodeId: string; semRank: number; course: FlowchartCourse }> = [];
+    const targetNodeRefs: Array<{
+      nodeId: string;
+      semRank: number;
+      course: FlowchartCourse;
+      accentColor: string;
+    }> = [];
 
     let currentY = 0;
     sortedSems.forEach((sem) => {
@@ -225,14 +230,14 @@ export default function Flowchart({
           }
           courseNodeRefsByIdent.get(normalizedIdent)?.push({ nodeId, semRank });
         }
-        targetNodeRefs.push({ nodeId, semRank, course: c });
+        targetNodeRefs.push({ nodeId, semRank, course: c, accentColor });
         placedCount++;
       });
 
       currentY += semesterHeight + Y_SPACING;
     });
 
-    targetNodeRefs.forEach(({ nodeId, semRank, course }) => {
+    targetNodeRefs.forEach(({ nodeId, semRank, course, accentColor }) => {
       const prereqs = extractPrereqs(course);
       prereqs.forEach((prereqIdent) => {
         const normalizedPrereq = normalizeCourseIdent(prereqIdent);
@@ -255,8 +260,8 @@ export default function Flowchart({
           target: nodeId,
           type: 'smoothstep',
           animated: false,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#94a3b8' },
-          style: { stroke: '#94a3b8', strokeWidth: 1.7 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: accentColor },
+          style: { stroke: accentColor, strokeWidth: 1.7 },
         });
       });
     });

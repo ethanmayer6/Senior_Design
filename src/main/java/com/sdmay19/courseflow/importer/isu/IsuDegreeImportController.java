@@ -5,6 +5,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/majors/isu")
 public class IsuDegreeImportController {
@@ -70,6 +76,29 @@ public class IsuDegreeImportController {
         return ResponseEntity.accepted().body(response);
     }
 
+    @PostMapping("/import/local")
+    public ResponseEntity<IsuDegreeImportResult> importLocalDataset(
+            @RequestParam(value = "path", required = false) String path,
+            @RequestParam(value = "mode", defaultValue = "ALL") IsuImportMode mode) throws Exception {
+        IsuDegreeDataset dataset = readDatasetFromServerPath(path);
+        IsuDegreeImportResult result = switch (mode == null ? IsuImportMode.ALL : mode) {
+            case MAJORS_ONLY -> importService.importMajorsOnly(dataset);
+            case COURSES_ONLY -> importService.importCoursesOnly(dataset);
+            case ALL -> importService.importDataset(dataset);
+        };
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/import/local/async")
+    public ResponseEntity<IsuImportJobResponse> importLocalDatasetAsync(
+            @RequestParam(value = "path", required = false) String path,
+            @RequestParam(value = "mode", defaultValue = "ALL") IsuImportMode mode,
+            @RequestParam(value = "chunkSize", defaultValue = "100") int chunkSize) throws Exception {
+        IsuDegreeDataset dataset = readDatasetFromServerPath(path);
+        IsuImportJobResponse response = importJobService.startJob(dataset, mode, chunkSize);
+        return ResponseEntity.accepted().body(response);
+    }
+
     @GetMapping("/import/jobs/{jobId}")
     public ResponseEntity<IsuImportJobResponse> getImportJob(@PathVariable String jobId) {
         return ResponseEntity.ok(importJobService.getJob(jobId));
@@ -114,5 +143,28 @@ public class IsuDegreeImportController {
                 "2026-2027",
                 java.util.List.of(course),
                 java.util.List.of(major));
+    }
+
+    private IsuDegreeDataset readDatasetFromServerPath(String requestedPath) throws Exception {
+        Path workspaceRoot = Paths.get("").toAbsolutePath().normalize();
+        List<Path> candidates = new ArrayList<>();
+
+        if (requestedPath != null && !requestedPath.isBlank()) {
+            candidates.add(workspaceRoot.resolve(requestedPath).normalize());
+        }
+        candidates.add(workspaceRoot.resolve("docs/isu-degree-dataset.json").normalize());
+        candidates.add(workspaceRoot.resolve("src/main/resources/static/isu-degree-dataset.json").normalize());
+
+        for (Path candidate : candidates) {
+            if (!candidate.startsWith(workspaceRoot)) {
+                continue;
+            }
+            if (!Files.exists(candidate) || !Files.isRegularFile(candidate)) {
+                continue;
+            }
+            return objectMapper.readValue(candidate.toFile(), IsuDegreeDataset.class);
+        }
+
+        throw new IllegalArgumentException("No readable ISU dataset file found. Expected docs/isu-degree-dataset.json.");
     }
 }

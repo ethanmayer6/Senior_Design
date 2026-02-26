@@ -202,6 +202,17 @@ export async function startIsuImportJobFromPublicFile(
   return res.data;
 }
 
+export async function startIsuImportJobFromServerDataset(
+  mode: IsuImportMode,
+  datasetPath = 'docs/isu-degree-dataset.json',
+  chunkSize = 100
+): Promise<IsuImportJob> {
+  const res = await api.post<IsuImportJob>('/majors/isu/import/local/async', null, {
+    params: { mode, chunkSize, path: datasetPath },
+  });
+  return res.data;
+}
+
 export async function getIsuImportJob(jobId: string): Promise<IsuImportJob> {
   const res = await api.get<IsuImportJob>(`/majors/isu/import/jobs/${jobId}`);
   return res.data;
