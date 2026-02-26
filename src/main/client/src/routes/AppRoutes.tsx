@@ -16,6 +16,7 @@ import CurrentClasses from '../pages/CurrentClasses.tsx';
 import MajorsBrowse from '../pages/MajorsBrowse.tsx';
 import NotificationCenter from '../components/NotificationCenter.tsx';
 import GlobalCommandPalette from '../components/GlobalCommandPalette.tsx';
+import Games from '../pages/Games.tsx';
 
 export default function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="/smart-scheduler" element={<SmartScheduler />} />
         <Route path="/current-classes" element={<CurrentClasses />} />
         <Route path="/majors" element={<MajorsBrowse />} />
+        <Route path="/games" element={<Games />} />
       </Routes>
     </BrowserRouter>
   );
