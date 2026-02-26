@@ -13,7 +13,7 @@ import { getSavedThemePreferences, setThemePreferences } from '../utils/theme';
 import {
   getIsuImportJob,
   retryIsuImportJob,
-  startIsuImportJobFromPublicFile,
+  startIsuImportJobFromServerDataset,
   type IsuImportJob,
 } from '../api/majorsApi';
 import { publishAppNotification } from '../utils/notifications';
@@ -106,7 +106,7 @@ export default function Settings() {
     setImportError(null);
     setMajorImportJob(null);
     try {
-      const started = await startIsuImportJobFromPublicFile('MAJORS_ONLY', '/isu-degree-dataset.json', 80);
+      const started = await startIsuImportJobFromServerDataset('MAJORS_ONLY', 'docs/isu-degree-dataset.json', 80);
       setMajorImportJob(started);
       const finished = await pollImportJob(started.jobId, setMajorImportJob);
       const result = finished.result;
@@ -141,7 +141,7 @@ export default function Settings() {
     setCourseImportError(null);
     setCourseImportJob(null);
     try {
-      const started = await startIsuImportJobFromPublicFile('COURSES_ONLY', '/isu-degree-dataset.json', 200);
+      const started = await startIsuImportJobFromServerDataset('COURSES_ONLY', 'docs/isu-degree-dataset.json', 200);
       setCourseImportJob(started);
       const finished = await pollImportJob(started.jobId, setCourseImportJob);
       const result = finished.result;

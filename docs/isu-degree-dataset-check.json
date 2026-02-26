@@ -3697,28 +3697,53 @@
           "courseIdents": [],
           "requirementGroups": [
             {
+              "name": "Civil Engineering Design Elective",
+              "satisfyingCredits": 3,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            },
+            {
               "name": "Technical Communication Elective",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "AGEDS_3270",
+                "COMST_1010",
+                "COMST_2140",
+                "COMST_3170",
+                "ENGL_2500",
+                "ENGL_3020",
+                "ENGL_3090",
+                "ENGL_3140"
+              ]
+            },
+            {
+              "name": "Engineering Topics Electives",
+              "satisfyingCredits": 9,
+              "courseIdents": [
+                "CE_1110",
+                "CE_3260",
+                "CE_3880",
+                "CE_3950",
+                "CE_4130",
+                "CE_4170",
+                "CE_4280",
+                "CE_5130"
               ]
             },
             {
               "name": "Other Remaining Courses: 40 cr. pool",
               "satisfyingCredits": 40,
               "courseIdents": [
-                "CE_1110",
                 "CE_1200",
                 "CE_1700",
                 "CE_3060",
                 "CE_3330",
                 "CE_3340",
                 "CE_4600",
-                "CE_4850",
                 "EM_3270",
-                "ENGL_2500",
                 "SPCM_2120"
               ]
             }
@@ -3797,12 +3822,26 @@
           "courseIdents": [],
           "requirementGroups": [
             {
+              "name": "Civil Engineering Design Elective",
+              "satisfyingCredits": 3,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            },
+            {
               "name": "Technical Communication Elective",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "AGEDS_3270",
+                "COMST_1010",
+                "COMST_2140",
+                "COMST_3170",
+                "ENGL_2500",
+                "ENGL_3020",
+                "ENGL_3090",
+                "ENGL_3140"
               ]
             },
             {
@@ -3814,12 +3853,9 @@
                 "CE_1200",
                 "CE_1700",
                 "CE_3060",
-                "CE_3330",
                 "CE_3340",
                 "CE_4280",
-                "CE_4850",
                 "EM_3270",
-                "ENGL_2500",
                 "ENVE_4260",
                 "ENVE_4270",
                 "ENVE_4290",
@@ -4591,9 +4627,9 @@
               "name": "Business Communication Elective: one course of the following with a minimum grade of C.",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
               ]
             }
           ]
@@ -4699,13 +4735,22 @@
             "CONE_3530",
             "EM_3270"
           ],
-          "requirementGroups": []
+          "requirementGroups": [
+            {
+              "name": "Engineering Topics Elective",
+              "satisfyingCredits": 3,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            }
+          ]
         },
         {
           "name": "Electrical Option 26 cr:",
           "satisfyingCredits": 26,
           "courseIdents": [
-            "CE_3330",
             "CONE_3520",
             "CONE_3530",
             "EE_2010",
@@ -4714,7 +4759,17 @@
             "EE_4560",
             "EE_4570"
           ],
-          "requirementGroups": []
+          "requirementGroups": [
+            {
+              "name": "Engineering Topics Elective",
+              "satisfyingCredits": 3,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            }
+          ]
         },
         {
           "name": "Infrastructure Option 26 cr:",
@@ -4728,13 +4783,22 @@
             "CONE_3400",
             "EM_3270"
           ],
-          "requirementGroups": []
+          "requirementGroups": [
+            {
+              "name": "Engineering Topics Elective",
+              "satisfyingCredits": 6,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            }
+          ]
         },
         {
           "name": "Mechanical Option 26 cr:",
           "satisfyingCredits": 26,
           "courseIdents": [
-            "CE_3330",
             "CONE_3520",
             "CONE_3530",
             "EE_4420",
@@ -4744,7 +4808,17 @@
             "ME_4410",
             "ME_4420"
           ],
-          "requirementGroups": []
+          "requirementGroups": [
+            {
+              "name": "Engineering Topics Elective",
+              "satisfyingCredits": 3,
+              "courseIdents": [
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
+              ]
+            }
+          ]
         },
         {
           "name": "Additional Required Courses: 26 cr.",
@@ -4769,18 +4843,18 @@
               "name": "Law Elective",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "CE_4530",
+                "CE_4850",
+                "CE_4860"
               ]
             },
             {
               "name": "Business Communication Elective (minimum grade of C)",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "CE_4850",
+                "CE_4860",
+                "ENGR_4660"
               ]
             }
           ]
@@ -7420,21 +7494,102 @@
               ]
             },
             {
+              "name": "Engineering Topics Electives",
+              "satisfyingCredits": 6,
+              "courseIdents": [
+                "ABE_3250",
+                "ABE_3880",
+                "AGRON_4040",
+                "AGRON_4460",
+                "CE_3880",
+                "CRP_4550",
+                "CRP_4840",
+                "CRP_5550",
+                "ECON_3800",
+                "EE_3880",
+                "ENSCI_4040",
+                "GEOL_3240",
+                "GLOBE_4020",
+                "ME_4790",
+                "ME_4840",
+                "MTEOR_3240",
+                "MTEOR_4040",
+                "SOC_3480",
+                "TSM_3250",
+                "WLC_4840"
+              ]
+            },
+            {
               "name": "Sustainability Elective",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "ABE_3250",
+                "ABE_3880",
+                "ABE_4310",
+                "ABE_4320",
+                "ABE_4370",
+                "ABE_4780",
+                "ABE_5310",
+                "ABE_5320",
+                "ABE_5370",
+                "ABE_5780",
+                "AGRON_4040",
+                "AGRON_5040",
+                "BIOL_4640",
+                "CE_1110",
+                "CE_2740",
+                "CE_3320",
+                "CE_3550",
+                "CE_3720",
+                "CE_3820",
+                "CE_3880",
+                "CHEM_1630",
+                "CHEM_1670",
+                "CHEM_1770",
+                "CHE_3560",
+                "CRP_4550",
+                "CRP_4840",
+                "CRP_5550",
+                "CRP_5840",
+                "ECON_1010",
+                "ECON_3800",
+                "EE_3880",
+                "EM_3240",
+                "EM_3780",
+                "ENSCI_3240",
+                "ENSCI_4040",
+                "ENSCI_5040",
+                "ENVS_3240",
+                "ENVS_3800",
+                "ENVS_4040",
+                "ENVS_4840",
+                "GEOL_3240",
+                "GLOBE_4020",
+                "MATH_1400",
+                "ME_4840",
+                "ME_5840",
+                "MTEOR_3240",
+                "MTEOR_4040",
+                "MTEOR_5040",
+                "SOC_3480",
+                "SUSE_5010",
+                "TSM_3250",
+                "WLC_4840",
+                "WLC_5840"
               ]
             },
             {
               "name": "Technical Communication Elective",
               "satisfyingCredits": 3,
               "courseIdents": [
-                "CE_5840",
-                "ENSCI_5220",
-                "ENSCI_5280"
+                "AGEDS_3270",
+                "CE_2050",
+                "CE_2060",
+                "CE_3050",
+                "CE_3060",
+                "ENGL_3020",
+                "ENGL_3090",
+                "ENGL_3140"
               ]
             },
             {
@@ -7442,11 +7597,7 @@
               "satisfyingCredits": 38,
               "courseIdents": [
                 "ABE_3780L",
-                "CE_2060",
-                "CE_3060",
-                "CE_3330",
                 "CE_3600",
-                "EM_3240",
                 "ENGL_2500",
                 "ENVE_1200",
                 "ENVE_1900",
