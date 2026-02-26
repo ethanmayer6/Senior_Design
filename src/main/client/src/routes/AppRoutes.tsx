@@ -18,6 +18,7 @@ import NotificationCenter from '../components/NotificationCenter.tsx';
 import GlobalCommandPalette from '../components/GlobalCommandPalette.tsx';
 import ProfessorReviews from '../pages/ProfessorReviews.tsx';
 import Games from '../pages/Games.tsx';
+import CourseReviews from '../pages/CourseReviews.tsx';
 
 export default function AppRoutes() {
   return (
@@ -40,6 +41,7 @@ export default function AppRoutes() {
         <Route path="/current-classes" element={<CurrentClasses />} />
         <Route path="/majors" element={<MajorsBrowse />} />
         <Route path="/professors" element={<ProfessorReviews />} />
+        <Route path="/course-reviews" element={<CourseReviews />} />
         <Route path="/games" element={<Games />} />
       </Routes>
     </BrowserRouter>
