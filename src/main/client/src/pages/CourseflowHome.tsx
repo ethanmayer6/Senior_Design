@@ -35,6 +35,13 @@ const featureLinks = [
     to: '/professors',
     icon: 'pi pi-star',
     image: '/feature-professors.svg',
+  }
+  {
+    title: 'Games',
+    description: 'Play the daily puzzle and compare solve times on peer leaderboards.',
+    to: '/games',
+    icon: 'pi pi-stopwatch',
+    image: '/feature-games.svg',
   },
 ];
 
@@ -289,6 +296,12 @@ export default function CourseflowHome() {
             >
               <i className="pi pi-comments mr-2 text-red-500"></i>
               Professor Reviews
+            <Link
+              to="/games"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-stopwatch mr-2 text-red-500"></i>
+              Games
             </Link>
             <Link
               to="/current-classes"
