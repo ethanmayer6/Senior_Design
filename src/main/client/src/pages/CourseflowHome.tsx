@@ -29,6 +29,13 @@ const featureLinks = [
     icon: 'pi pi-list',
     image: '/feature-majors.svg',
   },
+  {
+    title: 'Games',
+    description: 'Play the daily puzzle and compare solve times on peer leaderboards.',
+    to: '/games',
+    icon: 'pi pi-stopwatch',
+    image: '/feature-games.svg',
+  },
 ];
 
 export default function CourseflowHome() {
@@ -277,6 +284,13 @@ export default function CourseflowHome() {
               Course Badges
             </Link>
             <Link
+              to="/games"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-stopwatch mr-2 text-red-500"></i>
+              Games
+            </Link>
+            <Link
               to="/current-classes"
               className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
             >
@@ -486,4 +500,3 @@ export default function CourseflowHome() {
     </div>
   );
 }
-
