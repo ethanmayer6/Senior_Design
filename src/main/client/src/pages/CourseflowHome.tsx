@@ -50,6 +50,13 @@ const featureLinks = [
     icon: 'pi pi-stopwatch',
     image: '/feature-games.svg',
   },
+  {
+    title: 'Dining Halls',
+    description: 'Compare todays live menus across the main campus dining halls before lunch or dinner.',
+    to: '/dining',
+    icon: 'pi pi-shopping-bag',
+    image: '/feature-dining.svg',
+  },
 ];
 
 export default function CourseflowHome() {
@@ -310,6 +317,13 @@ export default function CourseflowHome() {
             >
               <i className="pi pi-stopwatch mr-2 text-red-500"></i>
               Games
+            </Link>
+            <Link
+              to="/dining"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-shopping-bag mr-2 text-red-500"></i>
+              Dining Halls
             </Link>
             <Link
               to="/current-classes"
