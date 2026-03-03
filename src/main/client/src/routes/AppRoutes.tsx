@@ -19,6 +19,7 @@ import GlobalCommandPalette from '../components/GlobalCommandPalette.tsx';
 import ProfessorReviews from '../pages/ProfessorReviews.tsx';
 import Games from '../pages/Games.tsx';
 import CourseReviews from '../pages/CourseReviews.tsx';
+import Dining from '../pages/Dining.tsx';
 
 export default function AppRoutes() {
   return (
@@ -43,6 +44,7 @@ export default function AppRoutes() {
         <Route path="/professors" element={<ProfessorReviews />} />
         <Route path="/course-reviews" element={<CourseReviews />} />
         <Route path="/games" element={<Games />} />
+        <Route path="/dining" element={<Dining />} />
       </Routes>
     </BrowserRouter>
   );
