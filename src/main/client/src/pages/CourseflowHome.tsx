@@ -7,8 +7,24 @@ import FocusSafeModal from '../components/FocusSafeModal';
 import { getCurrentClassSchedule, getCourseByIdent, type ClassScheduleEntry } from '../api/classScheduleApi';
 import type { Course } from '../api/flowchartApi';
 
-const featureLinks = [
+type HomeModuleAction = 'friends' | 'logout';
+
+type HomeModule = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  to?: string;
+  href?: string;
+  image?: string;
+  action?: HomeModuleAction;
+};
+
+const HOME_MODULE_VISIBILITY_KEY = 'courseflow_home_hidden_modules';
+
+const homeModules: HomeModule[] = [
   {
+    id: 'flowchart-dashboard',
     title: 'Flowchart Dashboard',
     description: 'Import your progress report and keep semester planning in one visual workspace.',
     to: '/dashboard',
@@ -16,6 +32,7 @@ const featureLinks = [
     image: '/feature-flowchart.svg',
   },
   {
+    id: 'smart-scheduler',
     title: 'Smart Scheduler',
     description: 'Generate draft semester schedule options using your planning constraints.',
     to: '/smart-scheduler',
@@ -23,6 +40,7 @@ const featureLinks = [
     image: '/feature-scheduler.svg',
   },
   {
+    id: 'majors-browse',
     title: 'Majors Browse',
     description: 'Browse imported majors and inspect requirement structures and option groups.',
     to: '/majors',
@@ -30,6 +48,7 @@ const featureLinks = [
     image: '/feature-majors.svg',
   },
   {
+    id: 'professor-reviews',
     title: 'Professor Reviews',
     description: 'Browse professors and leave customizable student reviews.',
     to: '/professors',
@@ -37,13 +56,15 @@ const featureLinks = [
     image: '/feature-professors.svg',
   },
   {
+    id: 'course-reviews',
     title: 'Course Reviews',
     description: 'Search courses and leave student reviews about workload, difficulty, and outcomes.',
     to: '/course-reviews',
     icon: 'pi pi-comments',
-    image: '/feature-professors.svg',
+    image: '/feature-course-reviews.svg',
   },
   {
+    id: 'games',
     title: 'Games',
     description: 'Play the daily puzzle and compare solve times on peer leaderboards.',
     to: '/games',
@@ -51,13 +72,80 @@ const featureLinks = [
     image: '/feature-games.svg',
   },
   {
+    id: 'dining',
     title: 'Dining Halls',
     description: 'Compare todays live menus across the main campus dining halls before lunch or dinner.',
     to: '/dining',
     icon: 'pi pi-shopping-bag',
     image: '/feature-dining.svg',
   },
+  {
+    id: 'profile',
+    title: 'Profile',
+    description: 'View and manage your profile details, major, and account information.',
+    to: '/profile',
+    icon: 'pi pi-id-card',
+    image: '/feature-profile.svg',
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    description: 'Update app preferences and personal configuration options.',
+    to: '/settings',
+    icon: 'pi pi-cog',
+    image: '/feature-settings.svg',
+  },
+  {
+    id: 'friends-list',
+    title: 'Friends List',
+    description: 'Open your friends list, view profiles, and add new friends.',
+    icon: 'pi pi-users',
+    action: 'friends',
+    image: '/feature-friends.svg',
+  },
+  {
+    id: 'course-catalog',
+    title: 'Course Catalog',
+    description: 'Search and explore the full course catalog.',
+    to: '/catalog',
+    icon: 'pi pi-book',
+    image: '/feature-catalog.svg',
+  },
+  {
+    id: 'course-badges',
+    title: 'Course Badges',
+    description: 'Explore and track badge opportunities tied to courses.',
+    to: '/badges',
+    icon: 'pi pi-star',
+    image: '/feature-badges.svg',
+  },
+  {
+    id: 'current-classes',
+    title: 'Current Classes',
+    description: 'Review and manage your imported current class schedule.',
+    to: '/current-classes',
+    icon: 'pi pi-calendar',
+    image: '/feature-current-classes.svg',
+  },
+  {
+    id: 'canvas',
+    title: 'Canvas',
+    description: 'Open Canvas in a new tab for assignments and class updates.',
+    href: 'https://canvas.iastate.edu/',
+    icon: 'pi pi-external-link',
+    image: '/feature-canvas.svg',
+  },
+  {
+    id: 'log-out',
+    title: 'Log out',
+    description: 'Sign out of your account and return to the login page.',
+    icon: 'pi pi-sign-out',
+    action: 'logout',
+    image: '/feature-logout.svg',
+  },
 ];
+
+const validHomeModuleIds = new Set(homeModules.map((module) => module.id));
 
 export default function CourseflowHome() {
   const navigate = useNavigate();
@@ -70,6 +158,8 @@ export default function CourseflowHome() {
   const [selectedTimelineEntry, setSelectedTimelineEntry] = useState<ClassScheduleEntry | null>(null);
   const [selectedTimelineCourse, setSelectedTimelineCourse] = useState<Course | null>(null);
   const [timelineDetailsLoading, setTimelineDetailsLoading] = useState(false);
+  const [hiddenModuleIds, setHiddenModuleIds] = useState<string[]>([]);
+  const [showModuleVisibilityModal, setShowModuleVisibilityModal] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -107,6 +197,25 @@ export default function CourseflowHome() {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(HOME_MODULE_VISIBILITY_KEY);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const validIds = parsed.filter(
+        (item): item is string => typeof item === 'string' && validHomeModuleIds.has(item),
+      );
+      setHiddenModuleIds(validIds);
+    } catch {
+      setHiddenModuleIds([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(HOME_MODULE_VISIBILITY_KEY, JSON.stringify(hiddenModuleIds));
+  }, [hiddenModuleIds]);
 
   const todayCode = (() => {
     const day = now.getDay(); // 0=Sun...6=Sat
@@ -176,6 +285,35 @@ export default function CourseflowHome() {
 
   const timeTicks = [8 * 60, 10 * 60, 12 * 60, 14 * 60, 16 * 60, 18 * 60, 20 * 60];
 
+  const toggleModuleVisibility = (moduleId: string) => {
+    setHiddenModuleIds((current) =>
+      current.includes(moduleId) ? current.filter((id) => id !== moduleId) : [...current, moduleId],
+    );
+  };
+
+  const visibleModules = homeModules.filter((module) => !hiddenModuleIds.includes(module.id));
+
+  const moduleCardBody = (module: HomeModule) => (
+    <>
+      <div className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-slate-50">
+        {module.image ? (
+          <img
+            src={module.image}
+            alt={`${module.title} illustration`}
+            className="h-36 w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-36 items-center justify-center bg-gradient-to-br from-red-50 to-slate-100">
+            <i className={`${module.icon} text-4xl text-red-500`} aria-hidden="true" />
+          </div>
+        )}
+      </div>
+      <h2 className="text-xl font-semibold text-gray-800">{module.title}</h2>
+      <p className="mt-2 text-sm text-gray-600">{module.description}</p>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100">
       <Header />
@@ -235,25 +373,71 @@ export default function CourseflowHome() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {featureLinks.map((feature) => (
-                <Link
-                  key={feature.to}
-                  to={feature.to}
-                  className="group block rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-md"
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Home Modules</p>
+                  <p className="text-xs text-gray-500">
+                    {visibleModules.length} of {homeModules.length} modules visible
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModuleVisibilityModal(true)}
+                  className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <div className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-slate-50">
-                    <img
-                      src={feature.image}
-                      alt={`${feature.title} illustration`}
-                      className="h-36 w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-800">{feature.title}</h2>
-                  <p className="mt-2 text-sm text-gray-600">{feature.description}</p>
-                </Link>
-              ))}
+                  Customize Modules
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {visibleModules.map((module) => {
+                const commonClassName =
+                  'group block rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-md';
+
+                if (module.to) {
+                  return (
+                    <Link key={module.id} to={module.to} className={commonClassName}>
+                      {moduleCardBody(module)}
+                    </Link>
+                  );
+                }
+
+                if (module.href) {
+                  return (
+                    <a
+                      key={module.id}
+                      href={module.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={commonClassName}
+                    >
+                      {moduleCardBody(module)}
+                    </a>
+                  );
+                }
+
+                return (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => {
+                      if (module.action === 'friends') setShowFriendsList(true);
+                      if (module.action === 'logout') handleLogout();
+                    }}
+                    className={`${commonClassName} w-full text-left`}
+                  >
+                    {moduleCardBody(module)}
+                  </button>
+                );
+              })}
+
+              {visibleModules.length === 0 && (
+                <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
+                  No modules selected. Use Module Visibility above to show cards.
+                </div>
+              )}
             </div>
           </section>
 
@@ -353,6 +537,51 @@ export default function CourseflowHome() {
           </aside>
         </div>
       </main>
+
+      <FocusSafeModal
+        open={showModuleVisibilityModal}
+        onClose={() => setShowModuleVisibilityModal(false)}
+        title="Module Visibility"
+        maxWidthClass="max-w-2xl"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">Module Visibility</h3>
+          <button
+            type="button"
+            onClick={() => setShowModuleVisibilityModal(false)}
+            className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+          >
+            Close
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-gray-600">Toggle which cards appear in your home modules.</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {homeModules.map((module) => (
+            <label
+              key={module.id}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-xs font-medium text-gray-700"
+            >
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-red-600"
+                checked={!hiddenModuleIds.includes(module.id)}
+                onChange={() => toggleModuleVisibility(module.id)}
+              />
+              <span>{module.title}</span>
+            </label>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setHiddenModuleIds([])}
+            disabled={hiddenModuleIds.length === 0}
+            className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Show All
+          </button>
+        </div>
+      </FocusSafeModal>
 
       <FocusSafeModal
         open={showFriendsList}
