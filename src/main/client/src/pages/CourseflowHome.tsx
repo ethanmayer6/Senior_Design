@@ -319,6 +319,15 @@ export default function CourseflowHome() {
               Current Classes
             </Link>
             <a
+              href="https://www.fpm.iastate.edu/maps/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              <i className="pi pi-map-marker mr-2 text-red-500"></i>
+              Campus Map
+            </a>
+            <a
               href="https://canvas.iastate.edu/"
               target="_blank"
               rel="noreferrer"
