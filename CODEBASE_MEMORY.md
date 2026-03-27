@@ -70,6 +70,7 @@ This document captures high-value context to retain when working on this reposit
 - Controllers mostly expose explicit paths (`/create`, `/getall`, `/update/{id}`, `/delete/{id}`).
 - DTO classes are used for entity creation/update in several modules (`FlowchartDTO`, `SemesterDTO`, etc.).
 - Exception strategy is centralized through `GlobalExceptionHandler` + per-domain exception types.
+- Whenever test files, test coverage, or test execution results change, update `docs/testing-report.md` so the faculty-facing testing report stays current.
 
 ## Fast Orientation Checklist for Future Work
 1. Start with `SpringConfiguration`, `JwtAuthenticationFilter`, `UserService` for auth-related bugs.

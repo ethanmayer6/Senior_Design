@@ -21,6 +21,7 @@ type HomeModule = {
 };
 
 const HOME_MODULE_VISIBILITY_KEY = 'courseflow_home_hidden_modules';
+const HOME_WALKTHROUGH_KEY_PREFIX = 'courseflow_home_walkthrough_seen';
 
 const homeModules: HomeModule[] = [
   {
@@ -160,6 +161,7 @@ export default function CourseflowHome() {
   const [timelineDetailsLoading, setTimelineDetailsLoading] = useState(false);
   const [hiddenModuleIds, setHiddenModuleIds] = useState<string[]>([]);
   const [showModuleVisibilityModal, setShowModuleVisibilityModal] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -216,6 +218,32 @@ export default function CourseflowHome() {
   useEffect(() => {
     window.localStorage.setItem(HOME_MODULE_VISIBILITY_KEY, JSON.stringify(hiddenModuleIds));
   }, [hiddenModuleIds]);
+
+  useEffect(() => {
+    try {
+      const rawUser = window.localStorage.getItem('user');
+      if (!rawUser) return;
+
+      const parsed: unknown = JSON.parse(rawUser);
+      if (!parsed || typeof parsed !== 'object') return;
+
+      const userRecord = parsed as { id?: number | string; email?: string; role?: string };
+      const role = (userRecord.role || '').toUpperCase();
+      if (role !== 'USER' && role !== 'STUDENT') return;
+
+      const identity = userRecord.id ?? userRecord.email;
+      const storageKey = identity
+        ? `${HOME_WALKTHROUGH_KEY_PREFIX}_${String(identity)}`
+        : HOME_WALKTHROUGH_KEY_PREFIX;
+
+      if (window.localStorage.getItem(storageKey) === 'true') return;
+
+      window.localStorage.setItem(storageKey, 'true');
+      setShowWalkthrough(true);
+    } catch {
+      setShowWalkthrough(false);
+    }
+  }, []);
 
   const todayCode = (() => {
     const day = now.getDay(); // 0=Sun...6=Sat
@@ -292,6 +320,7 @@ export default function CourseflowHome() {
   };
 
   const visibleModules = homeModules.filter((module) => !hiddenModuleIds.includes(module.id));
+  const walkthroughModules = homeModules.filter((module) => module.id !== 'log-out');
 
   const moduleCardBody = (module: HomeModule) => (
     <>
@@ -546,6 +575,57 @@ export default function CourseflowHome() {
           </aside>
         </div>
       </main>
+
+      <FocusSafeModal
+        open={showWalkthrough}
+        onClose={() => setShowWalkthrough(false)}
+        title="Welcome to CourseFlow"
+        maxWidthClass="max-w-4xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Welcome to CourseFlow</p>
+            <h2 className="mt-1 text-xl font-semibold text-gray-800">Here is a quick look at what you can do.</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowWalkthrough(false)}
+            className="rounded-md border border-gray-200 px-3 py-1 text-sm text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+          >
+            Close
+          </button>
+        </div>
+
+        <p className="mt-3 text-sm text-gray-600">
+          This home page is your launch point for the app. We only show this overview once so you can get oriented fast.
+        </p>
+
+        <div className="mt-5 grid max-h-[28rem] gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+          {walkthroughModules.map((module) => (
+            <div key={module.id} className="rounded-xl border border-gray-200 bg-slate-50 p-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-red-500 shadow-sm">
+                  <i className={`${module.icon} text-lg`} aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">{module.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">{module.description}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowWalkthrough(false)}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Start Exploring
+          </button>
+        </div>
+      </FocusSafeModal>
 
       <FocusSafeModal
         open={showModuleVisibilityModal}

@@ -1,0 +1,26 @@
+import { configDefaults, defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    css: true,
+    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      all: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/assets/**',
+        'src/assets/theme/**',
+        'src/main.tsx',
+        'src/custom.d.ts',
+      ],
+    },
+  },
+});
