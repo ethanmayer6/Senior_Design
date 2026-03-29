@@ -1,9 +1,8 @@
 package com.sdmay19.courseflow.security;
 
-import java.util.Arrays;
-import java.util.List;
 import static java.util.Objects.nonNull;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +34,9 @@ public class SpringConfiguration implements WebMvcConfigurer {
 
     @Value("${file.upload-dir:./uploads/profile-pictures}")
     private String uploadDir;
+
+    @Value("${app.cors.allowed-origin-patterns:http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173,https://*.vercel.app}")
+    private String allowedOriginPatterns;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -107,13 +109,20 @@ public class SpringConfiguration implements WebMvcConfigurer {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedOriginPatterns(parseCsv(allowedOriginPatterns));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    private List<String> parseCsv(String csv) {
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .toList();
     }
 }

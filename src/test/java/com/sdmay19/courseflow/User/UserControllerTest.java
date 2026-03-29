@@ -126,7 +126,20 @@ class UserControllerTest {
     void searchUsers_usesAuthenticatedUserId() throws Exception {
         AppUser currentUser = buildUser(14L);
         when(userService.searchUsersByUsername("ada", 14L))
-                .thenReturn(List.of(new UserSearchResult(21L, "ada@example.edu", "Ada", "Lovelace", "SE", null)));
+                .thenReturn(List.of(new UserSearchResult(
+                        21L,
+                        "ada@example.edu",
+                        "Ada",
+                        "Lovelace",
+                        null,
+                        "Ada Lovelace",
+                        "SE",
+                        "ada@example.edu",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)));
 
         mockMvc.perform(get("/api/users/search")
                         .param("username", "ada")

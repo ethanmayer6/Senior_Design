@@ -53,7 +53,16 @@ class ProfessorControllerTest {
 
     @Test
     void browseProfessors_forwardsBrowseFilters() throws Exception {
-        ProfessorSummaryResponse professor = new ProfessorSummaryResponse(8L, "Dr. Ada", "Professor", "SE", "ada@isu.edu", null, 4.8, 12);
+        ProfessorSummaryResponse professor = new ProfessorSummaryResponse(
+                8L,
+                "Dr. Ada",
+                "Professor",
+                "SE",
+                "ada@isu.edu",
+                null,
+                4.8,
+                12L,
+                null);
         when(professorService.browseProfessors("ada", "SE", 2, 20, "rating"))
                 .thenReturn(new ProfessorBrowseResponse(List.of(professor), 2, 20, 1, 1, "rating"));
 
@@ -96,8 +105,9 @@ class ProfessorControllerTest {
                 "https://example.edu/ada",
                 "Bio",
                 4.6,
-                10,
+                10L,
                 Map.of(5, 8L, 4, 2L),
+                null,
                 null,
                 true);
         when(professorService.getProfessorDetail(8L, user)).thenReturn(detail);

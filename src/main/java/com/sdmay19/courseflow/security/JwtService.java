@@ -20,7 +20,7 @@ public class JwtService {
 
     private final Key signKey;
 
-    public JwtService(@Value("${courseflow.jwt.secret}") String secretKey) {
+    public JwtService(@Value("${app.jwt.secret}") String secretKey) {
         this.signKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 

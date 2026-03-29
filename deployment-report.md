@@ -38,6 +38,29 @@ Before this pass, deployment would have failed or behaved incorrectly for severa
 - there was no health endpoint for a clean Render health check
 - there were no Render or Vercel platform config files in the repo
 
+## Post-merge diagnostic and recovery
+
+After the deployment work was merged, I ran a second diagnostic pass to make sure the repo was still deployable. That pass caught a few regressions that would have caused avoidable problems in hosted environments:
+
+- `src/main/java/com/sdmay19/courseflow/security/SpringConfiguration.java` had drifted back to localhost-only CORS behavior. I restored environment-driven origin patterns so Vercel deployments are allowed without reopening the code.
+- `src/main/java/com/sdmay19/courseflow/security/JwtService.java` and `src/main/resources/application.properties` were no longer aligned on the JWT secret property. They now consistently use `APP_JWT_SECRET` through `app.jwt.secret`.
+- `src/main/client/src/pages/CourseCatalog.tsx` had an unused import that blocked the frontend production build. That build error is gone.
+- several backend tests were stale after DTO signature changes. I updated the affected test constructors so the suite matches the merged domain model.
+- `src/test/resources/application.properties` now forces tests to use the intended H2 configuration with `spring.test.database.replace=NONE`, which preserves the PostgreSQL-compatibility flags required by the current schema.
+
+### Diagnostic results
+
+The post-merge verification run succeeded on the commands that matter for deployment:
+
+- `./mvnw -q -P '!frontend' test`
+- `./mvnw -q -P '!frontend' -DskipTests package`
+- `npm run test:run`
+- `npm run build`
+- `npm run build:backend`
+- `sh -n scripts/render-start.sh`
+
+One non-blocking issue remains: `npm run lint` still reports a broader set of existing frontend lint violations that predate this deployment pass. Those should be cleaned up, but they are not currently stopping the Render or Vercel deployment flow.
+
 ## Files added or updated
 
 ### Backend and platform config

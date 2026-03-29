@@ -10,7 +10,6 @@ import {Dialog} from "primereact/dialog";
 import Header from "../components/header";
 import type {CourseStatus, Flowchart, Semester} from "../api/flowchartApi";
 import {getUserFlowchart, updateSemesterCourses} from "../api/flowchartApi";
-import api from "../api/axiosClient";
 import {
   deleteCatalogCourse,
   filterCourseCatalog,

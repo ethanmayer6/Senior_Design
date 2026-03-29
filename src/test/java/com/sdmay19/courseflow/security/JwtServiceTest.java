@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtServiceTest {
 
-    private final JwtService jwtService = new JwtService();
+    private final JwtService jwtService = new JwtService("dev-only-courseflow-jwt-secret-change-me-2026");
 
     @Test
     void generateToken_extractsMatchingUserId_andIsValidForThatUser() {
