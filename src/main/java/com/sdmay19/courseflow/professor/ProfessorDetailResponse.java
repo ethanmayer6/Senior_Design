@@ -1,5 +1,6 @@
 package com.sdmay19.courseflow.professor;
 
+import java.util.List;
 import java.util.Map;
 
 public record ProfessorDetailResponse(
@@ -13,6 +14,7 @@ public record ProfessorDetailResponse(
         double averageRating,
         long reviewCount,
         Map<Integer, Long> ratingBreakdown,
+        List<ProfessorExternalRatingResponse> externalRatings,
         ProfessorReviewResponse myReview,
         boolean currentUserCanReview) {
 }

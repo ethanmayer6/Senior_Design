@@ -5,6 +5,13 @@ public record UserSearchResult(
         String username,
         String firstName,
         String lastName,
+        String preferredName,
+        String displayName,
         String major,
+        String email,
+        String phone,
+        String profileHeadline,
+        String bio,
+        String accentColor,
         String profilePictureUrl) {
 }

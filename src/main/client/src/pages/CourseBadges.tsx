@@ -5,11 +5,9 @@ import api from "../api/axiosClient";
 import Header from "../components/header";
 import {
   getFlowchartInsights,
-  getFlowchartRequirementCoverage,
   getUserFlowchart,
   type Flowchart,
   type FlowchartInsights,
-  type FlowchartRequirementCoverage,
 } from "../api/flowchartApi";
 import {
   createStatusLookup,
@@ -31,13 +29,8 @@ type EnrichedBadge = {
   isRecent: boolean;
 };
 
-type QuestCard = {
-  id: string;
-  title: string;
-  description: string;
-  progress: number;
-  goal: number;
-  reward: string;
+type UpcomingBadge = EnrichedBadge & {
+  semesterLabel: string;
 };
 
 const FILTER_OPTIONS: Array<{ id: BadgeFilter; label: string }> = [
@@ -133,6 +126,11 @@ function semesterRank(year: number, term: string | undefined): number {
   return year * 10 + termRank;
 }
 
+function formatSemesterLabel(year: number, term: string | undefined): string {
+  if (year <= 0) return "Transfer Credit";
+  return `${term ?? "Term"} ${year}`;
+}
+
 function levelTitle(level: number): string {
   if (level >= 20) return "Grand Architect";
   if (level >= 14) return "Degree Vanguard";
@@ -155,7 +153,6 @@ export default function CourseBadges() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [flowchart, setFlowchart] = useState<Flowchart | null>(null);
   const [insights, setInsights] = useState<FlowchartInsights | null>(null);
-  const [coverage, setCoverage] = useState<FlowchartRequirementCoverage | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<BadgeFilter>("ALL");
@@ -168,19 +165,17 @@ export default function CourseBadges() {
       setLoading(true);
       setError(null);
       try {
-        const [badgeResponse, userFlowchart, flowchartInsights, requirementCoverage] =
+        const [badgeResponse, userFlowchart, flowchartInsights] =
           await Promise.all([
             api.get<Course[]>("/badges/me"),
             getUserFlowchart(),
             getFlowchartInsights(),
-            getFlowchartRequirementCoverage(),
           ]);
 
         if (!active) return;
         setCourses(badgeResponse.data ?? []);
         setFlowchart(userFlowchart);
         setInsights(flowchartInsights);
-        setCoverage(requirementCoverage);
       } catch (err: any) {
         console.error("Error loading badges:", err);
         const backendMessage =
@@ -192,17 +187,20 @@ export default function CourseBadges() {
       }
     };
 
-    loadBadges();
+    void loadBadges();
     return () => {
       active = false;
     };
   }, []);
 
+  const statusLookup = useMemo(
+    () => createStatusLookup(flowchart?.courseStatusMap),
+    [flowchart?.courseStatusMap]
+  );
+
   const completionRankByCourse = useMemo(() => {
     const lookup = new Map<string, number>();
     if (!flowchart?.semesters?.length) return lookup;
-
-    const statusLookup = createStatusLookup(flowchart.courseStatusMap);
     flowchart.semesters.forEach((semester) => {
       const rank = semesterRank(semester.year, semester.term);
       (semester.courses ?? []).forEach((course) => {
@@ -215,7 +213,7 @@ export default function CourseBadges() {
       });
     });
     return lookup;
-  }, [flowchart]);
+  }, [flowchart, statusLookup]);
 
   const recentRankSet = useMemo(() => {
     const uniqueRanks = Array.from(new Set(Array.from(completionRankByCourse.values())))
@@ -338,78 +336,51 @@ export default function CourseBadges() {
     }
   }, [departmentOptions, selectedDepartment]);
 
-  const quests = useMemo<QuestCard[]>(() => {
-    const cards: QuestCard[] = [
-      {
-        id: "level",
-        title: `Reach Level ${level + 1}`,
-        description:
-          xpToNextLevel > 0
-            ? `Earn ${xpToNextLevel} XP from completed courses to level up.`
-            : "You are ready to level up on your next completion.",
-        progress: xpIntoLevel,
-        goal: levelSpan,
-        reward: `${levelTitle(level + 1)} title`,
-      },
-    ];
-
-    if (insights?.totalCredits && insights.totalCredits > 0) {
-      cards.push({
-        id: "credits",
-        title: "Close Out Degree Credits",
-        description: `${Math.max(0, insights.remainingCredits)} credits remaining to graduation target.`,
-        progress: insights.appliedCredits,
-        goal: insights.totalCredits,
-        reward: "Capstone Crown badge",
-      });
-    } else {
-      cards.push({
-        id: "rare",
-        title: "Collect Rare+ Badges",
-        description: "Complete higher-level courses to increase rarity score.",
-        progress: rarityCounts.RARE + rarityCounts.EPIC + rarityCounts.LEGENDARY,
-        goal: 6,
-        reward: "+500 XP bonus",
-      });
-    }
-
-    if (coverage?.totalRequirements && coverage.totalRequirements > 0) {
-      const metOrInProgress = coverage.satisfiedRequirements + coverage.inProgressRequirements;
-      cards.push({
-        id: "requirements",
-        title: "Requirement Coverage Push",
-        description: `${coverage.unmetRequirements} requirement(s) still fully unmet.`,
-        progress: metOrInProgress,
-        goal: coverage.totalRequirements,
-        reward: "Degree Master ribbon",
-      });
-    } else {
-      cards.push({
-        id: "legendary",
-        title: "Legendary Hunt",
-        description: "Unlock 2 legendary badges from 4000-level courses.",
-        progress: rarityCounts.LEGENDARY,
-        goal: 2,
-        reward: "Legend vault frame",
-      });
-    }
-
-    return cards;
-  }, [
-    coverage,
-    insights,
-    level,
-    levelSpan,
-    rarityCounts.EPIC,
-    rarityCounts.LEGENDARY,
-    rarityCounts.RARE,
-    xpIntoLevel,
-    xpToNextLevel,
-  ]);
-
-  const completedQuestCount = quests.filter((quest) => quest.progress >= quest.goal).length;
-
   const spotlightBadge = enrichedBadges[0] ?? null;
+
+  const upcomingBadges = useMemo<UpcomingBadge[]>(() => {
+    if (!flowchart?.semesters?.length) return [];
+
+    const seen = new Set<string>();
+    const items: UpcomingBadge[] = [];
+
+    flowchart.semesters.forEach((semester) => {
+      const label = formatSemesterLabel(semester.year, semester.term);
+      const rank = semesterRank(semester.year, semester.term);
+      (semester.courses ?? []).forEach((course) => {
+        if (!course?.courseIdent) return;
+        const ident = normalizeCourseIdent(course.courseIdent);
+        if (!ident || seen.has(ident)) return;
+        const status = normalizeStatus(resolveCourseStatus(statusLookup, course.courseIdent));
+        if (status !== "IN_PROGRESS") return;
+        seen.add(ident);
+
+        const { department, levelDigit } = parseCourseIdent(course.courseIdent);
+        const rarity = rarityFromLevel(levelDigit);
+        items.push({
+          course,
+          department,
+          levelDigit,
+          rarity,
+          xp: xpForCourse(course.credits, levelDigit),
+          semesterRank: rank,
+          isRecent: false,
+          semesterLabel: label,
+        });
+      });
+    });
+
+    items.sort((a, b) => {
+      if (rarityScore(b.rarity) !== rarityScore(a.rarity)) {
+        return rarityScore(b.rarity) - rarityScore(a.rarity);
+      }
+      if (b.xp !== a.xp) return b.xp - a.xp;
+      if (b.semesterRank !== a.semesterRank) return b.semesterRank - a.semesterRank;
+      return a.course.courseIdent.localeCompare(b.course.courseIdent);
+    });
+
+    return items;
+  }, [flowchart, statusLookup]);
 
   const filteredBadges = useMemo(() => {
     return enrichedBadges.filter((badge) => {
@@ -481,9 +452,9 @@ export default function CourseBadges() {
                   <div className="mt-1 text-xl font-bold text-slate-900">{enrichedBadges.length}</div>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-3">
-                  <div className="text-[11px] uppercase tracking-wide text-slate-500">Quest Wins</div>
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500">Next Unlocks</div>
                   <div className="mt-1 text-xl font-bold text-slate-900">
-                    {completedQuestCount}/{quests.length}
+                    {upcomingBadges.length}
                   </div>
                 </div>
               </div>
@@ -549,44 +520,47 @@ export default function CourseBadges() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+        <section className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-slate-600">Active Quests</h2>
-              <span className="text-xs text-slate-500">{completedQuestCount} completed</span>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-slate-600">Next Achievable Badges</h2>
+              <span className="text-xs text-slate-500">{upcomingBadges.length} in-progress</span>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {quests.map((quest) => {
-                const done = quest.progress >= quest.goal;
-                const questPercent = percent(quest.progress, quest.goal);
-                return (
-                  <article
-                    key={quest.id}
-                    className={`rounded-xl border px-3 py-3 ${
-                      done ? "border-emerald-300 bg-emerald-50/70" : "border-slate-200 bg-slate-50/80"
-                    }`}
-                  >
-                    <div className="text-sm font-semibold text-slate-900">{quest.title}</div>
-                    <div className="mt-1 text-xs text-slate-600">{quest.description}</div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          done
-                            ? "bg-gradient-to-r from-emerald-500 to-emerald-300"
-                            : "bg-gradient-to-r from-red-500 to-orange-300"
-                        }`}
-                        style={{ width: `${questPercent}%` }}
-                      />
+            <div className="mt-2 text-xs text-slate-500">
+              Finish your currently in-progress classes to unlock these next.
+            </div>
+            <div className="mt-3 space-y-3">
+              {upcomingBadges.slice(0, 4).map((badge) => (
+                <div key={badge.course.courseIdent} className={`rounded-xl border bg-slate-50/80 p-3 ${RARITY_THEME[badge.rarity].border}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 rounded-lg border border-white/70 bg-white/80 p-1 shadow-sm">
+                      <Badge course={badge.course} size={72} />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-600">
-                      <span>
-                        {Math.min(quest.progress, quest.goal)}/{quest.goal}
-                      </span>
-                      <span className="font-semibold">{done ? "Completed" : quest.reward}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-slate-900">{badge.course.name}</div>
+                      <div className="mt-1 text-[11px] text-slate-500">
+                        {badge.course.courseIdent.replace("_", " ")} • {badge.semesterLabel}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${RARITY_THEME[badge.rarity].pill}`}>
+                          {RARITY_THEME[badge.rarity].label}
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          +{badge.xp} XP
+                        </span>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          In Progress
+                        </span>
+                      </div>
                     </div>
-                  </article>
-                );
-              })}
+                  </div>
+                </div>
+              ))}
+              {upcomingBadges.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+                  No upcoming badge unlocks yet. Mark courses as in progress on your flowchart to see what is next.
+                </div>
+              )}
             </div>
           </div>
 

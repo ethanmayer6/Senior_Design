@@ -36,6 +36,7 @@ export interface Flowchart {
   totalCredits: number;
   creditsSatisfied: number;
   title: string;
+  majorName?: string | null;
 
   // The map<courseIdent, Status> on the backend
   courseStatusMap: Record<string, CourseStatus>;

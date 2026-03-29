@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/header';
+import FocusSafeModal from '../components/FocusSafeModal';
 import { Button } from 'primereact/button';
 import { InputSwitch } from 'primereact/inputswitch';
 import { Dropdown } from 'primereact/dropdown';
@@ -17,6 +18,11 @@ import {
   type IsuImportJob,
 } from '../api/majorsApi';
 import { publishAppNotification } from '../utils/notifications';
+import { courseflowNavGroups, courseflowNavItems } from '../config/courseflowNavigation';
+import {
+  loadHiddenCourseflowModuleIds,
+  saveHiddenCourseflowModuleIds,
+} from '../utils/courseflowModuleVisibility';
 
 const themeOptions = [
   { label: 'Default', value: 'default' },
@@ -44,6 +50,8 @@ export default function Settings() {
   const [courseImportMessage, setCourseImportMessage] = useState<string | null>(null);
   const [courseImportError, setCourseImportError] = useState<string | null>(null);
   const [courseImportJob, setCourseImportJob] = useState<IsuImportJob | null>(null);
+  const [hiddenModuleIds, setHiddenModuleIds] = useState<string[]>([]);
+  const [showModuleVisibilityModal, setShowModuleVisibilityModal] = useState(false);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -66,11 +74,25 @@ export default function Settings() {
     loadPreferences();
   }, []);
 
+  useEffect(() => {
+    setHiddenModuleIds(loadHiddenCourseflowModuleIds());
+  }, []);
+
+  useEffect(() => {
+    saveHiddenCourseflowModuleIds(hiddenModuleIds);
+  }, [hiddenModuleIds]);
+
   const updateLocal = (next: UserPreferences) => {
     setPrefs(next);
     setThemePreferences(next);
     setSuccess(null);
     setError(null);
+  };
+
+  const toggleModuleVisibility = (moduleId: string) => {
+    setHiddenModuleIds((current) =>
+      current.includes(moduleId) ? current.filter((id) => id !== moduleId) : [...current, moduleId],
+    );
   };
 
   const savePreferences = async () => {
@@ -206,6 +228,14 @@ export default function Settings() {
     }
   };
 
+  const visibleModuleCount = courseflowNavItems.length - hiddenModuleIds.length;
+  const groupedAllModules = courseflowNavGroups
+    .map((group) => ({
+      group,
+      modules: courseflowNavItems.filter((module) => module.groupId === group.id),
+    }))
+    .filter((entry) => entry.modules.length > 0);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
@@ -295,6 +325,26 @@ export default function Settings() {
         </section>
 
         <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Workspace Sections</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {visibleModuleCount} of {courseflowNavItems.length} modules visible across {courseflowNavGroups.length} groups
+              </p>
+            </div>
+            <Button
+              label="Customize Modules"
+              icon="pi pi-sliders-h"
+              outlined
+              onClick={() => setShowModuleVisibilityModal(true)}
+            />
+          </div>
+          <p className="mt-3 text-sm text-slate-600">
+            Choose which CourseFlow cards appear on your home workspace.
+          </p>
+        </section>
+
+        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Data Import</h2>
           <p className="mt-1 text-sm text-slate-600">
             Run major and course import jobs from the ISU dataset.
@@ -366,6 +416,60 @@ export default function Settings() {
             />
           )}
         </section>
+
+        <FocusSafeModal
+          open={showModuleVisibilityModal}
+          onClose={() => setShowModuleVisibilityModal(false)}
+          title="Module Visibility"
+          maxWidthClass="max-w-2xl"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold text-gray-800">Module Visibility</h3>
+            <button
+              type="button"
+              onClick={() => setShowModuleVisibilityModal(false)}
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+            >
+              Close
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-gray-600">Toggle which cards appear in your CourseFlow home workspace.</p>
+          <div className="mt-4 space-y-4">
+            {groupedAllModules.map(({ group, modules }) => (
+              <section key={group.id}>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                  {group.title}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {modules.map((module) => (
+                    <label
+                      key={module.id}
+                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-xs font-medium text-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-red-600"
+                        checked={!hiddenModuleIds.includes(module.id)}
+                        onChange={() => toggleModuleVisibility(module.id)}
+                      />
+                      <span>{module.title}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setHiddenModuleIds([])}
+              disabled={hiddenModuleIds.length === 0}
+              className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Show All
+            </button>
+          </div>
+        </FocusSafeModal>
       </main>
     </div>
   );

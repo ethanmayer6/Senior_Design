@@ -5,8 +5,14 @@ public class UserUpdator {
     private String lastName;
     private String major;
     private String phone;
-
-
+    private String preferredName;
+    private String profileHeadline;
+    private String bio;
+    private String accentColor;
+    private String profileVisibility;
+    private Boolean showMajorToFriends;
+    private Boolean showEmailToFriends;
+    private Boolean showPhoneToFriends;
     private String password;
     // Getters
     public String getFirstName() {
@@ -20,6 +26,30 @@ public class UserUpdator {
     }
     public String getPhone() {
         return phone;
+    }
+    public String getPreferredName() {
+        return preferredName;
+    }
+    public String getProfileHeadline() {
+        return profileHeadline;
+    }
+    public String getBio() {
+        return bio;
+    }
+    public String getAccentColor() {
+        return accentColor;
+    }
+    public String getProfileVisibility() {
+        return profileVisibility;
+    }
+    public Boolean getShowMajorToFriends() {
+        return showMajorToFriends;
+    }
+    public Boolean getShowEmailToFriends() {
+        return showEmailToFriends;
+    }
+    public Boolean getShowPhoneToFriends() {
+        return showPhoneToFriends;
     }
     public String getPassword() {
         return password;
@@ -37,6 +67,30 @@ public class UserUpdator {
     }
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+    public void setPreferredName(String preferredName) {
+        this.preferredName = preferredName;
+    }
+    public void setProfileHeadline(String profileHeadline) {
+        this.profileHeadline = profileHeadline;
+    }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+    public void setAccentColor(String accentColor) {
+        this.accentColor = accentColor;
+    }
+    public void setProfileVisibility(String profileVisibility) {
+        this.profileVisibility = profileVisibility;
+    }
+    public void setShowMajorToFriends(Boolean showMajorToFriends) {
+        this.showMajorToFriends = showMajorToFriends;
+    }
+    public void setShowEmailToFriends(Boolean showEmailToFriends) {
+        this.showEmailToFriends = showEmailToFriends;
+    }
+    public void setShowPhoneToFriends(Boolean showPhoneToFriends) {
+        this.showPhoneToFriends = showPhoneToFriends;
     }
     public void setPassword(String password) {
         this.password = password;

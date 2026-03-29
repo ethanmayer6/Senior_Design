@@ -1,6 +1,6 @@
 import {CourseCard} from "../components/CourseCard";
 import type {Course} from "../types/course";
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {Link} from "react-router-dom";
 import {Button} from "primereact/button";
 import {InputText} from "primereact/inputtext";
@@ -8,10 +8,27 @@ import {Panel} from "primereact/panel"
 import {RadioButton} from "primereact/radiobutton";
 import {Dialog} from "primereact/dialog";
 import Header from "../components/header";
-import type {Semester} from "../api/flowchartApi";
+import type {CourseStatus, Flowchart, Semester} from "../api/flowchartApi";
 import {getUserFlowchart, updateSemesterCourses} from "../api/flowchartApi";
 import api from "../api/axiosClient";
+import {
+  deleteCatalogCourse,
+  filterCourseCatalog,
+  getCourseCatalogBrowsePage,
+  searchCourseCatalog,
+  updateCatalogCourse,
+} from "../api/courseCatalogApi";
+import {createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus} from "../utils/flowchartStatus";
 // import { Slider } from 'primereact/slider';
+
+type FitTone = "good" | "warn" | "bad";
+type CourseFitCheck = {
+  tone: FitTone;
+  title: string;
+  detail: string;
+};
+
+const PAGE_SIZE = 50;
 
 function semesterRank(year: number, term: string): number {
   const order: Record<string, number> = {
@@ -21,6 +38,39 @@ function semesterRank(year: number, term: string): number {
   };
   const termRank = order[term?.toUpperCase()] ?? 9;
   return year * 10 + termRank;
+}
+
+function formatSemesterLabel(semester: Semester | null | undefined): string {
+  if (!semester) return "selected semester";
+  return semester.year <= 0 ? "Transfer Credit" : `${semester.term} ${semester.year}`;
+}
+
+function toneClasses(tone: FitTone): string {
+  if (tone === "good") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (tone === "warn") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-red-200 bg-red-50 text-red-700";
+}
+
+function getFitSummary(checks: CourseFitCheck[]): { tone: FitTone; label: string; detail: string } {
+  if (checks.some((check) => check.tone === "bad")) {
+    return {
+      tone: "bad",
+      label: "Not a fit yet",
+      detail: "One or more blockers need attention before this course should be added.",
+    };
+  }
+  if (checks.some((check) => check.tone === "warn")) {
+    return {
+      tone: "warn",
+      label: "Needs review",
+      detail: "The course can work, but there are a few details worth double-checking first.",
+    };
+  }
+  return {
+    tone: "good",
+    label: "Looks good",
+    detail: "This course fits the selected semester based on the current flowchart data.",
+  };
 }
 
 export default function CourseCatalog() {
@@ -34,6 +84,7 @@ export default function CourseCatalog() {
     const [pageNumber, setPageNumber] = useState(0);
     const [hasMore, setHasMore] = useState(false);
     const [filtered, setFiltered] = useState(false);
+    const [flowchart, setFlowchart] = useState<Flowchart | null>(null);
     const [semesters, setSemesters] = useState<Semester[]>([]);
     const [flowchartExists, setFlowchartExists] = useState(true);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -48,6 +99,7 @@ export default function CourseCatalog() {
     const [deletingCourse, setDeletingCourse] = useState(false);
     const [courseActionMessage, setCourseActionMessage] = useState<string | null>(null);
     const [courseActionError, setCourseActionError] = useState<string | null>(null);
+    const [catalogError, setCatalogError] = useState<string | null>(null);
     const [editCourseForm, setEditCourseForm] = useState({
       name: "",
       ident: "",
@@ -59,91 +111,304 @@ export default function CourseCatalog() {
       prereqIdents: "",
     });
 
+    const loadFlowchartData = async (): Promise<void> => {
+      try {
+        const nextFlowchart = await getUserFlowchart();
+        setFlowchart(nextFlowchart);
+        if (!nextFlowchart || !nextFlowchart.semesters || nextFlowchart.semesters.length === 0) {
+          setFlowchartExists(false);
+          setSemesters([]);
+          return;
+        }
+        const sorted = [...nextFlowchart.semesters].sort(
+          (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
+        );
+        setFlowchartExists(true);
+        setSemesters(sorted);
+      } catch (error) {
+        console.error("Error loading semesters for flowchart:", error);
+        setFlowchart(null);
+        setFlowchartExists(false);
+        setSemesters([]);
+      }
+    };
 
     const searchCourses = async (): Promise<void> => {
       try {
-        const response = await api.get("/courses/search", {params: {searchTerm}});
-        setCourses(response.data);
+        setCatalogError(null);
+        const cleaned = searchTerm.trim();
+        if (!cleaned) {
+          await getCourses(0);
+          return;
+        }
+        const response = await searchCourseCatalog(cleaned);
+        setCourses(response);
         setHasMore(false);
-      } catch (error) {
-            console.error("Error fetching courses:", error);
+        setFiltered(false);
+        setPageNumber(0);
+      } catch (error: any) {
+        console.error("Error fetching courses:", error);
+        setCatalogError(error?.response?.data?.message || error?.message || "Failed to search courses.");
       }
     };
+
     const applyFilter = async (page:number=0): Promise<void> => {
       try {
-        const response = await api.get("/courses/filter", {params: {level, offeredTerm, department, page}});
+        setCatalogError(null);
+        const response = await filterCourseCatalog({
+          level: level || undefined,
+          offeredTerm: offeredTerm || undefined,
+          department: department || undefined,
+          page,
+          size: PAGE_SIZE,
+        });
         if(page === 0){
-          setCourses(response.data);
+          setCourses(response);
         }
         else{
-          setCourses(prev => [...prev, ...response.data]);
+          setCourses(prev => [...prev, ...response]);
         }
-        setHasMore(response.data.length === 50);
+        setHasMore(response.length === PAGE_SIZE);
         setFiltered(true);
         setPageNumber(page);
 
-      } catch (error) {
+      } catch (error: any) {
             console.error("Error fetching courses:", error);
+            setCatalogError(error?.response?.data?.message || error?.message || "Failed to apply course filters.");
       }
     };
 
-    const getCourses = async (page:number, size:number=50): Promise<void> => {
+    const getCourses = async (page:number, size:number=PAGE_SIZE): Promise<void> => {
         try {
-              const response = await api.get("/courses/page", {params: {page, size}});
-              console.log(response.data);
+              setCatalogError(null);
+              const response = await getCourseCatalogBrowsePage({page, size});
               if(page === 0){
-                setCourses(response.data);
-                
-                
+                setCourses(response.courses ?? []);
               }
               else{
-                setCourses(prev => [...prev, ...response.data]);
-                
+                setCourses(prev => [...prev, ...(response.courses ?? [])]);
               }
-              setPageNumber(page);
-              setHasMore(response.data.length === size);
+              setPageNumber(response.page);
+              setHasMore(response.page + 1 < response.totalPages);
               setFiltered(false);
-            
-
-            
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching courses:", error);
+            setCatalogError(error?.response?.data?.message || error?.message || "Failed to load course catalog.");
         }
     };
 
 
     useEffect(() => {
-        getCourses(0);
+        void getCourses(0);
+        void loadFlowchartData();
     }, []);
 
-    useEffect(() => {
-      const loadSemesters = async () => {
-        try {
-          const flowchart = await getUserFlowchart();
-          if (!flowchart || !flowchart.semesters || flowchart.semesters.length === 0) {
-            setFlowchartExists(false);
-            setSemesters([]);
+    const statusLookup = useMemo(
+      () => createStatusLookup(flowchart?.courseStatusMap),
+      [flowchart?.courseStatusMap]
+    );
+
+    const selectedSemester = useMemo(
+      () => semesters.find((semester) => semester.id === selectedSemesterId) ?? null,
+      [semesters, selectedSemesterId]
+    );
+
+    const selectedCourseFitChecks = useMemo<CourseFitCheck[]>(() => {
+      if (!selectedCourse || !selectedSemester) {
+        return [];
+      }
+
+      const normalizedSelectedIdent = normalizeCourseIdent(selectedCourse.courseIdent);
+      const selectedSemesterRank = semesterRank(selectedSemester.year, selectedSemester.term);
+      const selectedSemesterCourses = selectedSemester.courses ?? [];
+      const sameSemesterDuplicate = selectedSemesterCourses.some(
+        (course) => normalizeCourseIdent(course.courseIdent) === normalizedSelectedIdent
+      );
+      const scheduledElsewhere = semesters.filter((semester) =>
+        semester.id !== selectedSemester.id &&
+        (semester.courses ?? []).some((course) => normalizeCourseIdent(course.courseIdent) === normalizedSelectedIdent)
+      );
+      const courseStatus = normalizeStatus(resolveCourseStatus(statusLookup, selectedCourse.courseIdent) as CourseStatus);
+      const checks: CourseFitCheck[] = [];
+
+      if (sameSemesterDuplicate) {
+        checks.push({
+          tone: "bad",
+          title: "Already in this semester",
+          detail: `${selectedCourse.courseIdent} is already scheduled in ${formatSemesterLabel(selectedSemester)}.`,
+        });
+      } else if (scheduledElsewhere.length > 0) {
+        checks.push({
+          tone: "bad",
+          title: "Already on your flowchart",
+          detail: `${selectedCourse.courseIdent} is already placed in ${scheduledElsewhere
+            .map((semester) => formatSemesterLabel(semester))
+            .join(", ")}.`,
+        });
+      } else if (courseStatus === "COMPLETED") {
+        checks.push({
+          tone: "bad",
+          title: "Already completed",
+          detail: `Your flowchart marks ${selectedCourse.courseIdent} as completed already.`,
+        });
+      } else if (courseStatus === "IN_PROGRESS") {
+        checks.push({
+          tone: "bad",
+          title: "Already in progress",
+          detail: `Your flowchart already marks ${selectedCourse.courseIdent} as in progress.`,
+        });
+      } else {
+        checks.push({
+          tone: "good",
+          title: "No duplicate found",
+          detail: `${selectedCourse.courseIdent} is not already scheduled in your current plan.`,
+        });
+      }
+
+      const normalizedOffered = String(selectedCourse.offered ?? "").toUpperCase();
+      const selectedTerm = String(selectedSemester.term ?? "").toUpperCase();
+      if (!normalizedOffered) {
+        checks.push({
+          tone: "warn",
+          title: "Offering pattern unknown",
+          detail: "This course has no offering term listed, so CourseFlow cannot confirm it is offered in the selected semester.",
+        });
+      } else if (normalizedOffered.includes(selectedTerm)) {
+        checks.push({
+          tone: "good",
+          title: "Offered in selected term",
+          detail: `${selectedCourse.courseIdent} is marked as offered in ${selectedSemester.term}.`,
+        });
+      } else {
+        checks.push({
+          tone: "warn",
+          title: "Term mismatch",
+          detail: `${selectedCourse.courseIdent} is listed as offered "${selectedCourse.offered}", not ${selectedSemester.term}.`,
+        });
+      }
+
+      const prerequisiteLabels = new Map<string, string>();
+      (selectedCourse.prerequisites ?? []).forEach((prereq) => {
+        const normalized = normalizeCourseIdent(prereq);
+        if (normalized) {
+          prerequisiteLabels.set(normalized, prereq);
+        }
+      });
+      const prereqIdents = Array.from(prerequisiteLabels.keys());
+      if (prereqIdents.length === 0) {
+        checks.push({
+          tone: "good",
+          title: "No prerequisites",
+          detail: "This course does not list prerequisite courses.",
+        });
+      } else {
+        const satisfied: string[] = [];
+        const sameSemester: string[] = [];
+        const missing: string[] = [];
+
+        prereqIdents.forEach((prereqIdent) => {
+          const prereqStatus = normalizeStatus(resolveCourseStatus(statusLookup, prereqIdent) as CourseStatus);
+          if (prereqStatus === "COMPLETED" || prereqStatus === "IN_PROGRESS") {
+            satisfied.push(prerequisiteLabels.get(prereqIdent) ?? prereqIdent);
             return;
           }
-          const sorted = [...flowchart.semesters].sort(
-            (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
-          );
-          setFlowchartExists(true);
-          setSemesters(sorted);
-        } catch (error) {
-          console.error("Error loading semesters for flowchart:", error);
-          setFlowchartExists(false);
-          setSemesters([]);
+
+          let earliestScheduledRank: number | null = null;
+          let earliestScheduledSemester: Semester | null = null;
+          semesters.forEach((semester) => {
+            const containsPrereq = (semester.courses ?? []).some(
+              (course) => normalizeCourseIdent(course.courseIdent) === prereqIdent
+            );
+            if (!containsPrereq) return;
+            const rank = semesterRank(semester.year, semester.term);
+            if (earliestScheduledRank === null || rank < earliestScheduledRank) {
+              earliestScheduledRank = rank;
+              earliestScheduledSemester = semester;
+            }
+          });
+
+          if (earliestScheduledRank !== null && earliestScheduledRank < selectedSemesterRank) {
+            satisfied.push(
+              `${prerequisiteLabels.get(prereqIdent) ?? prereqIdent} (${formatSemesterLabel(earliestScheduledSemester)})`
+            );
+            return;
+          }
+
+          if (earliestScheduledRank !== null && earliestScheduledRank === selectedSemesterRank) {
+            sameSemester.push(prerequisiteLabels.get(prereqIdent) ?? prereqIdent);
+            return;
+          }
+
+          missing.push(prerequisiteLabels.get(prereqIdent) ?? prereqIdent);
+        });
+
+        if (missing.length > 0) {
+          checks.push({
+            tone: "bad",
+            title: "Prerequisites missing",
+            detail: `These prerequisites are not yet satisfied before ${formatSemesterLabel(selectedSemester)}: ${missing.join(", ")}.`,
+          });
+        } else if (sameSemester.length > 0) {
+          checks.push({
+            tone: "warn",
+            title: "Prerequisites scheduled in same semester",
+            detail: `These prerequisites are currently planned in the same term, which may not satisfy registration sequencing: ${sameSemester.join(", ")}.`,
+          });
+        } else {
+          checks.push({
+            tone: "good",
+            title: "Prerequisites accounted for",
+            detail: satisfied.length > 0
+              ? `Prerequisite coverage found through completed, in-progress, or earlier planned courses: ${satisfied.join(", ")}.`
+              : "Prerequisites appear to be satisfied.",
+          });
         }
-      };
-      loadSemesters();
-    }, []);
+      }
+
+      const currentSemesterCredits = selectedSemesterCourses.reduce(
+        (sum, course) => sum + Math.max(0, Number(course.credits ?? 0)),
+        0
+      );
+      const nextCredits = currentSemesterCredits + Math.max(0, Number(selectedCourse.credits ?? 0));
+      if (!Number.isFinite(nextCredits) || nextCredits <= 0) {
+        checks.push({
+          tone: "warn",
+          title: "Credit load unknown",
+          detail: "CourseFlow cannot estimate the resulting semester credit load because one or more course credit values are missing.",
+        });
+      } else if (nextCredits > 21) {
+        checks.push({
+          tone: "bad",
+          title: "Very heavy semester load",
+          detail: `Adding this course would bring ${formatSemesterLabel(selectedSemester)} to about ${nextCredits} credits.`,
+        });
+      } else if (nextCredits > 18) {
+        checks.push({
+          tone: "warn",
+          title: "Heavy semester load",
+          detail: `Adding this course would bring ${formatSemesterLabel(selectedSemester)} to about ${nextCredits} credits.`,
+        });
+      } else {
+        checks.push({
+          tone: "good",
+          title: "Credit load looks reasonable",
+          detail: `${formatSemesterLabel(selectedSemester)} would be about ${nextCredits} credits after adding this course.`,
+        });
+      }
+
+      return checks;
+    }, [selectedCourse, selectedSemester, semesters, statusLookup]);
+
+    const hasHardFitBlocker = selectedCourseFitChecks.some((check) => check.tone === "bad");
+    const fitSummary = getFitSummary(selectedCourseFitChecks);
 
     const openAddDialog = (course: Course) => {
       setSelectedCourse(course);
       setSelectedSemesterId(semesters.length ? semesters[0].id : null);
       setAddToFlowchartMessage(null);
       setAddToFlowchartError(null);
+      setCourseActionMessage(null);
+      setCourseActionError(null);
       setAddDialogVisible(true);
     };
 
@@ -179,6 +444,10 @@ export default function CourseCatalog() {
         setAddToFlowchartError("Select a semester first.");
         return;
       }
+      if (hasHardFitBlocker) {
+        setAddToFlowchartError("This course is not a good fit for the selected semester yet. Review the fit check details before adding it.");
+        return;
+      }
 
       setAddingCourse(true);
       setAddToFlowchartMessage(null);
@@ -188,7 +457,8 @@ export default function CourseCatalog() {
           operation: "ADD",
           courseIdent: selectedCourse.courseIdent,
         });
-        setAddToFlowchartMessage(`Added ${selectedCourse.courseIdent} to your flowchart.`);
+        await loadFlowchartData();
+        setAddToFlowchartMessage(`Added ${selectedCourse.courseIdent} to ${formatSemesterLabel(selectedSemester)}.`);
         setAddDialogVisible(false);
       } catch (error: any) {
         const message =
@@ -233,12 +503,7 @@ export default function CourseCatalog() {
           offered: editCourseForm.offered.trim() || null,
           prereqIdents,
         };
-        const response = await api.put(
-          `/courses/update/${selectedCourse.id}`,
-          payload
-        );
-
-        const updatedCourse: Course = response.data;
+        const updatedCourse = await updateCatalogCourse(selectedCourse.id, payload);
         setCourses((prev) =>
           prev.map((course) =>
             course.id === selectedCourse.id || course.courseIdent === selectedCourse.courseIdent
@@ -269,7 +534,7 @@ export default function CourseCatalog() {
       setCourseActionError(null);
       setCourseActionMessage(null);
       try {
-        await api.delete(`/courses/delete/${selectedCourse.id}`);
+        await deleteCatalogCourse(selectedCourse.id);
         setCourses((prev) =>
           prev.filter(
             (course) =>
@@ -519,13 +784,13 @@ export default function CourseCatalog() {
 
                     {/* Apply / Reset Buttons */}
                     <div className="flex justify-between mt-4">
-                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" onClick={() => {applyFilter();}} />
+                        <Button label="Apply Filters" icon="pi pi-filter" className="p-button-sm" onClick={() => { void applyFilter(); }} />
                         <Button label="Reset" icon="pi pi-refresh" className="p-button-text p-button-sm"
                                 onClick={() => {  setLevel('');
                                                   setOfferedTerm('');
                                                   setDepartment('');
                                                   setFiltered(false);
-                                                  getCourses(0);}} />
+                                                  void getCourses(0);}} />
                     </div>
 
                 </Panel>
@@ -545,15 +810,20 @@ export default function CourseCatalog() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                        searchCourses();
+                        void searchCourses();
                         }
                       }}/>
                     <Button icon="pi pi-search"
                       onClick={() => {
-                        searchCourses();
+                        void searchCourses();
                       }}/>
                 </div>
                 <div className="flex flex-col gap-4 w-full">
+                  {catalogError && (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {catalogError}
+                    </div>
+                  )}
                   {addToFlowchartMessage && (
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                       {addToFlowchartMessage}
@@ -589,7 +859,13 @@ export default function CourseCatalog() {
                     <div className="flex justify-center mt-4">
                       <Button
                         label={`Load more`}
-                        onClick={() => filtered ? applyFilter(pageNumber + 1) : getCourses(pageNumber + 1)}
+                        onClick={() => {
+                          if (filtered) {
+                            void applyFilter(pageNumber + 1);
+                            return;
+                          }
+                          void getCourses(pageNumber + 1);
+                        }}
                         className="p-button-outlined"
                       />
                     </div>
@@ -613,6 +889,9 @@ export default function CourseCatalog() {
                     <span className="font-semibold">Course:</span>{" "}
                     {selectedCourse?.courseIdent?.replace(/_/g, " ")}
                   </div>
+                  <div className="text-xs text-slate-500">
+                    Pick a semester first. CourseFlow will validate duplicates, prerequisites, offering term, and semester load before adding the course.
+                  </div>
                   <select
                     className="w-full rounded-md border border-slate-300 p-2 text-sm"
                     value={selectedSemesterId ?? ""}
@@ -625,12 +904,44 @@ export default function CourseCatalog() {
                       </option>
                     ))}
                   </select>
+                  {selectedCourse && selectedSemester && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800">Semester fit check</div>
+                          <div className="text-xs text-slate-500">
+                            Reviewing {selectedCourse.courseIdent?.replace(/_/g, " ")} for {formatSemesterLabel(selectedSemester)}.
+                          </div>
+                        </div>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses(fitSummary.tone)}`}>
+                          {fitSummary.label}
+                        </span>
+                      </div>
+                      <div className={`mt-3 rounded-md border px-3 py-2 text-sm ${toneClasses(fitSummary.tone)}`}>
+                        {fitSummary.detail}
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {selectedCourseFitChecks.map((check) => (
+                          <div key={`${check.tone}-${check.title}`} className={`rounded-md border px-3 py-2 ${toneClasses(check.tone)}`}>
+                            <div className="text-sm font-semibold">{check.title}</div>
+                            <div className="mt-1 text-xs leading-5">{check.detail}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <Button
                     className="w-full"
-                    label={addingCourse ? "Adding..." : "Add to CourseFlow"}
-                    icon="pi pi-plus"
+                    label={
+                      addingCourse
+                        ? "Adding..."
+                        : hasHardFitBlocker
+                          ? "Resolve fit issues first"
+                          : "Add to CourseFlow"
+                    }
+                    icon={hasHardFitBlocker ? "pi pi-exclamation-triangle" : "pi pi-plus"}
                     onClick={handleConfirmAddCourse}
-                    disabled={addingCourse || !selectedCourse}
+                    disabled={addingCourse || !selectedCourse || hasHardFitBlocker}
                   />
                 </div>
               )}

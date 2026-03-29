@@ -8,5 +8,6 @@ public record ProfessorSummaryResponse(
         String email,
         String profileUrl,
         double averageRating,
-        long reviewCount) {
+        long reviewCount,
+        ProfessorExternalRatingResponse primaryExternalRating) {
 }

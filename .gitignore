@@ -57,3 +57,5 @@ src/.DS_Store
 
 ## OTHER ##
 /src/main/resources/static/index.html
+uploads/
+CODEBASE_MEMORY.md

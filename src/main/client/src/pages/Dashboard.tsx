@@ -1,5 +1,5 @@
 // Dashboard.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ImportProgressReport from '../components/ImportProgressReport';
 import Flowchart from '../components/Flowchart';
@@ -39,10 +39,12 @@ import type {
 } from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
+import { getMajorById, getMajorByName, type Major } from '../api/majorsApi';
 import Header from '../components/header';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Button } from 'primereact/button';
 import { createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import { buildMajorProgress, loadMajorsBrowseSelectedMajorId } from '../utils/majorProgress';
 import api from '../api/axiosClient';
 
 function semesterRank(year: number, term: string): number {
@@ -84,6 +86,8 @@ export default function Dashboard() {
   const [selectedCourse, setSelectedCourse] = useState<FlowchartCourse | null>(null);
   const [insights, setInsights] = useState<FlowchartInsights | null>(null);
   const [requirementCoverage, setRequirementCoverage] = useState<FlowchartRequirementCoverage | null>(null);
+  const [insightsMajor, setInsightsMajor] = useState<Major | null>(null);
+  const [insightsMajorSource, setInsightsMajorSource] = useState<'browse' | 'flowchart' | null>(null);
   const [showRequirementCoverage, setShowRequirementCoverage] = useState(false);
   const [showProgressInsights, setShowProgressInsights] = useState(false);
   const [showMiniCatalog, setShowMiniCatalog] = useState(false);
@@ -91,6 +95,10 @@ export default function Dashboard() {
   const [miniCatalogLoading, setMiniCatalogLoading] = useState(false);
   const [miniCatalogError, setMiniCatalogError] = useState<string | null>(null);
   const [miniCatalogMessage, setMiniCatalogMessage] = useState<string | null>(null);
+  const [miniTargetFlowchartId, setMiniTargetFlowchartId] = useState<number | null>(null);
+  const [miniTargetSemesterId, setMiniTargetSemesterId] = useState<number | null>(null);
+  const [miniTargetFlowchart, setMiniTargetFlowchart] = useState<FlowchartType | null>(null);
+  const [miniTargetFlowchartLoading, setMiniTargetFlowchartLoading] = useState(false);
   const [miniSearchTerm, setMiniSearchTerm] = useState('');
   const [miniLevel, setMiniLevel] = useState('');
   const [miniOfferedTerm, setMiniOfferedTerm] = useState('');
@@ -154,6 +162,11 @@ export default function Dashboard() {
         (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
       )
     : [];
+  const miniTargetSemesters = miniTargetFlowchart?.semesters
+    ? [...miniTargetFlowchart.semesters].sort(
+        (a, b) => semesterRank(a.year, a.term) - semesterRank(b.year, b.term)
+      )
+    : [];
   const progressTotal = flowchart?.totalCredits ?? 0;
   const progressCompletedBase = flowchart?.creditsSatisfied ?? 0;
   const statusLookup = createStatusLookup(flowchart?.courseStatusMap);
@@ -208,6 +221,29 @@ export default function Dashboard() {
     APPROVED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
   };
+  const formatFlowchartTabLabel = (flowchartId: number): string => {
+    const tabIndex = flowchartTabs.findIndex((tab) => tab.id === flowchartId);
+    if (tabIndex >= 0) {
+      return `Flowchart ${tabIndex + 1}`;
+    }
+    return `Flowchart ${flowchartId}`;
+  };
+
+  const miniTargetFlowchartLabel = miniTargetFlowchartId === null
+    ? ''
+    : formatFlowchartTabLabel(miniTargetFlowchartId);
+  const miniTargetSemesterLabel = (() => {
+    if (miniTargetSemesterId === null) return '';
+    const semester = miniTargetSemesters.find((entry) => entry.id === miniTargetSemesterId);
+    if (!semester) return '';
+    return semester.year <= 0 ? 'Transfer Credit' : `${semester.term} ${semester.year}`;
+  })();
+
+  const linkedMajorProgress = useMemo(() => buildMajorProgress(insightsMajor, flowchart), [insightsMajor, flowchart]);
+  const linkedRequirementEntries = linkedMajorProgress.requirementEntries;
+  const linkedRequirementCounts = linkedMajorProgress.strictViewCounts;
+  const showLinkedRequirementCoverage = Boolean(insightsMajor && linkedRequirementEntries.length > 0);
+  const showFallbackRequirementCoverage = Boolean(requirementCoverage && requirementCoverage.totalRequirements > 0);
 
   const loadInsightsAndCoverage = async () => {
     try {
@@ -610,6 +646,122 @@ export default function Dashboard() {
   }, [showProgressInsights, flowchart?.id]);
 
   useEffect(() => {
+    if (readOnlyMode) {
+      setMiniTargetFlowchartId(null);
+      return;
+    }
+
+    setMiniTargetFlowchartId((current) => {
+      if (current !== null && flowchartTabs.some((tab) => tab.id === current)) {
+        return current;
+      }
+      if (activeFlowchartId !== null) {
+        return activeFlowchartId;
+      }
+      return flowchart?.id ?? null;
+    });
+  }, [readOnlyMode, flowchartTabs, activeFlowchartId, flowchart?.id]);
+
+  useEffect(() => {
+    if (readOnlyMode || miniTargetFlowchartId === null) {
+      setMiniTargetFlowchart(null);
+      setMiniTargetFlowchartLoading(false);
+      return;
+    }
+
+    if (flowchart && miniTargetFlowchartId === flowchart.id) {
+      setMiniTargetFlowchart(flowchart);
+      setMiniTargetFlowchartLoading(false);
+      return;
+    }
+
+    let active = true;
+    const targetFlowchartId = miniTargetFlowchartId;
+
+    async function loadMiniTargetFlowchart() {
+      setMiniTargetFlowchartLoading(true);
+      try {
+        const target = await getMyFlowchartById(targetFlowchartId);
+        if (!active) return;
+        setMiniTargetFlowchart(target);
+      } catch {
+        if (!active) return;
+        setMiniTargetFlowchart(null);
+      } finally {
+        if (active) {
+          setMiniTargetFlowchartLoading(false);
+        }
+      }
+    }
+
+    void loadMiniTargetFlowchart();
+    return () => {
+      active = false;
+    };
+  }, [readOnlyMode, miniTargetFlowchartId, flowchart]);
+
+  useEffect(() => {
+    if (miniTargetSemesters.length === 0) {
+      setMiniTargetSemesterId(null);
+      return;
+    }
+
+    setMiniTargetSemesterId((current) => {
+      const currentExists = current !== null && miniTargetSemesters.some((sem) => sem.id === current);
+      return currentExists ? current : miniTargetSemesters[0].id;
+    });
+  }, [miniTargetSemesters]);
+
+  useEffect(() => {
+    if (!flowchart) {
+      setInsightsMajor(null);
+      setInsightsMajorSource(null);
+      return;
+    }
+
+    let active = true;
+    const currentFlowchart = flowchart;
+
+    async function loadInsightsMajor() {
+      const flowchartMajorName = String(currentFlowchart.majorName ?? currentFlowchart.major?.name ?? '').trim();
+      const browseMajorId = readOnlyMode ? null : loadMajorsBrowseSelectedMajorId();
+
+      if (browseMajorId) {
+        try {
+          const major = await getMajorById(browseMajorId);
+          if (!active) return;
+          setInsightsMajor(major);
+          setInsightsMajorSource('browse');
+          return;
+        } catch {
+          // Fall back to the flowchart major below.
+        }
+      }
+
+      if (flowchartMajorName) {
+        try {
+          const major = await getMajorByName(flowchartMajorName);
+          if (!active) return;
+          setInsightsMajor(major);
+          setInsightsMajorSource('flowchart');
+          return;
+        } catch {
+          // Fall through to clearing the linked major state.
+        }
+      }
+
+      if (!active) return;
+      setInsightsMajor(null);
+      setInsightsMajorSource(null);
+    }
+
+    void loadInsightsMajor();
+    return () => {
+      active = false;
+    };
+  }, [flowchart?.id, flowchart?.majorName, readOnlyMode]);
+
+  useEffect(() => {
     if (readOnlyMode || !showMiniCatalog) {
       return;
     }
@@ -764,8 +916,12 @@ export default function Dashboard() {
 
   const handleAddMiniCourse = async (course: FlowchartCourse) => {
     if (readOnlyMode) return;
-    if (selectedSemesterId === null) {
-      setMiniCatalogError('Select a semester before adding a course.');
+    if (miniTargetFlowchartId === null) {
+      setMiniCatalogError('Select a target flowchart before adding a course.');
+      return;
+    }
+    if (miniTargetSemesterId === null) {
+      setMiniCatalogError('Select a target semester before adding a course.');
       return;
     }
 
@@ -773,12 +929,19 @@ export default function Dashboard() {
     setMiniCatalogError(null);
     setMiniCatalogMessage(null);
     try {
-      await updateSemesterCourses(selectedSemesterId, {
+      await updateSemesterCourses(miniTargetSemesterId, {
         operation: 'ADD',
         courseIdent: course.courseIdent,
       });
-      await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.');
-      setMiniCatalogMessage(`Added ${course.courseIdent} to your flowchart.`);
+      if (flowchart && miniTargetFlowchartId === flowchart.id) {
+        await reloadFlowchart('Course was added, but reloading the flowchart failed. Please refresh.', miniTargetFlowchartId);
+      } else {
+        const refreshedTarget = await getMyFlowchartById(miniTargetFlowchartId);
+        setMiniTargetFlowchart(refreshedTarget);
+      }
+      const targetLabel = miniTargetFlowchartLabel || 'selected flowchart';
+      const semesterLabel = miniTargetSemesterLabel || 'selected semester';
+      setMiniCatalogMessage(`Added ${course.courseIdent} to ${targetLabel} - ${semesterLabel}.`);
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
@@ -1072,7 +1235,7 @@ export default function Dashboard() {
                         </div>
                       </>
                     )}
-                    {requirementCoverage && requirementCoverage.totalRequirements > 0 && (
+                    {(showLinkedRequirementCoverage || showFallbackRequirementCoverage) && (
                       <div className="mt-3 border-t border-slate-200 pt-3">
                         <button
                           type="button"
@@ -1083,14 +1246,57 @@ export default function Dashboard() {
                             Requirement Coverage {showRequirementCoverage ? '(hide)' : '(show)'}
                           </span>
                           <span>
-                            {requirementCoverage.satisfiedRequirements} satisfied,{' '}
-                            {requirementCoverage.inProgressRequirements} in progress,{' '}
-                            {requirementCoverage.unmetRequirements} unmet
+                            {showLinkedRequirementCoverage
+                              ? `${linkedRequirementCounts.satisfied} satisfied, ${linkedRequirementCounts.inProgress} in progress, ${linkedRequirementCounts.unmet} unmet`
+                              : `${requirementCoverage?.satisfiedRequirements ?? 0} satisfied, ${requirementCoverage?.inProgressRequirements ?? 0} in progress, ${requirementCoverage?.unmetRequirements ?? 0} unmet`}
                           </span>
                         </button>
                         {showRequirementCoverage && (
                           <div className="mt-2 flex flex-col gap-1.5">
-                            {requirementCoverage.requirements.map((item) => (
+                            {showLinkedRequirementCoverage && insightsMajor && (
+                              <>
+                                <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-600">
+                                  Showing major progress for{' '}
+                                  <span className="font-semibold text-slate-700">{insightsMajor.name}</span>
+                                  {insightsMajorSource === 'browse' ? ' from Majors Browse.' : ' from the flowchart major.'}
+                                </div>
+                                {linkedRequirementEntries.map((item) => (
+                                  <div
+                                    key={item.requirementId}
+                                    className="rounded-md bg-slate-50 px-2 py-1.5 text-xs"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <span className="font-medium text-slate-700">{item.name}</span>
+                                      <span className="text-slate-600">
+                                        {item.completedSlots} met + {item.inProgressSlots} in progress / {item.totalSlots}
+                                        {item.remainingSlots > 0 ? ` (${item.remainingSlots} left)` : ' (done)'}
+                                      </span>
+                                    </div>
+                                    {(item.completedMatches.length > 0 || item.inProgressMatches.length > 0) && (
+                                      <div className="mt-1.5 flex flex-wrap gap-1">
+                                        {item.completedMatches.slice(0, 8).map((courseIdent) => (
+                                          <span
+                                            key={`${item.requirementId}-met-${courseIdent}`}
+                                            className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700"
+                                          >
+                                            {courseIdent}
+                                          </span>
+                                        ))}
+                                        {item.inProgressMatches.slice(0, 8).map((courseIdent) => (
+                                          <span
+                                            key={`${item.requirementId}-ip-${courseIdent}`}
+                                            className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700"
+                                          >
+                                            {courseIdent}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            {!showLinkedRequirementCoverage && requirementCoverage?.requirements.map((item) => (
                               <div
                                 key={item.name}
                                 className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-xs"
@@ -1381,6 +1587,43 @@ export default function Dashboard() {
                       Mini Course Catalog
                     </div>
                     <div className="mt-3 space-y-3">
+                      <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Add Target
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          <select
+                            className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                            value={miniTargetFlowchartId ?? ''}
+                            onChange={(e) => setMiniTargetFlowchartId(e.target.value ? Number(e.target.value) : null)}
+                            disabled={miniTargetFlowchartLoading || flowchartTabs.length === 0}
+                          >
+                            {flowchartTabs.length === 0 && <option value="">No flowcharts available</option>}
+                            {flowchartTabs.map((tab, index) => (
+                              <option key={tab.id} value={tab.id}>
+                                {`Flowchart ${index + 1}`}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                            value={miniTargetSemesterId ?? ''}
+                            onChange={(e) => setMiniTargetSemesterId(e.target.value ? Number(e.target.value) : null)}
+                            disabled={miniTargetFlowchartLoading || miniTargetSemesters.length === 0}
+                          >
+                            {miniTargetSemesters.length === 0 && (
+                              <option value="">
+                                {miniTargetFlowchartLoading ? 'Loading semesters...' : 'No semesters available'}
+                              </option>
+                            )}
+                            {miniTargetSemesters.map((sem) => (
+                              <option key={sem.id} value={sem.id}>
+                                {sem.year <= 0 ? 'Transfer Credit' : `${sem.term} ${sem.year}`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                       <input
                         className="w-full rounded-md border border-slate-300 p-2 text-sm"
                         placeholder="Search by ident or title"
@@ -1467,7 +1710,8 @@ export default function Dashboard() {
                                   label={miniAddingCourseIdent === course.courseIdent ? 'Adding...' : 'Add'}
                                   onClick={() => void handleAddMiniCourse(course)}
                                   disabled={
-                                    selectedSemesterId === null ||
+                                    miniTargetSemesterId === null ||
+                                    miniTargetFlowchartLoading ||
                                     miniAddingCourseIdent === course.courseIdent
                                   }
                                 />
@@ -1477,9 +1721,9 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
-                    {selectedSemesterId === null && (
+                    {miniTargetSemesterId === null && (
                       <div className="mt-2 text-xs text-slate-500">
-                        Select a semester in the left panel before adding.
+                        Choose a target flowchart and semester above before adding.
                       </div>
                     )}
                   </aside>

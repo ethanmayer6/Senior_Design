@@ -56,6 +56,12 @@ public class CourseController {
     public ResponseEntity<List<Course>> getPage(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
         return ResponseEntity.ok(courseService.getPage(page, size));
     }
+    @GetMapping("/browse")
+    public ResponseEntity<CoursePageResponse> browseCourses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(courseService.getBrowsePage(page, size));
+    }
     @GetMapping("/search")
     public ResponseEntity<List<Course>> searchCourse(@RequestParam String searchTerm){
         return ResponseEntity.ok(courseService.searchCourse(searchTerm));

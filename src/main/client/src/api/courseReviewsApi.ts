@@ -12,6 +12,14 @@ export type CourseSummary = {
   prerequisites: string[];
 };
 
+export type CourseBrowsePageResponse = {
+  courses: CourseSummary[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
 export type CourseReview = {
   id: number;
   rating: number;
@@ -69,6 +77,14 @@ export async function searchCoursesForReviews(searchTerm: string): Promise<Cours
     params: { searchTerm },
   });
   return res.data ?? [];
+}
+
+export async function getCoursesBrowsePage(params?: {
+  page?: number;
+  size?: number;
+}): Promise<CourseBrowsePageResponse> {
+  const res = await api.get<CourseBrowsePageResponse>('/courses/browse', { params });
+  return res.data;
 }
 
 export async function getCourseReviewSummary(courseId: number): Promise<CourseReviewSummary> {

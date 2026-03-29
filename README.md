@@ -41,13 +41,21 @@ Houses the security config file for the Spring Security. If you have an issue wi
 Houses all the business logic and helper services
 * Example - UserService (Encrypt the password for the user when signing up)
 ## Database
-The PostGres Database is currently configured on the schools VM and all of the settings for it can be
-found in the `/src/main/resources/application.properties` folder. It is configured so that when changes 
-are made locally to anny of the models, then it will automatically update the DB on the server. To view
-the tables/data etc, connect to the server via pgAdmin or CLI and connect to the following:
-* url - sdmay26-19.ece.iastate.edu
-* username - postgres
-* password - password
+Database and JWT configuration should be provided through environment variables rather than committed
+operational credentials. The default public-safe configuration in `src/main/resources/application.properties`
+expects these values:
+* `COURSEFLOW_DB_URL`
+* `COURSEFLOW_DB_USERNAME`
+* `COURSEFLOW_DB_PASSWORD`
+* `COURSEFLOW_JWT_SECRET`
+
+Example local development setup:
+* `COURSEFLOW_DB_URL=jdbc:postgresql://localhost:5432/courseflow`
+* `COURSEFLOW_DB_USERNAME=courseflow`
+* `COURSEFLOW_DB_PASSWORD=courseflow`
+* `COURSEFLOW_JWT_SECRET=replace-with-a-long-random-local-secret`
+
+Uploaded profile pictures are runtime data and should stay out of git.
 
 ## Iowa State Degree Data Import
 CourseFlow now includes a JSON importer for major requirement data used by Requirement Coverage and Smart Scheduler.
@@ -69,8 +77,9 @@ Optional scraper to generate a majors dataset from the online ISU catalog:
 
 ## Iowa State Professor Reviews Module
 CourseFlow now includes a professor browsing + review module, plus an ISU faculty scraper/import flow.
+It also supports admin-imported external rating snapshots so professor pages can show approved third-party summaries or outbound profile links alongside native CourseFlow reviews.
 
-On startup, the app now auto-seeds the bundled ISU professor dataset only when the `professors` table is empty. Manual admin import is still available if you want to refresh or overwrite the directory later.
+On startup, the app now auto-seeds the bundled ISU professor dataset only when the `professors` table is empty. It also auto-imports the bundled Rate My Professors link seed for the current Software Engineering faculty matches after the professor directory is available. Manual admin import is still available if you want to refresh or overwrite the directory later.
 Existing professor rows are also normalized on startup so department filters stay clean even if older imported records included title or degree noise.
 
 Endpoints:
@@ -85,6 +94,8 @@ Endpoints:
 Admin import endpoints:
 * `POST /api/admin/professors/import` - import JSON payload
 * `POST /api/admin/professors/import/file` - import JSON file with multipart `file`
+* `POST /api/admin/professors/external-ratings/import` - import external rating snapshot payload
+* `POST /api/admin/professors/external-ratings/import/file` - import external rating snapshot JSON file
 
 Faculty scraper:
 * Script: `webscraper/isu_professor_scraper.py`
@@ -92,3 +103,15 @@ Faculty scraper:
   * `python webscraper/isu_professor_scraper.py --output docs/isu-professors-dataset.json`
 * Import scraped data:
   * `POST /api/admin/professors/import/file` with `docs/isu-professors-dataset.json`
+
+External rating snapshot template:
+* `docs/professor-external-ratings-template.json`
+Bundled Software Engineering Rate My Professors links:
+* `src/main/resources/seed/professor-external-ratings-rmp-software-engineering.json`
+
+Notes for external rating imports:
+* Snapshots are stored separately from CourseFlow student reviews.
+* Each rating row should identify a local professor by `professorId` or by `professorName`, with `department` optional when the professor name is already unique in the local directory.
+* `sourceSystem` is required for each snapshot row.
+* `averageRating` and `reviewCount` are optional when you only want to provide an external profile link; include both when you want to import a real rating snapshot.
+* For Rate My Professors, use `RATE_MY_PROFESSORS` as the `sourceSystem`.
