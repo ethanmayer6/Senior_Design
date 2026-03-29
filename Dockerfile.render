@@ -1,0 +1,22 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+
+COPY pom.xml ./
+RUN mvn -q -DskipTests dependency:go-offline
+
+COPY src ./src
+RUN mvn -q -P '!frontend' -DskipTests package
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+COPY scripts/render-start.sh ./scripts/render-start.sh
+COPY --from=build /app/target/courseflow-0.0.1-SNAPSHOT.jar ./app.jar
+
+RUN chmod +x ./scripts/render-start.sh
+
+ENV COURSEFLOW_JAR_PATH=./app.jar
+
+EXPOSE 10000
+
+ENTRYPOINT ["./scripts/render-start.sh"]

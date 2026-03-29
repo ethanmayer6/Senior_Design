@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:backend": "tsc -b && vite build --outDir ../resources/static",
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",

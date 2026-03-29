@@ -1,5 +1,5 @@
-import api from './axiosClient';
-import type { User } from '../types/user';
+import type { User } from "../types/user";
+import api from "./axiosClient";
 
 export const getAllUsers = () => api.get('/admin/users');
 export const getUser = (id: number) => api.get(`/admin/user/${id}`);
