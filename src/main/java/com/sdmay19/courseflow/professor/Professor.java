@@ -6,13 +6,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -67,6 +70,9 @@ public class Professor {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "professor")
+    private Set<ProfessorExternalRating> externalRatings = new LinkedHashSet<>();
 
     public Professor() {
     }
@@ -212,5 +218,13 @@ public class Professor {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Set<ProfessorExternalRating> getExternalRatings() {
+        return externalRatings;
+    }
+
+    public void setExternalRatings(Set<ProfessorExternalRating> externalRatings) {
+        this.externalRatings = externalRatings;
     }
 }

@@ -14,7 +14,7 @@ import java.util.Objects;
 @Service
 public class FileStorageService {
 
-    @Value("${file.upload-dir}")
+    @Value("${file.upload-dir:./uploads/profile-pictures}")
     private String uploadDir;
 
     public String saveProfilePicture(MultipartFile file, Long userId) throws IOException {

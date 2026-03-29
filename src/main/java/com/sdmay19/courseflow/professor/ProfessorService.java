@@ -11,6 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,6 +26,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Transactional
@@ -28,21 +35,26 @@ public class ProfessorService {
 
     private static final int DEFAULT_PAGE_SIZE = 25;
     private static final int MAX_PAGE_SIZE = 100;
+    private static final String RATE_MY_PROFESSORS = "RATE_MY_PROFESSORS";
+    private static final Pattern RATE_MY_PROFESSORS_ID_PATTERN = Pattern.compile("/professor/(\\d+)");
 
     private record RatingStats(double average, long count) {
     }
 
     private final ProfessorRepository professorRepository;
+    private final ProfessorExternalRatingRepository professorExternalRatingRepository;
     private final ProfessorReviewRepository professorReviewRepository;
     private final UserRepository userRepository;
     private final ProfessorDirectoryState professorDirectoryState;
 
     public ProfessorService(
             ProfessorRepository professorRepository,
+            ProfessorExternalRatingRepository professorExternalRatingRepository,
             ProfessorReviewRepository professorReviewRepository,
             UserRepository userRepository,
             ProfessorDirectoryState professorDirectoryState) {
         this.professorRepository = professorRepository;
+        this.professorExternalRatingRepository = professorExternalRatingRepository;
         this.professorReviewRepository = professorReviewRepository;
         this.userRepository = userRepository;
         this.professorDirectoryState = professorDirectoryState;
@@ -66,9 +78,11 @@ public class ProfessorService {
                 ? professorRepository.searchByRating(normalizedQuery, normalizedDepartment, pageable)
                 : professorRepository.searchByName(normalizedQuery, normalizedDepartment, pageable);
 
-        Map<Long, RatingStats> statsByProfessorId = buildStatsMap(result.getContent().stream()
+        List<Long> professorIds = result.getContent().stream()
                 .map(Professor::getId)
-                .toList());
+                .toList();
+        Map<Long, RatingStats> statsByProfessorId = buildStatsMap(professorIds);
+        Map<Long, ProfessorExternalRatingResponse> primaryExternalRatings = buildPrimaryExternalRatingsMap(professorIds);
 
         List<ProfessorSummaryResponse> summaries = result.getContent().stream()
                 .map(professor -> {
@@ -81,7 +95,8 @@ public class ProfessorService {
                             professor.getEmail(),
                             professor.getProfileUrl(),
                             stats.average(),
-                            stats.count());
+                            stats.count(),
+                            primaryExternalRatings.get(professor.getId()));
                 })
                 .toList();
 
@@ -110,6 +125,7 @@ public class ProfessorService {
     public ProfessorDetailResponse getProfessorDetail(long professorId, AppUser principal) {
         Professor professor = getProfessorOrThrow(professorId);
         AppUser viewer = principal == null ? null : loadManagedUser(principal);
+        List<ProfessorExternalRatingResponse> externalRatings = getExternalRatingsForProfessor(professorId);
 
         RatingStats stats = professorReviewRepository.findRatingStatsByProfessorId(professorId)
                 .map(view -> new RatingStats(
@@ -143,6 +159,7 @@ public class ProfessorService {
                 stats.average(),
                 stats.count(),
                 ratingBreakdown,
+                externalRatings,
                 myReview,
                 viewer != null && isStudentRole(viewer.getRole()));
     }
@@ -314,6 +331,125 @@ public class ProfessorService {
         }
     }
 
+    public ProfessorExternalRatingImportResponse importExternalRatingsFromDataset(
+            ProfessorExternalRatingImportDataset dataset,
+            boolean overwriteExisting) {
+        if (dataset == null || dataset.ratings() == null) {
+            throw new IllegalArgumentException("Import payload must include a ratings array.");
+        }
+
+        int imported = 0;
+        int updated = 0;
+        int skipped = 0;
+        int invalid = 0;
+        int unmatched = 0;
+
+        Set<String> seenKeys = new LinkedHashSet<>();
+        Instant datasetCapturedAt = parseInstant(dataset.capturedAt());
+        for (ProfessorExternalRatingImportRecord row : dataset.ratings()) {
+            if (row == null) {
+                invalid += 1;
+                continue;
+            }
+
+            String sourceSystem = normalizeSource(row.sourceSystem(), dataset.source());
+            if (sourceSystem == null) {
+                invalid += 1;
+                continue;
+            }
+
+            Professor professor = resolveProfessorForExternalRating(row);
+            if (professor == null) {
+                unmatched += 1;
+                continue;
+            }
+
+            Double averageRating = row.averageRating();
+            Long reviewCount = row.reviewCount();
+            String sourceUrl = normalizeDisplayText(row.sourceUrl(), 1000);
+            if (!hasValidExternalStats(averageRating, reviewCount)
+                    || !isValidExternalDifficulty(row.difficultyRating())
+                    || !isValidWouldTakeAgainPercent(row.wouldTakeAgainPercent())
+                    || (!hasExternalStats(averageRating, reviewCount) && sourceUrl == null)) {
+                invalid += 1;
+                continue;
+            }
+
+            String dedupeKey = professor.getId() + "::" + sourceSystem;
+            if (!seenKeys.add(dedupeKey)) {
+                skipped += 1;
+                continue;
+            }
+
+            Optional<ProfessorExternalRating> existing =
+                    professorExternalRatingRepository.findByProfessorAndSourceSystem(professor, sourceSystem);
+            if (existing.isPresent() && !overwriteExisting) {
+                skipped += 1;
+                continue;
+            }
+
+            ProfessorExternalRating rating = existing.orElseGet(ProfessorExternalRating::new);
+            rating.setProfessor(professor);
+            rating.setSourceSystem(sourceSystem);
+            rating.setExternalId(normalizeDisplayText(row.externalId(), 220));
+            rating.setSourceUrl(sourceUrl);
+            rating.setAverageRating(averageRating);
+            rating.setReviewCount(reviewCount);
+            rating.setDifficultyRating(row.difficultyRating());
+            rating.setWouldTakeAgainPercent(row.wouldTakeAgainPercent());
+            rating.setCapturedAt(firstNonNull(parseInstant(row.capturedAt()), datasetCapturedAt, Instant.now()));
+            professorExternalRatingRepository.save(rating);
+
+            if (existing.isPresent()) {
+                updated += 1;
+            } else {
+                imported += 1;
+            }
+        }
+
+        return new ProfessorExternalRatingImportResponse(imported, updated, skipped, invalid, unmatched);
+    }
+
+    public ProfessorExternalRatingImportResponse importExternalRatingsFromJsonFile(
+            MultipartFile file,
+            boolean overwriteExisting) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("A non-empty JSON file is required.");
+        }
+        try {
+            String content = new String(file.getBytes());
+            ProfessorExternalRatingImportDataset dataset =
+                    ProfessorExternalRatingImportParsers.parseDataset(content);
+            return importExternalRatingsFromDataset(dataset, overwriteExisting);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Failed to read import file: " + e.getMessage());
+        }
+    }
+
+    public ProfessorExternalRatingResponse upsertRateMyProfessorsLink(long professorId, String sourceUrl) {
+        Professor professor = getProfessorOrThrow(professorId);
+        String normalizedSourceUrl = normalizeRateMyProfessorsUrl(sourceUrl);
+
+        ProfessorExternalRating rating = professorExternalRatingRepository
+                .findByProfessorAndSourceSystem(professor, RATE_MY_PROFESSORS)
+                .orElseGet(ProfessorExternalRating::new);
+
+        rating.setProfessor(professor);
+        rating.setSourceSystem(RATE_MY_PROFESSORS);
+        rating.setSourceUrl(normalizedSourceUrl);
+
+        String extractedExternalId = extractRateMyProfessorsExternalId(normalizedSourceUrl);
+        if (extractedExternalId != null) {
+            rating.setExternalId(extractedExternalId);
+        }
+        if (rating.getCapturedAt() == null) {
+            rating.setCapturedAt(Instant.now());
+        }
+
+        ProfessorExternalRating saved = professorExternalRatingRepository.save(rating);
+        return toExternalRatingResponse(saved);
+    }
+
     private Professor getProfessorOrThrow(long professorId) {
         return professorRepository.findById(professorId)
                 .orElseThrow(() -> new IllegalArgumentException("Professor not found: " + professorId));
@@ -361,6 +497,105 @@ public class ProfessorService {
             result.put(projection.getProfessorId(), new RatingStats(avg, count));
         }
         return result;
+    }
+
+    private Map<Long, ProfessorExternalRatingResponse> buildPrimaryExternalRatingsMap(Collection<Long> professorIds) {
+        if (professorIds == null || professorIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<ProfessorExternalRating>> ratingsByProfessor = new HashMap<>();
+        for (ProfessorExternalRating rating : professorExternalRatingRepository.findByProfessorIdIn(professorIds)) {
+            if (rating.getProfessor() == null) {
+                continue;
+            }
+            ratingsByProfessor
+                    .computeIfAbsent(rating.getProfessor().getId(), ignored -> new ArrayList<>())
+                    .add(rating);
+        }
+
+        Map<Long, ProfessorExternalRatingResponse> result = new HashMap<>();
+        for (Map.Entry<Long, List<ProfessorExternalRating>> entry : ratingsByProfessor.entrySet()) {
+            ProfessorExternalRating primary = pickPrimaryExternalRating(entry.getValue());
+            if (primary != null) {
+                result.put(entry.getKey(), toExternalRatingResponse(primary));
+            }
+        }
+        return result;
+    }
+
+    private List<ProfessorExternalRatingResponse> getExternalRatingsForProfessor(long professorId) {
+        List<ProfessorExternalRating> ratings = new ArrayList<>(professorExternalRatingRepository.findByProfessorId(professorId));
+        ratings.sort(externalRatingComparator());
+        return ratings.stream()
+                .map(this::toExternalRatingResponse)
+                .toList();
+    }
+
+    private ProfessorExternalRating pickPrimaryExternalRating(Collection<ProfessorExternalRating> ratings) {
+        if (ratings == null || ratings.isEmpty()) {
+            return null;
+        }
+        return ratings.stream()
+                .filter(Objects::nonNull)
+                .sorted(externalRatingComparator())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Comparator<ProfessorExternalRating> externalRatingComparator() {
+        return Comparator
+                .comparingInt((ProfessorExternalRating rating) -> sourcePriority(rating.getSourceSystem()))
+                .thenComparingLong(rating -> rating.getReviewCount() == null ? -1L : rating.getReviewCount())
+                .thenComparingDouble(rating -> rating.getAverageRating() == null ? -1.0 : rating.getAverageRating())
+                .reversed();
+    }
+
+    private ProfessorExternalRatingResponse toExternalRatingResponse(ProfessorExternalRating rating) {
+        return new ProfessorExternalRatingResponse(
+                rating.getSourceSystem(),
+                sourceLabelFor(rating.getSourceSystem()),
+                rating.getExternalId(),
+                rating.getSourceUrl(),
+                rating.getAverageRating(),
+                rating.getReviewCount(),
+                rating.getDifficultyRating(),
+                rating.getWouldTakeAgainPercent(),
+                rating.getCapturedAt(),
+                rating.getUpdatedAt());
+    }
+
+    private int sourcePriority(String sourceSystem) {
+        if (RATE_MY_PROFESSORS.equals(sourceSystem)) {
+            return 100;
+        }
+        if (sourceSystem == null || sourceSystem.isBlank()) {
+            return 0;
+        }
+        return 10;
+    }
+
+    private String sourceLabelFor(String sourceSystem) {
+        if (sourceSystem == null || sourceSystem.isBlank()) {
+            return "External Rating";
+        }
+        if (RATE_MY_PROFESSORS.equals(sourceSystem)) {
+            return "Rate My Professors";
+        }
+
+        StringBuilder label = new StringBuilder();
+        for (String token : sourceSystem.toLowerCase(Locale.ROOT).split("[_\\s]+")) {
+            if (token.isBlank()) {
+                continue;
+            }
+            if (!label.isEmpty()) {
+                label.append(' ');
+            }
+            label.append(Character.toUpperCase(token.charAt(0)));
+            if (token.length() > 1) {
+                label.append(token.substring(1));
+            }
+        }
+        return label.isEmpty() ? "External Rating" : label.toString();
     }
 
     private Map<Integer, Long> initRatingBreakdown() {
@@ -488,6 +723,113 @@ public class ProfessorService {
         if (rating < 1 || rating > 5) {
             throw new IllegalArgumentException(field + " must be between 1 and 5.");
         }
+    }
+
+    private Professor resolveProfessorForExternalRating(ProfessorExternalRatingImportRecord row) {
+        if (row.professorId() != null) {
+            return professorRepository.findById(row.professorId()).orElse(null);
+        }
+
+        String normalizedName = normalizeLookupToken(row.professorName());
+        if (normalizedName.isBlank()) {
+            return null;
+        }
+
+        String normalizedDepartment = normalizeLookupToken(row.department());
+        if (!normalizedDepartment.isBlank()) {
+            return professorRepository.findFirstByNormalizedNameAndNormalizedDepartment(
+                    normalizedName,
+                    normalizedDepartment).orElse(null);
+        }
+
+        List<Professor> matches = professorRepository.findAllByNormalizedName(normalizedName);
+        return matches.size() == 1 ? matches.getFirst() : null;
+    }
+
+    private Instant parseInstant(String raw) {
+        String trimmed = trimToNull(raw);
+        if (trimmed == null) {
+            return null;
+        }
+        try {
+            return Instant.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private String normalizeRateMyProfessorsUrl(String raw) {
+        String normalized = normalizeDisplayText(raw, 1000);
+        if (normalized == null) {
+            throw new IllegalArgumentException("A Rate My Professors link is required.");
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(normalized);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Enter a valid Rate My Professors URL.");
+        }
+
+        String scheme = trimToNull(uri.getScheme());
+        String host = trimToNull(uri.getHost());
+        if (scheme == null
+                || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))
+                || host == null
+                || !host.toLowerCase(Locale.ROOT).contains("ratemyprofessors.com")) {
+            throw new IllegalArgumentException("Enter a valid Rate My Professors URL.");
+        }
+
+        return normalized;
+    }
+
+    private String extractRateMyProfessorsExternalId(String sourceUrl) {
+        if (sourceUrl == null) {
+            return null;
+        }
+        Matcher matcher = RATE_MY_PROFESSORS_ID_PATTERN.matcher(sourceUrl);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private boolean hasExternalStats(Double rating, Long reviewCount) {
+        return rating != null || reviewCount != null;
+    }
+
+    private boolean hasValidExternalStats(Double rating, Long reviewCount) {
+        if (rating == null && reviewCount == null) {
+            return true;
+        }
+        return isValidExternalAverage(rating) && isValidExternalReviewCount(reviewCount);
+    }
+
+    private boolean isValidExternalAverage(Double rating) {
+        return rating != null && rating >= 0.0 && rating <= 5.0;
+    }
+
+    private boolean isValidExternalReviewCount(Long reviewCount) {
+        return reviewCount != null && reviewCount >= 0;
+    }
+
+    private boolean isValidExternalDifficulty(Double rating) {
+        return rating == null || (rating >= 0.0 && rating <= 5.0);
+    }
+
+    private boolean isValidWouldTakeAgainPercent(Integer wouldTakeAgainPercent) {
+        return wouldTakeAgainPercent == null
+                || (wouldTakeAgainPercent >= 0 && wouldTakeAgainPercent <= 100);
+    }
+
+    @SafeVarargs
+    private final <T> T firstNonNull(T... values) {
+        if (values == null) {
+            return null;
+        }
+        for (T value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private int sanitizePageSize(Integer requested) {

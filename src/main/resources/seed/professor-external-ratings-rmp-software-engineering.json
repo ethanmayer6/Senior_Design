@@ -1,0 +1,54 @@
+{
+  "source": "RATE_MY_PROFESSORS",
+  "capturedAt": "2026-03-26T17:00:00Z",
+  "ratings": [
+    {
+      "professorName": "Akhilesh Tyagi",
+      "externalId": "413950",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/413950",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Ali Jannesari",
+      "externalId": "2346839",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/2346839",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Ashraf Gaffar",
+      "externalId": "2767829",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/2767829",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Goce Trajcevski",
+      "externalId": "2492133",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/2492133",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Hongwei Zhang",
+      "externalId": "2357141",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/2357141",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Samik Basu",
+      "externalId": "405711",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/405711",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Simanta Mitra",
+      "externalId": "18688",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/18688",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    },
+    {
+      "professorName": "Wei Le",
+      "externalId": "2356321",
+      "sourceUrl": "https://www.ratemyprofessors.com/professor/2356321",
+      "capturedAt": "2026-03-26T17:00:00Z"
+    }
+  ]
+}

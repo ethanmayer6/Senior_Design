@@ -5,6 +5,7 @@ import Header from '../components/header';
 import {
   createCourseReview,
   deleteMyCourseReview,
+  getCoursesBrowsePage,
   getCourseReviewSummary,
   getCourseReviews,
   searchCoursesForReviews,
@@ -12,6 +13,7 @@ import {
   type CourseReview,
   type CourseReviewPageResponse,
   type CourseReviewSummary,
+  type CourseBrowsePageResponse,
   type CourseSummary,
 } from '../api/courseReviewsApi';
 
@@ -44,6 +46,8 @@ const DEFAULT_FORM: ReviewFormState = {
   studyTips: '',
   anonymous: false,
 };
+
+const DEFAULT_COURSE_PAGE_SIZE = 50;
 
 function normalizeRole(role: string | null | undefined): string {
   if (!role) return '';
@@ -100,7 +104,11 @@ function toPayload(form: ReviewFormState) {
 export default function CourseReviews() {
   const [queryInput, setQueryInput] = useState('');
   const [courses, setCourses] = useState<CourseSummary[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(true);
+  const [courseListMode, setCourseListMode] = useState<'browse' | 'search'>('browse');
+  const [coursePage, setCoursePage] = useState(0);
+  const [courseTotalPages, setCourseTotalPages] = useState(0);
+  const [courseTotalElements, setCourseTotalElements] = useState(0);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [summary, setSummary] = useState<CourseReviewSummary | null>(null);
@@ -129,28 +137,68 @@ export default function CourseReviews() {
     [courses, selectedCourseId]
   );
 
+  const sortCoursesByIdent = (items: CourseSummary[]) =>
+    [...items].sort((left, right) => left.courseIdent.localeCompare(right.courseIdent));
+
+  const syncSelectedCourse = (results: CourseSummary[], preferredId?: number | null) => {
+    setSelectedCourseId((previous) => {
+      const targetId = preferredId ?? previous;
+      if (targetId && results.some((course) => course.id === targetId)) {
+        return targetId;
+      }
+      return results.length ? results[0].id : null;
+    });
+  };
+
+  const loadBrowseCourses = async (pageIndex: number, preferredId?: number | null) => {
+    setSearchLoading(true);
+    setError(null);
+    setCourseListMode('browse');
+    try {
+      const response: CourseBrowsePageResponse = await getCoursesBrowsePage({
+        page: pageIndex,
+        size: DEFAULT_COURSE_PAGE_SIZE,
+      });
+      const results = sortCoursesByIdent(response.courses ?? []);
+      setCourses(results);
+      setCoursePage(response.page);
+      setCourseTotalPages(response.totalPages);
+      setCourseTotalElements(response.totalElements);
+      syncSelectedCourse(results, preferredId);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to load courses.';
+      setError(message);
+      setCourses([]);
+      setCoursePage(pageIndex);
+      setCourseTotalPages(0);
+      setCourseTotalElements(0);
+      setSelectedCourseId(null);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const runSearch = async (term: string) => {
     const cleaned = term.trim();
     setSearchLoading(true);
     setError(null);
     try {
       if (cleaned.length < 2) {
-        setCourses([]);
-        setSelectedCourseId(null);
+        await loadBrowseCourses(0);
         return;
       }
-      const results = await searchCoursesForReviews(cleaned);
+      const results = sortCoursesByIdent(await searchCoursesForReviews(cleaned));
+      setCourseListMode('search');
+      setCoursePage(0);
+      setCourseTotalPages(0);
+      setCourseTotalElements(results.length);
       setCourses(results ?? []);
-      setSelectedCourseId((prev) => {
-        if (prev && results.some((course) => course.id === prev)) {
-          return prev;
-        }
-        return results.length ? results[0].id : null;
-      });
+      syncSelectedCourse(results);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || 'Failed to search courses.';
       setError(message);
       setCourses([]);
+      setCourseTotalElements(0);
       setSelectedCourseId(null);
     } finally {
       setSearchLoading(false);
@@ -177,6 +225,10 @@ export default function CourseReviews() {
       setDetailLoading(false);
     }
   };
+
+  useEffect(() => {
+    void loadBrowseCourses(0);
+  }, []);
 
   useEffect(() => {
     if (!selectedCourseId) {
@@ -281,10 +333,41 @@ export default function CourseReviews() {
               >
                 Search
               </button>
-              <p className="text-xs text-gray-500">Use at least 2 characters to run a search.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQueryInput('');
+                  void loadBrowseCourses(0);
+                }}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+              >
+                Show All Courses
+              </button>
+              <p className="text-xs text-gray-500">
+                The page starts with the first 50 courses alphabetically by ident. Use 2 or more characters to narrow it.
+              </p>
             </form>
 
             <div className="mt-4 border-t border-gray-200 pt-4">
+              <div className="mb-3 flex items-center justify-between gap-2 text-xs text-gray-500">
+                <span>
+                  {courseListMode === 'search'
+                    ? `Search results${queryInput.trim() ? ` for "${queryInput.trim()}"` : ''}`
+                    : `Alphabetical browse - page ${coursePage + 1}${courseTotalPages > 0 ? ` of ${courseTotalPages}` : ''}`}
+                </span>
+                {courseListMode === 'search' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQueryInput('');
+                      void loadBrowseCourses(0, selectedCourseId);
+                    }}
+                    className="font-semibold text-red-600 hover:underline"
+                  >
+                    Back to all
+                  </button>
+                )}
+              </div>
               {searchLoading ? (
                 <div className="text-sm text-gray-600">Searching courses...</div>
               ) : (
@@ -308,21 +391,51 @@ export default function CourseReviews() {
                     </button>
                   ))}
                   {courses.length === 0 && (
-                    <div className="text-sm text-gray-600">No courses loaded. Run a search to begin.</div>
+                    <div className="text-sm text-gray-600">
+                      {courseListMode === 'search'
+                        ? 'No courses matched that search.'
+                        : 'No courses were returned for this page.'}
+                    </div>
                   )}
+                </div>
+              )}
+
+              {courseListMode === 'browse' && courseTotalPages > 1 && !searchLoading && (
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-200 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => void loadBrowseCourses(coursePage - 1)}
+                    disabled={coursePage <= 0}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous 50
+                  </button>
+                  <div className="text-xs text-gray-500">
+                    Showing {(coursePage * DEFAULT_COURSE_PAGE_SIZE) + 1}
+                    {' '}-{' '}
+                    {Math.min((coursePage + 1) * DEFAULT_COURSE_PAGE_SIZE, courseTotalElements)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadBrowseCourses(coursePage + 1)}
+                    disabled={coursePage + 1 >= courseTotalPages}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next 50
+                  </button>
                 </div>
               )}
             </div>
           </aside>
 
           <section className="space-y-4">
-            {!selectedCourse && (
+            {!selectedCourse && !searchLoading && (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 shadow-sm">
                 Select a course to view and leave reviews.
               </div>
             )}
 
-            {selectedCourse && detailLoading && (
+            {selectedCourse && (detailLoading || (!summary && !error)) && (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 shadow-sm">
                 Loading course review data...
               </div>
@@ -616,3 +729,4 @@ export default function CourseReviews() {
     </div>
   );
 }
+

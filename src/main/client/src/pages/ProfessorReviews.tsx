@@ -10,9 +10,11 @@ import {
   getProfessorDepartments,
   getProfessorDetail,
   getProfessorReviews,
+  saveRateMyProfessorsLink,
   updateMyProfessorReview,
   type ProfessorDetail,
   type ProfessorDirectoryStatus,
+  type ProfessorExternalRating,
   type ProfessorReview,
   type ProfessorReviewPageResponse,
   type ProfessorSummary,
@@ -50,6 +52,19 @@ const DEFAULT_FORM: ReviewFormState = {
   anonymous: false,
 };
 
+export function summarizeExternalRating(rating: ProfessorExternalRating): string {
+  if (rating.averageRating !== null && rating.reviewCount !== null) {
+    return `${rating.averageRating.toFixed(1)} / 5 · ${rating.reviewCount} ratings`;
+  }
+  if (rating.averageRating !== null) {
+    return `${rating.averageRating.toFixed(1)} / 5`;
+  }
+  if (rating.reviewCount !== null) {
+    return `${rating.reviewCount} ratings`;
+  }
+  return 'Profile link available';
+}
+
 function normalizeRole(role: string | null | undefined): string {
   if (!role) return '';
   const normalized = role.trim().toUpperCase();
@@ -66,6 +81,26 @@ function formatDateTime(value: string | null | undefined): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toLocaleString();
+}
+
+function getRateMyProfessorsLink(ratings: ProfessorExternalRating[] | null | undefined): string {
+  return (
+    ratings?.find((rating) => rating.sourceSystem === 'RATE_MY_PROFESSORS' && Boolean(rating.sourceUrl))
+      ?.sourceUrl ?? ''
+  );
+}
+
+export function formatSnapshotDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleDateString();
+}
+
+export function formatExternalSummary(
+  rating: ProfessorExternalRating & { averageRating: number; reviewCount: number }
+): string {
+  return `${rating.averageRating.toFixed(1)} / 5 · ${rating.reviewCount} ratings`;
 }
 
 function fromReview(review: ProfessorReview): ReviewFormState {
@@ -150,6 +185,8 @@ export default function ProfessorReviews() {
   const [form, setForm] = useState<ReviewFormState>(DEFAULT_FORM);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [savingReview, setSavingReview] = useState(false);
+  const [manualRmpLink, setManualRmpLink] = useState('');
+  const [savingManualLink, setSavingManualLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [viewerRole] = useState(() => {
@@ -165,6 +202,7 @@ export default function ProfessorReviews() {
 
   const canReviewFromRole = viewerRole === 'USER' || viewerRole === 'STUDENT';
   const canReview = canReviewFromRole && Boolean(detail?.currentUserCanReview);
+  const canManageExternalLinks = viewerRole === 'ADMIN';
   const directoryReady = Boolean(directoryStatus?.ready);
   const directorySeeding = Boolean(directoryStatus?.seeding);
   const directoryKnown = directoryStatus !== null;
@@ -298,6 +336,10 @@ export default function ProfessorReviews() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfessorId]);
 
+  useEffect(() => {
+    setManualRmpLink(getRateMyProfessorsLink(detail?.externalRatings));
+  }, [detail]);
+
   const onSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPage(0);
@@ -347,6 +389,25 @@ export default function ProfessorReviews() {
     }
   };
 
+  const saveManualLink = async () => {
+    if (!selectedProfessorId) return;
+    setSavingManualLink(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await saveRateMyProfessorsLink(selectedProfessorId, manualRmpLink.trim());
+      setSuccess('Rate My Professors link saved.');
+      await loadSelectedProfessor(selectedProfessorId);
+      await loadProfessors();
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to save Rate My Professors link.';
+      setError(message);
+    } finally {
+      setSavingManualLink(false);
+    }
+  };
+
   const ratingBreakdown = detail?.ratingBreakdown ?? {};
 
   return (
@@ -357,9 +418,9 @@ export default function ProfessorReviews() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500">Professor Reviews</p>
-              <h1 className="mt-2 text-3xl font-bold text-gray-900">RateMyProfessor Module</h1>
+              <h1 className="mt-2 text-3xl font-bold text-gray-900">Professor Reviews</h1>
               <p className="mt-2 max-w-3xl text-sm text-gray-600">
-                Browse Iowa State professors, read peer/advisor-visible feedback, and leave highly customizable reviews.
+                Browse Iowa State professors, read CourseFlow student feedback, and open external professor links when they are available.
               </p>
             </div>
             <Link
@@ -446,22 +507,38 @@ export default function ProfessorReviews() {
               ) : directoryReady ? (
                 <div className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
                   {professors.map((professor) => (
-                    <button
+                    <div
                       key={professor.id}
-                      type="button"
-                      onClick={() => setSelectedProfessorId(professor.id)}
                       className={`w-full rounded-lg border px-3 py-2 text-left transition ${
                         selectedProfessorId === professor.id
                           ? 'border-red-300 bg-red-50'
                           : 'border-gray-200 hover:border-red-200 hover:bg-red-50/60'
                       }`}
                     >
-                      <div className="text-sm font-semibold text-gray-800">{professor.fullName}</div>
-                      <div className="mt-1 text-xs text-gray-600">{professor.department || 'Department not listed'}</div>
-                      <div className="mt-1 text-xs text-amber-600">
-                        {renderStars(professor.averageRating)} ({professor.reviewCount})
-                      </div>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProfessorId(professor.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="text-sm font-semibold text-gray-800">{professor.fullName}</div>
+                        <div className="mt-1 text-xs text-gray-600">{professor.department || 'Department not listed'}</div>
+                        <div className="mt-1 text-xs text-amber-600">
+                          {professor.reviewCount > 0
+                            ? `CourseFlow: ${renderStars(professor.averageRating)} (${professor.reviewCount})`
+                            : 'CourseFlow: No reviews yet'}
+                        </div>
+                      </button>
+                      {professor.primaryExternalRating?.sourceUrl && (
+                        <a
+                          href={professor.primaryExternalRating.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-block text-xs font-medium text-sky-700 hover:underline"
+                        >
+                          {professor.primaryExternalRating.sourceLabel}
+                        </a>
+                      )}
+                    </div>
                   ))}
                   {professors.length === 0 && <div className="text-sm text-gray-600">No professors found.</div>}
                 </div>
@@ -521,22 +598,41 @@ export default function ProfessorReviews() {
                       <p className="mt-1 text-sm text-gray-700">{detail.title || 'Title not listed'}</p>
                       <p className="mt-1 text-sm text-gray-600">{detail.department || 'Department not listed'}</p>
                       {detail.email && <p className="mt-1 text-sm text-gray-600">{detail.email}</p>}
-                      {detail.profileUrl && (
-                        <a
-                          href={detail.profileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-block text-sm font-medium text-red-600 hover:underline"
-                        >
-                          View Faculty Profile
-                        </a>
-                      )}
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        {detail.profileUrl && (
+                          <a
+                            href={detail.profileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-block text-sm font-medium text-red-600 hover:underline"
+                          >
+                            View Faculty Profile
+                          </a>
+                        )}
+                        {detail.externalRatings
+                          .filter((rating) => Boolean(rating.sourceUrl))
+                          .map((rating) => (
+                            <a
+                              key={`${rating.sourceSystem}-${rating.sourceUrl ?? 'link'}`}
+                              href={rating.sourceUrl ?? undefined}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-block text-sm font-medium text-sky-700 hover:underline"
+                            >
+                              {rating.sourceLabel}
+                            </a>
+                          ))}
+                      </div>
                     </div>
                     <div className="rounded-lg border border-gray-200 bg-slate-50 px-4 py-3 text-right">
-                      <div className="text-xs uppercase tracking-wide text-gray-500">Average Rating</div>
-                      <div className="text-xl font-bold text-gray-900">{detail.averageRating.toFixed(2)} / 5</div>
-                      <div className="text-xs text-amber-600">{renderStars(detail.averageRating)}</div>
-                      <div className="text-xs text-gray-600">{detail.reviewCount} total reviews</div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">CourseFlow Reviews</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        {detail.reviewCount > 0 ? `${detail.averageRating.toFixed(2)} / 5` : 'No reviews yet'}
+                      </div>
+                      <div className="text-xs text-amber-600">
+                        {detail.reviewCount > 0 ? renderStars(detail.averageRating) : 'Be the first reviewer'}
+                      </div>
+                      <div className="text-xs text-gray-600">{detail.reviewCount} total CourseFlow reviews</div>
                     </div>
                   </div>
 
@@ -544,6 +640,47 @@ export default function ProfessorReviews() {
                     <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
                       {detail.bio}
                     </p>
+                  )}
+
+                  {canManageExternalLinks && (
+                    <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/80 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-sky-900">Rate My Professors Link</h3>
+                          <p className="text-xs text-sky-800">
+                            Admin only. Paste the public professor link here to make it show up on this page.
+                          </p>
+                        </div>
+                        {getRateMyProfessorsLink(detail.externalRatings) && (
+                          <a
+                            href={getRateMyProfessorsLink(detail.externalRatings)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-medium text-sky-700 hover:underline"
+                          >
+                            Open current link
+                          </a>
+                        )}
+                      </div>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="url"
+                          value={manualRmpLink}
+                          onChange={(event) => setManualRmpLink(event.target.value)}
+                          placeholder="https://www.ratemyprofessors.com/professor/123456"
+                          className="min-w-0 flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm"
+                          disabled={savingManualLink}
+                        />
+                        <button
+                          type="button"
+                          onClick={saveManualLink}
+                          disabled={!manualRmpLink.trim() || savingManualLink}
+                          className="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-sky-300"
+                        >
+                          {savingManualLink ? 'Saving...' : 'Save Link'}
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   <div className="mt-4 grid gap-2 sm:grid-cols-5">

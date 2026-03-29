@@ -9,7 +9,7 @@ import java.io.File;
 @Configuration
 public class FileStorageConfig {
 
-    @Value("${file.upload-dir}")
+    @Value("${file.upload-dir:./uploads/profile-pictures}")
     private String uploadDir;
 
     @PostConstruct

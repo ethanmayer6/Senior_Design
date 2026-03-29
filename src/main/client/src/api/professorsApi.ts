@@ -1,5 +1,18 @@
 import api from './axiosClient';
 
+export type ProfessorExternalRating = {
+  sourceSystem: string;
+  sourceLabel: string;
+  externalId: string | null;
+  sourceUrl: string | null;
+  averageRating: number | null;
+  reviewCount: number | null;
+  difficultyRating: number | null;
+  wouldTakeAgainPercent: number | null;
+  capturedAt: string | null;
+  updatedAt: string | null;
+};
+
 export type ProfessorSummary = {
   id: number;
   fullName: string;
@@ -9,6 +22,7 @@ export type ProfessorSummary = {
   profileUrl: string | null;
   averageRating: number;
   reviewCount: number;
+  primaryExternalRating: ProfessorExternalRating | null;
 };
 
 export type ProfessorBrowseResponse = {
@@ -66,6 +80,7 @@ export type ProfessorDetail = {
   averageRating: number;
   reviewCount: number;
   ratingBreakdown: Record<string, number>;
+  externalRatings: ProfessorExternalRating[];
   myReview: ProfessorReview | null;
   currentUserCanReview: boolean;
 };
@@ -147,4 +162,15 @@ export async function updateMyProfessorReview(
 
 export async function deleteMyProfessorReview(professorId: number): Promise<void> {
   await api.delete(`/professors/${professorId}/reviews/me`);
+}
+
+export async function saveRateMyProfessorsLink(
+  professorId: number,
+  sourceUrl: string
+): Promise<ProfessorExternalRating> {
+  const res = await api.put<ProfessorExternalRating>(
+    `/admin/professors/${professorId}/rate-my-professors-link`,
+    { sourceUrl }
+  );
+  return res.data;
 }

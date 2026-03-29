@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -75,6 +76,16 @@ public class CourseService {
     }
     public List<Course> getPage(int page, int size) {
         return courseRepository.findAll(PageRequest.of(page, size)).getContent();
+    }
+    public CoursePageResponse getBrowsePage(int page, int size) {
+        Page<Course> coursePage = courseRepository.findAll(
+                PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "courseIdent")));
+        return new CoursePageResponse(
+                coursePage.getContent(),
+                coursePage.getNumber(),
+                coursePage.getSize(),
+                coursePage.getTotalElements(),
+                coursePage.getTotalPages());
     }
     public List<Course> searchCourse(String searchTerm){
         return courseRepository.findByCourseIdentContainingIgnoreCase(searchTerm.replace(" ", "_"));

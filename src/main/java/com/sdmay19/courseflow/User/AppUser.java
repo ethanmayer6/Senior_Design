@@ -31,6 +31,22 @@ public class AppUser implements UserDetails {
     private String role;
     @Column(nullable = false, unique = true)
     private String email;
+    @Column(name = "preferred_name")
+    private String preferredName;
+    @Column(name = "profile_headline", length = 160)
+    private String profileHeadline;
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
+    @Column(name = "accent_color", length = 16)
+    private String accentColor;
+    @Column(name = "profile_visibility", length = 32)
+    private String profileVisibility;
+    @Column(name = "show_major_to_friends")
+    private Boolean showMajorToFriends;
+    @Column(name = "show_email_to_friends")
+    private Boolean showEmailToFriends;
+    @Column(name = "show_phone_to_friends")
+    private Boolean showPhoneToFriends;
     private Boolean darkMode;
     private String themePreset;
     private String fontScale;
@@ -77,6 +93,14 @@ public class AppUser implements UserDetails {
         this.role = "USER";
         this.flowcharts = flowcharts;
         this.profilePictureUrl = profilePictureUrl;
+        this.preferredName = null;
+        this.profileHeadline = null;
+        this.bio = null;
+        this.accentColor = "#dc2626";
+        this.profileVisibility = "EVERYONE";
+        this.showMajorToFriends = true;
+        this.showEmailToFriends = false;
+        this.showPhoneToFriends = false;
         this.darkMode = false;
         this.themePreset = "default";
         this.fontScale = "medium";
@@ -105,6 +129,14 @@ public class AppUser implements UserDetails {
     public String getMajor() {
         return major;
     }
+    public String getPreferredName() { return preferredName; }
+    public String getProfileHeadline() { return profileHeadline; }
+    public String getBio() { return bio; }
+    public String getAccentColor() { return accentColor; }
+    public String getProfileVisibility() { return profileVisibility; }
+    public Boolean getShowMajorToFriends() { return showMajorToFriends; }
+    public Boolean getShowEmailToFriends() { return showEmailToFriends; }
+    public Boolean getShowPhoneToFriends() { return showPhoneToFriends; }
     @Override // idk why we need this but the class gets mad without it.
     public String getUsername() {
         return email;
@@ -142,6 +174,14 @@ public class AppUser implements UserDetails {
     public void setMajor(String major) {
         this.major = major;
     }
+    public void setPreferredName(String preferredName) { this.preferredName = preferredName; }
+    public void setProfileHeadline(String profileHeadline) { this.profileHeadline = profileHeadline; }
+    public void setBio(String bio) { this.bio = bio; }
+    public void setAccentColor(String accentColor) { this.accentColor = accentColor; }
+    public void setProfileVisibility(String profileVisibility) { this.profileVisibility = profileVisibility; }
+    public void setShowMajorToFriends(Boolean showMajorToFriends) { this.showMajorToFriends = showMajorToFriends; }
+    public void setShowEmailToFriends(Boolean showEmailToFriends) { this.showEmailToFriends = showEmailToFriends; }
+    public void setShowPhoneToFriends(Boolean showPhoneToFriends) { this.showPhoneToFriends = showPhoneToFriends; }
     public void setDarkMode(Boolean darkMode) { this.darkMode = darkMode; }
     public void setThemePreset(String themePreset) { this.themePreset = themePreset; }
     public void setFontScale(String fontScale) { this.fontScale = fontScale; }

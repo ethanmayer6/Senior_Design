@@ -5,7 +5,14 @@ export type StudentSearchResult = {
   username: string;
   firstName: string;
   lastName: string;
-  major: string;
+  preferredName?: string | null;
+  displayName?: string | null;
+  major: string | null;
+  email?: string | null;
+  phone?: string | null;
+  profileHeadline?: string | null;
+  bio?: string | null;
+  accentColor?: string | null;
   profilePictureUrl?: string | null;
 };
 

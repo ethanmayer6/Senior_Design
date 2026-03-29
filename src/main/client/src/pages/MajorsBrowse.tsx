@@ -9,7 +9,12 @@ import {
   type Flowchart,
   type FlowchartRequirementCoverage
 } from '../api/flowchartApi';
-import { createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
+import {
+  buildMajorProgress,
+  loadMajorsBrowseSelectedMajorId,
+  persistMajorsBrowseSelectedMajorId,
+} from '../utils/majorProgress';
+import { normalizeCourseIdent } from '../utils/flowchartStatus';
 import { publishAppNotification } from '../utils/notifications';
 
 export default function MajorsBrowse() {
@@ -18,7 +23,7 @@ export default function MajorsBrowse() {
   const [summariesError, setSummariesError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
-  const [selectedMajorId, setSelectedMajorId] = useState<number | null>(null);
+  const [selectedMajorId, setSelectedMajorId] = useState<number | null>(() => loadMajorsBrowseSelectedMajorId());
   const [selectedMajor, setSelectedMajor] = useState<Major | null>(null);
   const [loadingMajor, setLoadingMajor] = useState(false);
   const [majorError, setMajorError] = useState<string | null>(null);
@@ -135,7 +140,7 @@ export default function MajorsBrowse() {
           flowchart = await getUserFlowchart();
         }
         setUserFlowchart(flowchart);
-        const flowchartMajorName = String(flowchart?.major?.name ?? '').trim();
+        const flowchartMajorName = String(flowchart?.majorName ?? flowchart?.major?.name ?? '').trim();
         if (flowchartMajorName) {
           setUserMajorName(flowchartMajorName);
         }
@@ -171,6 +176,10 @@ export default function MajorsBrowse() {
     void loadSelectedMajor();
   }, [selectedMajorId]);
 
+  useEffect(() => {
+    persistMajorsBrowseSelectedMajorId(selectedMajorId);
+  }, [selectedMajorId]);
+
   const displayCredits = (credits: number | null | undefined): string => {
     if (!credits || credits <= 0) {
       return 'TBD';
@@ -178,141 +187,13 @@ export default function MajorsBrowse() {
     return `${credits}`;
   };
 
-  const { completedCourseIdents, inProgressCourseIdents } = useMemo(() => {
-    const completed = new Set<string>();
-    const inProgress = new Set<string>();
-    const statusLookup = createStatusLookup(userFlowchart?.courseStatusMap);
-
-    // Prefer explicit status map values because they can include imported report
-    // statuses that are not yet represented in semester course arrays.
-    statusLookup.forEach((rawStatus, ident) => {
-      const status = normalizeStatus(rawStatus);
-      if (status === 'COMPLETED') {
-        completed.add(ident);
-        inProgress.delete(ident);
-      } else if (status === 'IN_PROGRESS' && !completed.has(ident)) {
-        inProgress.add(ident);
-      }
-    });
-
-    // Fallback: if some courses are only present in semesters, use those too.
-    const semesters = userFlowchart?.semesters ?? [];
-    semesters.forEach((semester) => {
-      (semester.courses ?? []).forEach((course) => {
-        const normalizedIdent = normalizeCourseIdent(course.courseIdent);
-        if (!normalizedIdent) return;
-        const status = normalizeStatus(resolveCourseStatus(statusLookup, course.courseIdent));
-        if (status === 'COMPLETED') {
-          completed.add(normalizedIdent);
-          inProgress.delete(normalizedIdent);
-          return;
-        }
-        if (status === 'IN_PROGRESS' && !completed.has(normalizedIdent)) {
-          inProgress.add(normalizedIdent);
-        }
-      });
-    });
-
-    return { completedCourseIdents: completed, inProgressCourseIdents: inProgress };
-  }, [userFlowchart]);
-
-  const requirementProgressById = useMemo(() => {
-    const progress = new Map<
-      number,
-      {
-        totalSlots: number;
-        completedSlots: number;
-        inProgressSlots: number;
-        remainingSlots: number;
-        completedMatches: string[];
-        inProgressMatches: string[];
-      }
-    >();
-
-    (selectedMajor?.degreeRequirements ?? []).forEach((requirement) => {
-      const directCourses = requirement.courses ?? [];
-      const groups = requirement.requirementGroups ?? [];
-      let completedSlots = 0;
-      let inProgressSlots = 0;
-      const completedMatches: string[] = [];
-      const inProgressMatches: string[] = [];
-
-      directCourses.forEach((course) => {
-        const normalized = normalizeCourseIdent(course.courseIdent);
-        if (!normalized) return;
-        if (completedCourseIdents.has(normalized)) {
-          completedSlots += 1;
-          completedMatches.push(course.courseIdent);
-          return;
-        }
-        if (inProgressCourseIdents.has(normalized)) {
-          inProgressSlots += 1;
-          inProgressMatches.push(course.courseIdent);
-        }
-      });
-
-      groups.forEach((group) => {
-        const groupCourses = group.courses ?? [];
-        const completedGroupCourse = groupCourses.find((course) =>
-          completedCourseIdents.has(normalizeCourseIdent(course.courseIdent))
-        );
-        if (completedGroupCourse) {
-          completedSlots += 1;
-          completedMatches.push(completedGroupCourse.courseIdent);
-          return;
-        }
-        const inProgressGroupCourse = groupCourses.find((course) =>
-          inProgressCourseIdents.has(normalizeCourseIdent(course.courseIdent))
-        );
-        if (inProgressGroupCourse) {
-          inProgressSlots += 1;
-          inProgressMatches.push(inProgressGroupCourse.courseIdent);
-        }
-      });
-
-      const totalSlots = directCourses.length + groups.length;
-      const remainingSlots = Math.max(totalSlots - completedSlots - inProgressSlots, 0);
-
-      progress.set(requirement.id, {
-        totalSlots,
-        completedSlots,
-        inProgressSlots,
-        remainingSlots,
-        completedMatches,
-        inProgressMatches,
-      });
-    });
-
-    return progress;
-  }, [selectedMajor?.degreeRequirements, completedCourseIdents, inProgressCourseIdents]);
-
-  const overallRequirementProgress = useMemo(() => {
-    const requirements = selectedMajor?.degreeRequirements ?? [];
-    const total = requirements.length;
-    let completed = 0;
-    let inProgressOnly = 0;
-
-    requirements.forEach((requirement) => {
-      const progress = requirementProgressById.get(requirement.id);
-      if (!progress) return;
-      if (progress.totalSlots === 0 || progress.completedSlots >= progress.totalSlots) {
-        completed += 1;
-      } else if (progress.inProgressSlots > 0) {
-        inProgressOnly += 1;
-      }
-    });
-
-    // For this top-level indicator, treat unmet requirements as in-progress.
-    const inProgressWithUnmet = Math.max(total - completed, 0);
-
-    return {
-      total,
-      completed,
-      inProgress: inProgressWithUnmet,
-      inProgressOnly,
-      unmet: 0,
-    };
-  }, [selectedMajor?.degreeRequirements, requirementProgressById]);
+  const {
+    completedCourseIdents,
+    inProgressCourseIdents,
+    requirementProgressById,
+    overallRequirementProgress,
+    strictViewCounts,
+  } = useMemo(() => buildMajorProgress(selectedMajor, userFlowchart), [selectedMajor, userFlowchart]);
 
   const filteredMajorSummaries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -326,27 +207,17 @@ export default function MajorsBrowse() {
     });
   }, [majorSummaries, query]);
 
-  const strictViewCounts = useMemo(() => {
-    const requirements = selectedMajor?.degreeRequirements ?? [];
-    let satisfied = 0;
-    let inProgress = 0;
-    let unmet = 0;
-    for (const requirement of requirements) {
-      const progress = requirementProgressById.get(requirement.id);
-      if (!progress) continue;
-      if (progress.totalSlots === 0 || progress.completedSlots >= progress.totalSlots) {
-        satisfied += 1;
-      } else if (progress.inProgressSlots > 0) {
-        inProgress += 1;
-      } else {
-        unmet += 1;
-      }
+  const selectedMatchesFlowchartMajor = useMemo(() => {
+    const selectedMajorName = String(selectedMajor?.name ?? '').trim();
+    const flowchartMajorName = String(userFlowchart?.majorName ?? userFlowchart?.major?.name ?? '').trim();
+    if (!selectedMajorName || !flowchartMajorName) {
+      return true;
     }
-    return { total: requirements.length, satisfied, inProgress, unmet };
-  }, [selectedMajor?.degreeRequirements, requirementProgressById]);
+    return normalizeMajorName(selectedMajorName) === normalizeMajorName(flowchartMajorName);
+  }, [selectedMajor?.name, userFlowchart?.majorName, userFlowchart?.major?.name]);
 
   useEffect(() => {
-    if (!flowchartCoverage || !selectedMajor) return;
+    if (!flowchartCoverage || !selectedMajor || !selectedMatchesFlowchartMajor) return;
     const reqDiff = Math.abs((flowchartCoverage.totalRequirements ?? 0) - strictViewCounts.total);
     const satDiff = Math.abs((flowchartCoverage.satisfiedRequirements ?? 0) - strictViewCounts.satisfied);
     const ipDiff = Math.abs((flowchartCoverage.inProgressRequirements ?? 0) - strictViewCounts.inProgress);
@@ -363,7 +234,7 @@ export default function MajorsBrowse() {
       actionPath: '/dashboard',
       ttlMs: 12000,
     });
-  }, [flowchartCoverage, strictViewCounts, selectedMajor?.id]);
+  }, [flowchartCoverage, strictViewCounts, selectedMajor?.id, selectedMatchesFlowchartMajor]);
 
   const inferredGroupCredits = (requirementCredits: number, group: { satisfyingCredits: number; courses: { credits: number }[] }): number => {
     if (group.satisfyingCredits > 0) {

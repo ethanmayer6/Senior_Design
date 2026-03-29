@@ -102,29 +102,18 @@ public class UserService {
         }
 
         String normalizedQuery = normalizeEmail(username);
+        AppUser currentUser = getUserById(currentUserId);
         return userRepository.findByEmailContainingIgnoreCase(normalizedQuery).stream()
                 .filter(u -> u.getId() != currentUserId)
                 .limit(25)
-                .map(u -> new UserSearchResult(
-                        u.getId(),
-                        u.getUsername(),
-                        u.getFirstName(),
-                        u.getLastName(),
-                        u.getMajor(),
-                        u.getProfilePictureUrl()))
+                .map(u -> toUserSearchResult(u, currentUser.getFriends().stream().anyMatch(friend -> friend.getId() == u.getId())))
                 .toList();
     }
 
     public List<UserSearchResult> getFriends(long currentUserId) {
         AppUser currentUser = getUserById(currentUserId);
         return currentUser.getFriends().stream()
-                .map(u -> new UserSearchResult(
-                        u.getId(),
-                        u.getUsername(),
-                        u.getFirstName(),
-                        u.getLastName(),
-                        u.getMajor(),
-                        u.getProfilePictureUrl()))
+                .map(u -> toUserSearchResult(u, true))
                 .sorted((a, b) -> String.valueOf(a.username()).compareToIgnoreCase(String.valueOf(b.username())))
                 .toList();
     }
@@ -176,8 +165,18 @@ public class UserService {
       if (updates.getLastName() != null)  user.setLastName(updates.getLastName());
       if (updates.getMajor() != null)     user.setMajor(updates.getMajor());
       if (updates.getPhone() != null)     user.setPhone(updates.getPhone());
+      if (updates.getPreferredName() != null) user.setPreferredName(normalizeOptionalText(updates.getPreferredName(), 60));
+      if (updates.getProfileHeadline() != null) user.setProfileHeadline(normalizeOptionalText(updates.getProfileHeadline(), 160));
+      if (updates.getBio() != null) user.setBio(normalizeOptionalText(updates.getBio(), 1200));
+      if (updates.getAccentColor() != null) user.setAccentColor(normalizeAccentColor(updates.getAccentColor()));
+      if (updates.getProfileVisibility() != null) user.setProfileVisibility(normalizeProfileVisibility(updates.getProfileVisibility()));
+      if (updates.getShowMajorToFriends() != null) user.setShowMajorToFriends(updates.getShowMajorToFriends());
+      if (updates.getShowEmailToFriends() != null) user.setShowEmailToFriends(updates.getShowEmailToFriends());
+      if (updates.getShowPhoneToFriends() != null) user.setShowPhoneToFriends(updates.getShowPhoneToFriends());
       if (updates.getPassword() != null)
           user.setPassword(passwordEncoder.encode(updates.getPassword()));
+
+      normalizeUserForAuth(user);
   
       return userRepository.save(user);
   }
@@ -299,6 +298,14 @@ public class UserService {
         if (user.getThemePreset() == null || user.getThemePreset().isBlank()) user.setThemePreset("default");
         if (user.getFontScale() == null || user.getFontScale().isBlank()) user.setFontScale("medium");
         if (user.getReducedMotion() == null) user.setReducedMotion(false);
+        user.setPreferredName(normalizeOptionalText(user.getPreferredName(), 60));
+        user.setProfileHeadline(normalizeOptionalText(user.getProfileHeadline(), 160));
+        user.setBio(normalizeOptionalText(user.getBio(), 1200));
+        user.setAccentColor(normalizeAccentColor(user.getAccentColor()));
+        user.setProfileVisibility(normalizeProfileVisibility(user.getProfileVisibility()));
+        if (user.getShowMajorToFriends() == null) user.setShowMajorToFriends(true);
+        if (user.getShowEmailToFriends() == null) user.setShowEmailToFriends(false);
+        if (user.getShowPhoneToFriends() == null) user.setShowPhoneToFriends(false);
     }
 
     private UserPreferencesResponse toPreferencesResponse(AppUser user) {
@@ -329,5 +336,67 @@ public class UserService {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Upload failed: " + e.getMessage());
         }
+    }
+
+    private UserSearchResult toUserSearchResult(AppUser user, boolean isFriend) {
+        boolean everyoneVisible = "EVERYONE".equalsIgnoreCase(normalizeProfileVisibility(user.getProfileVisibility()));
+        boolean canSeeExtended = isFriend || everyoneVisible;
+        boolean showMajorToFriends = user.getShowMajorToFriends() == null || Boolean.TRUE.equals(user.getShowMajorToFriends());
+        boolean showEmailToFriends = Boolean.TRUE.equals(user.getShowEmailToFriends());
+        boolean showPhoneToFriends = Boolean.TRUE.equals(user.getShowPhoneToFriends());
+        String firstName = normalizeOptionalText(user.getFirstName(), 80);
+        String lastName = normalizeOptionalText(user.getLastName(), 80);
+        String preferredName = normalizeOptionalText(user.getPreferredName(), 60);
+        String displayName = preferredName != null
+                ? preferredName
+                : normalizeOptionalText(((firstName == null ? "" : firstName) + " " + (lastName == null ? "" : lastName)).trim(), 160);
+
+        return new UserSearchResult(
+                user.getId(),
+                user.getUsername(),
+                firstName,
+                lastName,
+                preferredName,
+                displayName,
+                canSeeExtended && showMajorToFriends ? normalizeOptionalText(user.getMajor(), 160) : null,
+                canSeeExtended && showEmailToFriends ? normalizeOptionalText(user.getEmail(), 160) : null,
+                canSeeExtended && showPhoneToFriends ? normalizeOptionalText(user.getPhone(), 40) : null,
+                canSeeExtended ? normalizeOptionalText(user.getProfileHeadline(), 160) : null,
+                canSeeExtended ? normalizeOptionalText(user.getBio(), 1200) : null,
+                normalizeAccentColor(user.getAccentColor()),
+                user.getProfilePictureUrl());
+    }
+
+    private String normalizeOptionalText(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.length() > maxLength ? trimmed.substring(0, maxLength) : trimmed;
+    }
+
+    private String normalizeAccentColor(String color) {
+        if (color == null || color.isBlank()) {
+            return "#dc2626";
+        }
+        String trimmed = color.trim();
+        if (trimmed.matches("^#([A-Fa-f0-9]{6})$")) {
+            return trimmed.toLowerCase(Locale.ROOT);
+        }
+        return "#dc2626";
+    }
+
+    private String normalizeProfileVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) {
+            return "EVERYONE";
+        }
+        String normalized = visibility.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "EVERYONE", "FRIENDS_ONLY" -> normalized;
+            default -> "EVERYONE";
+        };
     }
 }

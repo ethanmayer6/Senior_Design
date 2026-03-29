@@ -27,10 +27,19 @@ public interface ProfessorRepository extends JpaRepository<Professor, Long> {
             select p
             from Professor p
             left join ProfessorReview r on r.professor = p
+            left join p.externalRatings er
             where (:query = '' or p.normalizedName like concat('%', :query, '%'))
               and (:department = '' or p.normalizedDepartment like concat('%', :department, '%'))
             group by p
-            order by coalesce(avg(r.rating), 0) desc, count(r) desc, p.normalizedName asc
+            order by case
+                       when count(r) > 0 then avg(r.rating)
+                       else coalesce(max(er.averageRating), 0)
+                     end desc,
+                     case
+                       when count(r) > 0 then count(r)
+                       else coalesce(max(er.reviewCount), 0)
+                     end desc,
+                     p.normalizedName asc
             """, countQuery = """
             select count(p)
             from Professor p
@@ -53,4 +62,6 @@ public interface ProfessorRepository extends JpaRepository<Professor, Long> {
     Optional<Professor> findBySourceSystemAndExternalId(String sourceSystem, String externalId);
 
     Optional<Professor> findFirstByNormalizedNameAndNormalizedDepartment(String normalizedName, String normalizedDepartment);
+
+    List<Professor> findAllByNormalizedName(String normalizedName);
 }
