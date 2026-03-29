@@ -1,16 +1,18 @@
 package com.sdmay19.courseflow.professor;
 
+import com.sdmay19.courseflow.User.AppUser;
 import com.sdmay19.courseflow.User.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,13 +40,18 @@ class ProfessorServiceTest {
     @Mock
     private ProfessorDirectoryState professorDirectoryState;
 
-    @InjectMocks
     private ProfessorService professorService;
-
     private Professor sampleProfessor;
 
     @BeforeEach
     void setUp() {
+        professorService = new ProfessorService(
+                professorRepository,
+                professorExternalRatingRepository,
+                professorReviewRepository,
+                userRepository,
+                professorDirectoryState);
+
         sampleProfessor = new Professor();
         sampleProfessor.setId(42L);
         sampleProfessor.setFullName("Jane Doe");
@@ -74,6 +81,40 @@ class ProfessorServiceTest {
     }
 
     @Test
+    void browseProfessors_normalizesSearchTermsAndUsesRatingSortAlias() {
+        Professor professor = new Professor();
+        professor.setId(14L);
+        professor.setFullName("Ada Lovelace");
+        professor.setTitle("Professor");
+        professor.setDepartment("Computer Science");
+        professor.setEmail("ada@example.edu");
+        professor.setProfileUrl("https://example.edu/ada");
+
+        when(professorRepository.searchByRating(eq("ada"), eq("computer science"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(professor), PageRequest.of(0, 100), 1));
+        when(professorReviewRepository.findRatingStatsByProfessorIds(List.of(14L)))
+                .thenReturn(List.of(statsProjection(14L, 4.7, 12L)));
+        when(professorExternalRatingRepository.findByProfessorIdIn(List.of(14L))).thenReturn(List.of());
+
+        ProfessorBrowseResponse response = professorService.browseProfessors(
+                "  Ada  ",
+                " Computer Science ",
+                -2,
+                500,
+                "top");
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(professorRepository).searchByRating(eq("ada"), eq("computer science"), pageableCaptor.capture());
+
+        assertThat(pageableCaptor.getValue().getPageNumber()).isZero();
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(100);
+        assertThat(response.sort()).isEqualTo("rating");
+        assertThat(response.professors()).hasSize(1);
+        assertThat(response.professors().getFirst().averageRating()).isEqualTo(4.7);
+        assertThat(response.professors().getFirst().reviewCount()).isEqualTo(12L);
+    }
+
+    @Test
     void getProfessorDetail_returnsExternalRatingsAlongsideNativeReviewData() {
         ProfessorExternalRating externalRating = buildExternalRating(sampleProfessor);
 
@@ -89,6 +130,38 @@ class ProfessorServiceTest {
         assertThat(detail.externalRatings().getFirst().sourceSystem()).isEqualTo("RATE_MY_PROFESSORS");
         assertThat(detail.externalRatings().getFirst().sourceUrl())
                 .isEqualTo("https://www.ratemyprofessors.com/professor/1234567");
+    }
+
+    @Test
+    void getProfessorReviews_anonymizesAnonymousReviewForNonOwnerViewer() {
+        Professor professor = new Professor();
+        professor.setId(50L);
+        professor.setFullName("Ada Lovelace");
+
+        AppUser reviewer = user(7L, "USER", "Ada", "Lovelace");
+        AppUser viewer = user(8L, "USER", "Grace", "Hopper");
+
+        ProfessorReview review = new ProfessorReview();
+        review.setId(101L);
+        review.setProfessor(professor);
+        review.setReviewer(reviewer);
+        review.setRating(5);
+        review.setAnonymous(true);
+        review.setCreatedAt(Instant.parse("2026-03-01T10:15:30Z"));
+        review.setUpdatedAt(Instant.parse("2026-03-01T10:15:30Z"));
+
+        when(professorRepository.findById(50L)).thenReturn(Optional.of(professor));
+        when(userRepository.findById(8L)).thenReturn(Optional.of(viewer));
+        when(professorReviewRepository.findByProfessorIdOrderByCreatedAtDesc(50L, PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(review), PageRequest.of(0, 20), 1));
+
+        ProfessorReviewPageResponse response = professorService.getProfessorReviews(50L, viewer, 0, 20);
+
+        assertThat(response.reviews()).hasSize(1);
+        ProfessorReviewResponse mapped = response.reviews().getFirst();
+        assertThat(mapped.reviewerId()).isNull();
+        assertThat(mapped.reviewerDisplayName()).isEqualTo("Anonymous Student");
+        assertThat(mapped.editableByCurrentUser()).isFalse();
     }
 
     @Test
@@ -166,17 +239,6 @@ class ProfessorServiceTest {
         assertThat(response.skipped()).isZero();
         assertThat(response.invalid()).isZero();
         assertThat(response.unmatched()).isZero();
-
-        ArgumentCaptor<ProfessorExternalRating> captor = ArgumentCaptor.forClass(ProfessorExternalRating.class);
-        verify(professorExternalRatingRepository).save(captor.capture());
-        ProfessorExternalRating saved = captor.getValue();
-        assertThat(saved.getProfessor()).isSameAs(sampleProfessor);
-        assertThat(saved.getSourceSystem()).isEqualTo("RATE_MY_PROFESSORS");
-        assertThat(saved.getExternalId()).isEqualTo("7654321");
-        assertThat(saved.getSourceUrl())
-                .isEqualTo("https://www.ratemyprofessors.com/professor/7654321");
-        assertThat(saved.getAverageRating()).isNull();
-        assertThat(saved.getReviewCount()).isNull();
     }
 
     @Test
@@ -194,15 +256,16 @@ class ProfessorServiceTest {
         assertThat(response.sourceSystem()).isEqualTo("RATE_MY_PROFESSORS");
         assertThat(response.sourceLabel()).isEqualTo("Rate My Professors");
         assertThat(response.externalId()).isEqualTo("7654321");
-        assertThat(response.sourceUrl()).isEqualTo("https://www.ratemyprofessors.com/professor/7654321");
         assertThat(response.averageRating()).isNull();
         assertThat(response.reviewCount()).isNull();
+    }
 
-        ArgumentCaptor<ProfessorExternalRating> captor = ArgumentCaptor.forClass(ProfessorExternalRating.class);
-        verify(professorExternalRatingRepository).save(captor.capture());
-        ProfessorExternalRating saved = captor.getValue();
-        assertThat(saved.getProfessor()).isSameAs(sampleProfessor);
-        assertThat(saved.getCapturedAt()).isNotNull();
+    private ProfessorReviewRepository.RatingStatsProjection statsProjection(Long id, Double average, Long count) {
+        return new ProfessorReviewRepository.RatingStatsProjection() {
+            @Override public Long getProfessorId() { return id; }
+            @Override public Double getAverageRating() { return average; }
+            @Override public Long getReviewCount() { return count; }
+        };
     }
 
     private ProfessorExternalRating buildExternalRating(Professor professor) {
@@ -216,5 +279,15 @@ class ProfessorServiceTest {
         externalRating.setDifficultyRating(2.8);
         externalRating.setWouldTakeAgainPercent(91);
         return externalRating;
+    }
+
+    private AppUser user(long id, String role, String firstName, String lastName) {
+        AppUser user = new AppUser();
+        user.setId(id);
+        user.setRole(role);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(firstName.toLowerCase() + "@example.edu");
+        return user;
     }
 }

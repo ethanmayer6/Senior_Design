@@ -16,6 +16,8 @@ import {
   saveHiddenCourseflowModuleIds,
 } from '../utils/courseflowModuleVisibility';
 
+const HOME_WALKTHROUGH_KEY_PREFIX = 'courseflow_home_walkthrough_seen';
+
 export default function CourseflowHome() {
   const navigate = useNavigate();
   const [friends, setFriends] = useState<StudentSearchResult[]>([]);
@@ -29,6 +31,8 @@ export default function CourseflowHome() {
   const [timelineDetailsLoading, setTimelineDetailsLoading] = useState(false);
   const [hiddenModuleIds, setHiddenModuleIds] = useState<string[]>([]);
   const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+  const [showModuleVisibilityModal, setShowModuleVisibilityModal] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -75,8 +79,34 @@ export default function CourseflowHome() {
     saveHiddenCourseflowModuleIds(hiddenModuleIds);
   }, [hiddenModuleIds]);
 
+  useEffect(() => {
+    try {
+      const rawUser = window.localStorage.getItem('user');
+      if (!rawUser) return;
+
+      const parsed: unknown = JSON.parse(rawUser);
+      if (!parsed || typeof parsed !== 'object') return;
+
+      const userRecord = parsed as { id?: number | string; email?: string; role?: string };
+      const role = (userRecord.role || '').toUpperCase();
+      if (role !== 'USER' && role !== 'STUDENT') return;
+
+      const identity = userRecord.id ?? userRecord.email;
+      const storageKey = identity
+        ? `${HOME_WALKTHROUGH_KEY_PREFIX}_${String(identity)}`
+        : HOME_WALKTHROUGH_KEY_PREFIX;
+
+      if (window.localStorage.getItem(storageKey) === 'true') return;
+
+      window.localStorage.setItem(storageKey, 'true');
+      setShowWalkthrough(true);
+    } catch {
+      setShowWalkthrough(false);
+    }
+  }, []);
+
   const todayCode = (() => {
-    const day = now.getDay(); // 0=Sun...6=Sat
+    const day = now.getDay();
     if (day === 0) return 'U';
     if (day === 1) return 'M';
     if (day === 2) return 'T';
@@ -135,13 +165,19 @@ export default function CourseflowHome() {
     .filter((x) => x.start !== null && x.end !== null && (x.end as number) > (x.start as number))
     .sort((a, b) => (a.start as number) - (b.start as number));
 
-  const timelineStart = 7 * 60; // 7:00 AM
-  const timelineEnd = 22 * 60; // 10:00 PM
+  const timelineStart = 7 * 60;
+  const timelineEnd = 22 * 60;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const clampedNow = Math.max(timelineStart, Math.min(timelineEnd, nowMinutes));
   const nowPercent = ((clampedNow - timelineStart) / (timelineEnd - timelineStart)) * 100;
 
   const timeTicks = [8 * 60, 10 * 60, 12 * 60, 14 * 60, 16 * 60, 18 * 60, 20 * 60];
+
+  const toggleModuleVisibility = (moduleId: string) => {
+    setHiddenModuleIds((current) =>
+      current.includes(moduleId) ? current.filter((id) => id !== moduleId) : [...current, moduleId],
+    );
+  };
 
   const runModuleAction = (module: CourseflowNavItem) => {
     if (module.action === 'friends') {
@@ -167,6 +203,8 @@ export default function CourseflowHome() {
       modules: courseflowNavItems.filter((module) => module.groupId === group.id),
     }))
     .filter((entry) => entry.modules.length > 0);
+
+  const walkthroughModules = courseflowNavItems.filter((module) => module.id !== 'log-out');
 
   const moduleCardBody = (module: CourseflowNavItem) => (
     <>
@@ -237,9 +275,8 @@ export default function CourseflowHome() {
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100">
       <Header />
 
-      <main className="pt-24 px-3 pb-10 sm:px-5 lg:px-6">
+      <main className="px-3 pb-10 pt-24 sm:px-5 lg:px-6">
         <div className="mx-auto grid w-full max-w-[1820px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-
           <section className="mx-auto w-full max-w-none">
             <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -266,7 +303,7 @@ export default function CourseflowHome() {
                         onClick={() => {
                           void openTimelineCourse(entry);
                         }}
-                        className="absolute top-2 bottom-2 rounded-md border border-red-300 bg-red-100 px-2 py-1 text-left text-[11px] font-semibold text-gray-700 transition hover:bg-red-200"
+                        className="absolute bottom-2 top-2 rounded-md border border-red-300 bg-red-100 px-2 py-1 text-left text-[11px] font-semibold text-gray-700 transition hover:bg-red-200"
                         style={{ left: `${Math.max(0, left)}%`, width: `${Math.max(4, width)}%` }}
                         title={`${entry.courseIdent} • ${entry.courseTitle || entry.catalogName || ''}`}
                       >
@@ -277,7 +314,7 @@ export default function CourseflowHome() {
                       </button>
                     );
                   })}
-                  <div className="absolute top-0 bottom-0 w-0.5 bg-blue-500" style={{ left: `${nowPercent}%` }} />
+                  <div className="absolute bottom-0 top-0 w-0.5 bg-blue-500" style={{ left: `${nowPercent}%` }} />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
                   {timeTicks.map((tick) => (
@@ -289,6 +326,25 @@ export default function CourseflowHome() {
                     No timed classes found for today. Import your schedule file on Current Classes if needed.
                   </p>
                 )}
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Workspace Sections</p>
+                  <p className="text-xs text-gray-500">
+                    {visibleModules.length} of {courseflowNavItems.length} modules visible across{' '}
+                    {courseflowNavGroups.length} groups
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModuleVisibilityModal(true)}
+                  className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+                >
+                  Customize Modules
+                </button>
               </div>
             </div>
 
@@ -346,7 +402,7 @@ export default function CourseflowHome() {
 
               {visibleModules.length === 0 && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
-                  No modules selected. Open Settings to show cards again.
+                  No modules selected. Use Module Visibility above to show cards again.
                 </div>
               )}
             </div>
@@ -375,7 +431,9 @@ export default function CourseflowHome() {
                         aria-expanded={isMoreExpanded}
                       >
                         <span>{group.title}</span>
-                        <i className={`pi ${isMoreExpanded ? 'pi-chevron-up' : 'pi-chevron-down'} text-[10px] text-red-500`} />
+                        <i
+                          className={`pi ${isMoreExpanded ? 'pi-chevron-up' : 'pi-chevron-down'} text-[10px] text-red-500`}
+                        />
                       </button>
                       {isMoreExpanded && (
                         <div className="mt-1.5 space-y-1.5">
@@ -394,6 +452,111 @@ export default function CourseflowHome() {
           </aside>
         </div>
       </main>
+
+      <FocusSafeModal
+        open={showWalkthrough}
+        onClose={() => setShowWalkthrough(false)}
+        title="Welcome to CourseFlow"
+        maxWidthClass="max-w-4xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Welcome to CourseFlow</p>
+            <h2 className="mt-1 text-xl font-semibold text-gray-800">Here is a quick look at what you can do.</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowWalkthrough(false)}
+            className="rounded-md border border-gray-200 px-3 py-1 text-sm text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+          >
+            Close
+          </button>
+        </div>
+
+        <p className="mt-3 text-sm text-gray-600">
+          This home page is your launch point for the app. We only show this overview once so you can get oriented fast.
+        </p>
+
+        <div className="mt-5 grid max-h-[28rem] gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+          {walkthroughModules.map((module) => (
+            <div key={module.id} className="rounded-xl border border-gray-200 bg-slate-50 p-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-red-500 shadow-sm">
+                  <i className={`${module.icon} text-lg`} aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">{module.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">{module.description}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowWalkthrough(false)}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Start Exploring
+          </button>
+        </div>
+      </FocusSafeModal>
+
+      <FocusSafeModal
+        open={showModuleVisibilityModal}
+        onClose={() => setShowModuleVisibilityModal(false)}
+        title="Module Visibility"
+        maxWidthClass="max-w-2xl"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">Module Visibility</h3>
+          <button
+            type="button"
+            onClick={() => setShowModuleVisibilityModal(false)}
+            className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+          >
+            Close
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-gray-600">Toggle which cards appear on your home screen.</p>
+        <div className="mt-4 space-y-4">
+          {groupedAllModules.map(({ group, modules }) => (
+            <section key={group.id}>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                {group.title}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {modules.map((module) => (
+                  <label
+                    key={module.id}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-xs font-medium text-gray-700"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-red-600"
+                      checked={!hiddenModuleIds.includes(module.id)}
+                      onChange={() => toggleModuleVisibility(module.id)}
+                    />
+                    <span>{module.title}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setHiddenModuleIds([])}
+            disabled={hiddenModuleIds.length === 0}
+            className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Show All
+          </button>
+        </div>
+      </FocusSafeModal>
 
       <FocusSafeModal
         open={showFriendsList}
@@ -431,7 +594,9 @@ export default function CourseflowHome() {
                   }}
                   className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-red-300 hover:bg-red-50"
                 >
-                  <div className="text-sm font-semibold text-gray-800">{friend.displayName || friend.username}</div>
+                  <div className="text-sm font-semibold text-gray-800">
+                    {friend.displayName || friend.username}
+                  </div>
                   <div className="mt-1 text-xs text-gray-500">@{friend.username}</div>
                   <div className="mt-1 text-xs text-gray-600">
                     {`${friend.firstName || ''} ${friend.lastName || ''}`.trim() || 'Name not provided'}
@@ -480,13 +645,17 @@ export default function CourseflowHome() {
               )}
 
               <div>
-                <div className="text-sm font-semibold text-gray-800">{selectedFriend.displayName || selectedFriend.username}</div>
+                <div className="text-sm font-semibold text-gray-800">
+                  {selectedFriend.displayName || selectedFriend.username}
+                </div>
                 <div className="mt-1 text-xs text-gray-500">@{selectedFriend.username}</div>
                 <div className="mt-1 text-sm text-gray-600">
                   {`${selectedFriend.firstName || ''} ${selectedFriend.lastName || ''}`.trim() || 'Name not provided'}
                 </div>
                 {selectedFriend.profileHeadline && (
-                  <div className="mt-2 text-sm font-medium text-gray-700">{selectedFriend.profileHeadline}</div>
+                  <div className="mt-2 text-sm font-medium text-gray-700">
+                    {selectedFriend.profileHeadline}
+                  </div>
                 )}
               </div>
             </div>
@@ -518,9 +687,10 @@ export default function CourseflowHome() {
                     <span className="font-semibold text-gray-700">Phone:</span> {selectedFriend.phone}
                   </div>
                 )}
-                {!selectedFriend.major && !selectedFriend.email && !selectedFriend.phone && !selectedFriend.bio && (
-                  <div>No extra profile details are shared yet.</div>
-                )}
+                {!selectedFriend.major &&
+                  !selectedFriend.email &&
+                  !selectedFriend.phone &&
+                  !selectedFriend.bio && <div>No extra profile details are shared yet.</div>}
               </div>
             </div>
           </>
@@ -591,7 +761,8 @@ export default function CourseflowHome() {
                   Catalog: {selectedTimelineCourse.courseIdent.replace('_', ' ')}
                 </div>
                 <div className="mt-1 text-xs text-gray-600">
-                  Credits: {selectedTimelineCourse.credits} | Offered: {selectedTimelineCourse.offered || 'TBD'} | Hours:{' '}
+                  Credits: {selectedTimelineCourse.credits} | Offered:{' '}
+                  {selectedTimelineCourse.offered || 'TBD'} | Hours:{' '}
                   {selectedTimelineCourse.hours || 'TBD'}
                 </div>
                 <div className="mt-2 text-xs text-gray-700">

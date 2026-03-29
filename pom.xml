@@ -19,6 +19,7 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<mockito.agent.version>5.17.0</mockito.agent.version>
 	</properties>
 
 	<dependencies>
@@ -106,6 +107,34 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.12</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>@{argLine} -javaagent:${user.home}/.m2/repository/org/mockito/mockito-core/${mockito.agent.version}/mockito-core-${mockito.agent.version}.jar</argLine>
+				</configuration>
+			</plugin>
+
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
@@ -172,6 +201,21 @@
 									<arguments>
 										<argument>run</argument>
 										<argument>build</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+								<id>test-frontend</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+									<workingDirectory>src/main/client</workingDirectory>
+									<executable>npm</executable>
+									<arguments>
+										<argument>run</argument>
+										<argument>test:run</argument>
 									</arguments>
 								</configuration>
 							</execution>
