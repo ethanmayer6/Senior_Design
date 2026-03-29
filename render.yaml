@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: courseflow-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /api/ping
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
+        value: http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173,https://*.vercel.app
+      - key: APP_JWT_SECRET
+        generateValue: true
+      - key: RENDER_POSTGRES_CONNECTION_STRING
+        fromDatabase:
+          name: courseflow-db
+          property: connectionString
+      - key: RENDER_POSTGRES_USER
+        fromDatabase:
+          name: courseflow-db
+          property: user
+      - key: RENDER_POSTGRES_PASSWORD
+        fromDatabase:
+          name: courseflow-db
+          property: password
+      - key: RENDER_POSTGRES_DATABASE
+        fromDatabase:
+          name: courseflow-db
+          property: database
+
+databases:
+  - name: courseflow-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "18"
+    databaseName: courseflow

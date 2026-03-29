@@ -4,7 +4,7 @@ WORKDIR /app/frontend
 COPY src/main/client/package*.json ./
 RUN npm ci
 COPY src/main/client/ ./
-RUN npm run build   # outputs into ../resources/static
+RUN npm run build:backend
 
 # 2) Build backend
 FROM maven:3.9-eclipse-temurin-21 AS backend

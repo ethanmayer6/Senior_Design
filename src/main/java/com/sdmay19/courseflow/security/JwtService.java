@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -32,10 +33,19 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "supersecretkey123456789supersecretkey123456789"; // ≥256 bits
+    private static final String DEFAULT_SECRET_KEY = "supersecretkey123456789supersecretkey123456789";
+    private final String secretKey;
+
+    public JwtService() {
+        this(DEFAULT_SECRET_KEY);
+    }
+
+    public JwtService(@Value("${app.jwt.secret:" + DEFAULT_SECRET_KEY + "}") String secretKey) {
+        this.secretKey = secretKey;
+    }
 
     private Key getSignKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String generateToken(long id) {

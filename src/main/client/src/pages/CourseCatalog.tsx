@@ -1,6 +1,5 @@
 import {CourseCard} from "../components/CourseCard";
 import type {Course} from "../types/course";
-import axios from "axios";
 import {useEffect, useState} from "react";
 import {Link} from "react-router-dom";
 import {Button} from "primereact/button";
@@ -11,6 +10,7 @@ import {Dialog} from "primereact/dialog";
 import Header from "../components/header";
 import type {Semester} from "../api/flowchartApi";
 import {getUserFlowchart, updateSemesterCourses} from "../api/flowchartApi";
+import api from "../api/axiosClient";
 // import { Slider } from 'primereact/slider';
 
 function semesterRank(year: number, term: string): number {
@@ -62,7 +62,7 @@ export default function CourseCatalog() {
 
     const searchCourses = async (): Promise<void> => {
       try {
-        const response = await axios.get("http://localhost:8080/api/courses/search", {params: {searchTerm}});
+        const response = await api.get("/courses/search", {params: {searchTerm}});
         setCourses(response.data);
         setHasMore(false);
       } catch (error) {
@@ -71,9 +71,7 @@ export default function CourseCatalog() {
     };
     const applyFilter = async (page:number=0): Promise<void> => {
       try {
-        
-
-        const response = await axios.get("http://localhost:8080/api/courses/filter", {params: {level, offeredTerm, department, page}});
+        const response = await api.get("/courses/filter", {params: {level, offeredTerm, department, page}});
         if(page === 0){
           setCourses(response.data);
         }
@@ -91,9 +89,7 @@ export default function CourseCatalog() {
 
     const getCourses = async (page:number, size:number=50): Promise<void> => {
         try {
-
-            
-              const response = await axios.get("http://localhost:8080/api/courses/page", {params: {page, size}});
+              const response = await api.get("/courses/page", {params: {page, size}});
               console.log(response.data);
               if(page === 0){
                 setCourses(response.data);
@@ -237,8 +233,8 @@ export default function CourseCatalog() {
           offered: editCourseForm.offered.trim() || null,
           prereqIdents,
         };
-        const response = await axios.put(
-          `http://localhost:8080/api/courses/update/${selectedCourse.id}`,
+        const response = await api.put(
+          `/courses/update/${selectedCourse.id}`,
           payload
         );
 
@@ -273,7 +269,7 @@ export default function CourseCatalog() {
       setCourseActionError(null);
       setCourseActionMessage(null);
       try {
-        await axios.delete(`http://localhost:8080/api/courses/delete/${selectedCourse.id}`);
+        await api.delete(`/courses/delete/${selectedCourse.id}`);
         setCourses((prev) =>
           prev.filter(
             (course) =>
