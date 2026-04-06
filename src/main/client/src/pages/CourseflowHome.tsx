@@ -329,25 +329,6 @@ export default function CourseflowHome() {
               </div>
             </div>
 
-            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Workspace Sections</p>
-                  <p className="text-xs text-gray-500">
-                    {visibleModules.length} of {courseflowNavItems.length} modules visible across{' '}
-                    {courseflowNavGroups.length} groups
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowModuleVisibilityModal(true)}
-                  className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-                >
-                  Customize Modules
-                </button>
-              </div>
-            </div>
-
             <div className="space-y-8">
               {groupedVisibleModules.map(({ group, modules }) => (
                 <section key={group.id}>
