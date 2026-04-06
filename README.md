@@ -55,6 +55,12 @@ Example local development setup:
 * `COURSEFLOW_DB_PASSWORD=courseflow`
 * `COURSEFLOW_JWT_SECRET=replace-with-a-long-random-local-secret`
 
+Spring profile shortcuts:
+* Default config uses the local Postgres defaults from `src/main/resources/application.properties`
+* To use the legacy shared database instead, activate the `olddb` profile:
+  * Maven run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=olddb`
+  * Packaged jar: `java -jar target/courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
+
 Uploaded profile pictures are runtime data and should stay out of git.
 
 ## Iowa State Degree Data Import
