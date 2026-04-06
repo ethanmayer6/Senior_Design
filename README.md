@@ -8,10 +8,14 @@ CourseFlow is a Senior Design Project built to help students and advisors have a
 - Have Node and NPM installed 
 ### Navigate to the `\courseflow\courseflow` folder
 For Local Development
-  * Run `./mvnw clean package` to build project
-    * If that doesn't work try `.\mvnw.cmd clean package`
-  * Run `java -jar target\courseflow-0.0.1-SNAPSHOT.jar` to run project in localhost:8080
-  * OR for fast reload during development use `./mvnw spring-boot:run`
+  * Linux/macOS bash:
+    * Build with `./mvnw clean package`
+    * Run packaged app with `java -jar ./target/courseflow-0.0.1-SNAPSHOT.jar`
+    * Or use fast reload with `./mvnw spring-boot:run`
+  * Windows PowerShell:
+    * Build with `.\mvnw.cmd clean package`
+    * Run packaged app with `java -jar .\target\courseflow-0.0.1-SNAPSHOT.jar`
+    * Or use fast reload with `.\mvnw.cmd spring-boot:run`
 
 [//]: # (* Building for Docker &#40;Also can be used for local development&#41; )
 
@@ -58,8 +62,10 @@ Example local development setup:
 Spring profile shortcuts:
 * Default config uses the local Postgres defaults from `src/main/resources/application.properties`
 * To use the legacy shared database instead, activate the `olddb` profile:
-  * Maven run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=olddb`
-  * Packaged jar: `java -jar target/courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
+  * Linux/macOS Maven run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=olddb`
+  * Linux/macOS packaged jar: `java -jar ./target/courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
+  * Windows Maven run: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=olddb"`
+  * Windows packaged jar: `java -jar .\target\courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
 
 Uploaded profile pictures are runtime data and should stay out of git.
 
