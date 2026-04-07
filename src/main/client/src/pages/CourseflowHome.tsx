@@ -123,15 +123,6 @@ function getModuleCtaLabel(module: CourseflowNavItem): string {
   return 'Open tool';
 }
 
-function formatRelativeMinutes(minutes: number): string {
-  if (minutes <= 0) return 'now';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  if (remainder === 0) return `${hours} hr`;
-  return `${hours} hr ${remainder} min`;
-}
-
 export default function CourseflowHome() {
   const navigate = useNavigate();
   const [friends, setFriends] = useState<StudentSearchResult[]>([]);
@@ -308,16 +299,6 @@ export default function CourseflowHome() {
   const currentScheduleItem =
     todaysSchedule.find(({ start, end }) => (start as number) <= nowMinutes && (end as number) > nowMinutes) ?? null;
   const nextScheduleItem = todaysSchedule.find(({ end }) => (end as number) > nowMinutes) ?? null;
-  const nextScheduleIsCurrent =
-    nextScheduleItem !== null && (nextScheduleItem.start as number) <= nowMinutes && (nextScheduleItem.end as number) > nowMinutes;
-  const completedItemsToday = todaysSchedule.filter(({ end }) => (end as number) <= nowMinutes).length;
-  const remainingItemsToday = todaysSchedule.filter(({ end }) => (end as number) > nowMinutes);
-  const upcomingItemsToday = todaysSchedule.filter(({ start }) => (start as number) > nowMinutes).length;
-  const finalItemToday = todaysSchedule[todaysSchedule.length - 1] ?? null;
-  const todayCoverage =
-    todaysSchedule.length > 0
-      ? `${formatScheduleTime(todaysSchedule[0].start as number)} to ${formatScheduleTime(finalItemToday?.end as number)}`
-      : 'No timeline items yet';
   const liveTone = currentScheduleItem
     ? isCustomScheduleEntry(currentScheduleItem.entry)
       ? {
@@ -335,13 +316,11 @@ export default function CourseflowHome() {
         lineClassName: 'bg-slate-500',
         glowClassName: 'shadow-[0_0_0_4px_rgba(15,23,42,0.06)]',
       };
-  const dayCompletionPercent =
-    todaysSchedule.length > 0
-      ? Math.round(((completedItemsToday + (currentScheduleItem ? 0.5 : 0)) / todaysSchedule.length) * 100)
-      : 0;
   const degreeCompletedCredits = flowchartInsights?.completedCredits ?? 0;
   const degreeInProgressCredits = flowchartInsights?.inProgressCredits ?? 0;
   const degreeTotalCredits = flowchartInsights?.totalCredits ?? 0;
+  const degreeRemainingCredits =
+    flowchartInsights?.remainingCredits ?? Math.max(0, degreeTotalCredits - degreeCompletedCredits - degreeInProgressCredits);
   const degreeCompletedWidthPercent =
     degreeTotalCredits > 0 ? Math.min((degreeCompletedCredits / degreeTotalCredits) * 100, 100) : 0;
   const degreeInProgressWidthPercent =
@@ -371,93 +350,6 @@ export default function CourseflowHome() {
           label: 'Day is clear',
           detail: 'Nothing else is scheduled for today',
         };
-  const heroStats = [
-    {
-      label: nextScheduleItem ? (nextScheduleIsCurrent ? 'Live status' : 'Next up') : 'Today',
-      value: nextScheduleItem ? getScheduleEntryPrimaryLabel(nextScheduleItem.entry) : 'All clear',
-      helper: nextScheduleItem
-        ? nextScheduleIsCurrent
-          ? `In progress until ${formatScheduleTime(nextScheduleItem.end as number)}`
-          : ''
-        : 'The rest of your day is clear.',
-      meta: nextScheduleItem
-        ? nextScheduleIsCurrent
-          ? `${formatRelativeMinutes((nextScheduleItem.end as number) - nowMinutes)} remaining`
-          : `${formatRelativeMinutes((nextScheduleItem.start as number) - nowMinutes)} until it starts`
-        : 'Open evening ahead',
-      icon: nextScheduleIsCurrent ? 'pi pi-bolt' : 'pi pi-play-circle',
-      iconClassName: nextScheduleIsCurrent
-        ? 'bg-red-50 text-red-600 ring-1 ring-red-100'
-        : 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
-      dotClassName: nextScheduleIsCurrent ? 'bg-red-500' : 'bg-amber-500',
-    },
-    {
-      label: 'Today’s load',
-      value: `${todaysSchedule.length} planned`,
-      helper:
-        todaysSchedule.length === 0
-          ? 'No timed items are on your schedule yet.'
-          : '',
-      meta: todayCoverage,
-      icon: 'pi pi-calendar',
-      iconClassName: 'bg-sky-50 text-sky-600 ring-1 ring-sky-100',
-      dotClassName: 'bg-sky-500',
-    },
-    {
-      label: 'Still ahead',
-      value: remainingItemsToday.length > 0 ? `${remainingItemsToday.length} remaining` : 'Wrapped up',
-      helper:
-        remainingItemsToday.length === 0
-          ? 'You do not have any more timed items today.'
-          : remainingItemsToday.length === 1
-            ? ''
-            : `${remainingItemsToday.length - (currentScheduleItem ? 1 : 0)} more ${
-                remainingItemsToday.length - (currentScheduleItem ? 1 : 0) === 1 ? 'item is' : 'items are'
-              } still ahead after the current block.`,
-      meta:
-        finalItemToday && remainingItemsToday.length > 0
-          ? `Clear after ${formatScheduleTime(finalItemToday.end as number)}`
-          : 'Nothing else to chase down tonight',
-      icon: 'pi pi-flag',
-      iconClassName: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
-      dotClassName: remainingItemsToday.length > 0 ? 'bg-emerald-500' : 'bg-slate-400',
-    },
-  ];
-  const heroStatCards = heroStats.map((stat, index) => {
-    if (index === 0) {
-      return {
-        ...stat,
-        id: 'next',
-        miniSegments: [] as Array<{ value: number; className: string; label: string }>,
-      };
-    }
-
-    if (index === 1) {
-      return {
-        ...stat,
-        id: 'load',
-        label: "Today's load",
-        miniSegments: [
-          { value: completedItemsToday, className: 'bg-emerald-500', label: `${completedItemsToday} done` },
-          { value: currentScheduleItem ? 1 : 0, className: 'bg-red-500', label: currentScheduleItem ? '1 live' : 'No live item' },
-          { value: upcomingItemsToday, className: 'bg-sky-500', label: `${upcomingItemsToday} upcoming` },
-        ],
-      };
-    }
-
-    return {
-      ...stat,
-      id: 'remaining',
-      meta:
-        todaysSchedule.length > 0
-          ? `Day ${dayCompletionPercent}% complete`
-          : stat.meta,
-      miniSegments: [
-        { value: completedItemsToday, className: 'bg-slate-900', label: `${completedItemsToday} finished` },
-        { value: remainingItemsToday.length, className: 'bg-emerald-500', label: `${remainingItemsToday.length} left` },
-      ],
-    };
-  });
 
   const toggleModuleVisibility = (moduleId: string) => {
     setHiddenModuleIds((current) =>
@@ -600,53 +492,6 @@ export default function CourseflowHome() {
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                {heroStatCards.map((stat) => (
-                  <div
-                    key={stat.id}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_32px_rgba(15,23,42,0.08)]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${stat.iconClassName}`}>
-                        <i className={stat.icon} aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{stat.label}</div>
-                        <div className="mt-1.5 text-[1.35rem] font-semibold leading-tight text-slate-900">{stat.value}</div>
-                      </div>
-                    </div>
-                    {stat.helper ? <div className="mt-3 text-sm leading-6 text-slate-700">{stat.helper}</div> : null}
-                    <div className="mt-2.5 flex items-center gap-2 text-xs font-medium text-slate-500">
-                      <span className={`h-2 w-2 rounded-full ${stat.dotClassName}`} />
-                      <span>{stat.meta}</span>
-                    </div>
-                    {stat.miniSegments.length > 0 && (
-                      <>
-                        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
-                          {stat.miniSegments.map((segment) => (
-                            <span
-                              key={`${stat.id}-${segment.label}`}
-                              className={segment.className}
-                              style={{
-                                width: `${(segment.value / Math.max(1, stat.id === 'remaining' ? completedItemsToday + remainingItemsToday.length : todaysSchedule.length)) * 100}%`,
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
-                          {stat.miniSegments.map((segment) => (
-                            <span key={`${segment.label}-legend`} className="inline-flex items-center gap-1.5">
-                              <span className={`h-2 w-2 rounded-full ${segment.className}`} />
-                              {segment.label}
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-
               <div className="mt-4 rounded-3xl border border-slate-200 bg-[#f3f7fb] p-4 sm:p-5">
                 <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                 <div className="flex flex-wrap items-end justify-between gap-3">
@@ -764,18 +609,54 @@ export default function CourseflowHome() {
                 <div className="mt-4 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Degree progress</div>
                   {degreeProgressLoading ? (
-                    <div className="h-3 animate-pulse rounded-full bg-slate-100" />
+                    <>
+                      <div className="h-3 animate-pulse rounded-full bg-slate-100" />
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="h-10 animate-pulse rounded-xl bg-slate-100" />
+                        <div className="h-10 animate-pulse rounded-xl bg-slate-100" />
+                        <div className="h-10 animate-pulse rounded-xl bg-slate-100" />
+                      </div>
+                    </>
                   ) : (
-                    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                    <>
+                      <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                        {flowchartInsights ? (
+                          <div className="flex h-full">
+                            <span className="bg-slate-900" style={{ width: `${degreeCompletedWidthPercent}%` }} />
+                            <span className="bg-red-400" style={{ width: `${degreeInProgressWidthPercent}%` }} />
+                          </div>
+                        ) : (
+                          <span className="block h-full w-full bg-slate-200" />
+                        )}
+                      </div>
                       {flowchartInsights ? (
-                        <div className="flex h-full">
-                          <span className="bg-slate-900" style={{ width: `${degreeCompletedWidthPercent}%` }} />
-                          <span className="bg-red-400" style={{ width: `${degreeInProgressWidthPercent}%` }} />
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                              <span className="h-2 w-2 rounded-full bg-slate-900" />
+                              Completed
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900">{degreeCompletedCredits} credits</div>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                              <span className="h-2 w-2 rounded-full bg-red-400" />
+                              In progress
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900">{degreeInProgressCredits} credits</div>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                              <span className="h-2 w-2 rounded-full bg-slate-300" />
+                              Remaining
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900">{degreeRemainingCredits} credits</div>
+                          </div>
                         </div>
                       ) : (
-                        <span className="block h-full w-full bg-slate-200" />
+                        <div className="mt-3 text-sm text-slate-500">Import your flowchart to show degree credit progress.</div>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
