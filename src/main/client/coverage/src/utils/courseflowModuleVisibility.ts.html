@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/components/header.tsx</title>
+    <title>Code coverage report for src/utils/courseflowModuleVisibility.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/components</a> header.tsx</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/utils</a> courseflowModuleVisibility.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">71.42% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>10/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>2/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>4/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">69.23% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>9/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -96,13 +96,26 @@
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -111,61 +124,42 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useRef } from "react";
-import { Link } from "react-router-dom";
-import { OverlayPanel } from "primereact/overlaypanel";
-import { Button } from "primereact/button";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { courseflowNavItems } from '../config/courseflowNavigation';
 &nbsp;
-export default function <span class="fstat-no" title="function not covered" >Header() {</span>
-  const <span class="cstat-no" title="statement not covered" >op = useRef&lt;OverlayPanel&gt;(null);</span>
+export const HOME_MODULE_VISIBILITY_KEY = 'courseflow_home_hidden_modules';
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;header className="bg-white shadow-sm fixed top-0 left-0 w-full flex justify-between items-center z-20"&gt;
-      &lt;Link to="/courseflow" className="flex items-center gap-2 ml-2 mt-2 mb-2"&gt;
-        &lt;img src="/logo.png" alt="CourseFlow Logo" className="w-[200px]" /&gt;
-      &lt;/Link&gt;
+const validHomeModuleIds = new Set(courseflowNavItems.map((module) =&gt; module.id));
 &nbsp;
-      &lt;div className="relative mr-6"&gt;
-        &lt;Button
-          className="text-gray-800! hover:text-red-600! focus:text-red-600! transition duration-200 cursor-pointer p-2! rounded-full!"
-          icon="pi pi-user"
-          size="large"
-          text={true}
-          onClick={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; <span class="cstat-no" title="statement not covered" >op.current?.toggle(e)}</span>
-        &gt;&lt;/Button&gt;
+export function sanitizeHiddenCourseflowModuleIds(value: unknown): string[] {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!Array.isArray(value)) {
+<span class="cstat-no" title="statement not covered" >    return [];</span>
+  }
+  return value.filter(
+<span class="fstat-no" title="function not covered" >    (i</span>tem): item is string =&gt; <span class="cstat-no" title="statement not covered" >typeof item === 'string' &amp;&amp; validHomeModuleIds.has(item),</span>
+  );
+}
 &nbsp;
-        &lt;OverlayPanel ref={op} className="w-35"&gt;
-          &lt;Link
-            to="/profile"
-            className="block text-gray-800 hover:text-red-600 transition duration-200"
-          &gt;
-            &lt;i className="pi pi-id-card"&gt;&lt;/i&gt; Profile
-          &lt;/Link&gt;
-        &lt;/OverlayPanel&gt;
-      &lt;/div&gt;
-    &lt;/header&gt;
+export function loadHiddenCourseflowModuleIds(): string[] {
+  try {
+    const raw = window.localStorage.getItem(HOME_MODULE_VISIBILITY_KEY);
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!raw) {
+      return [];
+    }
+<span class="cstat-no" title="statement not covered" >    return sanitizeHiddenCourseflowModuleIds(JSON.parse(raw));</span>
+  } catch {
+<span class="cstat-no" title="statement not covered" >    return [];</span>
+  }
+}
+&nbsp;
+export function saveHiddenCourseflowModuleIds(hiddenModuleIds: string[]): void {
+  window.localStorage.setItem(
+    HOME_MODULE_VISIBILITY_KEY,
+    JSON.stringify(sanitizeHiddenCourseflowModuleIds(hiddenModuleIds)),
   );
 }
 &nbsp;</pre></td></tr></table></pre>

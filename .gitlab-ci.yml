@@ -1,17 +1,100 @@
+# GitLab CI is the validation gate for this repo.
+# Recommended CD model:
+# - Render auto-deploys the backend from GitLab using render.yaml
+# - Vercel auto-deploys the frontend from GitLab using vercel.json
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
 stages:
   - test
+  - build
+
+default:
+  interruptible: true
 
 variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
 
-cache:
-  key: maven-cache
-  paths:
-    - .m2/repository/
-
-test-backend:
-  stage: test
+.maven_job: &maven_job
   image: maven:3.9-eclipse-temurin-21
+  cache:
+    key:
+      prefix: maven
+      files:
+        - pom.xml
+        - .mvn/wrapper/maven-wrapper.properties
+    paths:
+      - .m2/repository/
+  before_script:
+    - chmod +x mvnw
+
+.frontend_job: &frontend_job
+  cache:
+    key:
+      prefix: node
+      files:
+        - src/main/client/package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - cd src/main/client
+    - npm ci --cache "$NPM_CONFIG_CACHE" --prefer-offline
+
+backend-verify:
+  <<: *maven_job
+  stage: test
   script:
-    # Disable the frontend profile so npm is NOT called
-    - mvn -B --no-transfer-progress -P'!frontend' -DskipTests=false test
+    - ./mvnw -B --no-transfer-progress -P!frontend verify
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - target/*.jar
+      - target/site/jacoco/
+      - target/surefire-reports/
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+
+frontend-unit:
+  <<: *frontend_job
+  image: node:20
+  stage: test
+  script:
+    - npm run test:run -- --coverage
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - src/main/client/coverage/
+
+frontend-e2e:
+  <<: *frontend_job
+  image: mcr.microsoft.com/playwright:v1.58.2-noble
+  stage: test
+  script:
+    - npm run test:e2e
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - src/main/client/playwright-report/
+      - src/main/client/test-results/
+
+frontend-build:
+  <<: *frontend_job
+  image: node:20
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - src/main/client/dist/

@@ -48,16 +48,16 @@ Houses all the business logic and helper services
 Database and JWT configuration should be provided through environment variables rather than committed
 operational credentials. The default public-safe configuration in `src/main/resources/application.properties`
 expects these values:
-* `COURSEFLOW_DB_URL`
-* `COURSEFLOW_DB_USERNAME`
-* `COURSEFLOW_DB_PASSWORD`
-* `COURSEFLOW_JWT_SECRET`
+* `SPRING_DATASOURCE_URL`
+* `SPRING_DATASOURCE_USERNAME`
+* `SPRING_DATASOURCE_PASSWORD`
+* `APP_JWT_SECRET`
 
 Example local development setup:
-* `COURSEFLOW_DB_URL=jdbc:postgresql://localhost:5432/courseflow`
-* `COURSEFLOW_DB_USERNAME=courseflow`
-* `COURSEFLOW_DB_PASSWORD=courseflow`
-* `COURSEFLOW_JWT_SECRET=replace-with-a-long-random-local-secret`
+* `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/courseflow`
+* `SPRING_DATASOURCE_USERNAME=courseflow`
+* `SPRING_DATASOURCE_PASSWORD=courseflow`
+* `APP_JWT_SECRET=replace-with-a-long-random-local-secret`
 
 Spring profile shortcuts:
 * Default config uses the local Postgres defaults from `src/main/resources/application.properties`
@@ -68,6 +68,16 @@ Spring profile shortcuts:
   * Windows packaged jar: `java -jar .\target\courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
 
 Uploaded profile pictures are runtime data and should stay out of git.
+
+## GitLab CI/CD
+The repository now includes a GitLab pipeline that runs the backend verification suite, frontend unit tests with coverage, the Playwright browser check, and the production frontend build.
+
+For deployment, the cleanest setup is to let each platform deploy natively from the GitLab repository:
+* Render auto-deploys the backend from `main` using `render.yaml`
+* Vercel auto-deploys the frontend from `main` using `vercel.json`
+* GitLab CI acts as the quality gate before those platform deployments
+
+Setup details are documented in `docs/gitlab-cicd.md`.
 
 ## Iowa State Degree Data Import
 CourseFlow now includes a JSON importer for major requirement data used by Requirement Coverage and Smart Scheduler.
