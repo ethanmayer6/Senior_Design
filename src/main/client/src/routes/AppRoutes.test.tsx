@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import AppRoutes from './AppRoutes';
 
 vi.mock('../pages/login.tsx', () => ({ default: () => <div>Login Page</div> }));
+vi.mock('../pages/ForgotPassword.tsx', () => ({ default: () => <div>Forgot Password Page</div> }));
 vi.mock('../pages/register.tsx', () => ({ default: () => <div>Register Page</div> }));
 vi.mock('../pages/AdminDashboard', () => ({ default: () => <div>Admin Page</div> }));
 vi.mock('../pages/CourseCatalog.tsx', () => ({ default: () => <div>Catalog Page</div> }));
@@ -20,7 +21,6 @@ vi.mock('../pages/ProfessorReviews.tsx', () => ({ default: () => <div>Professors
 vi.mock('../pages/Games.tsx', () => ({ default: () => <div>Games Page</div> }));
 vi.mock('../pages/CourseReviews.tsx', () => ({ default: () => <div>Course Reviews Page</div> }));
 vi.mock('../pages/Dining.tsx', () => ({ default: () => <div>Dining Page</div> }));
-vi.mock('../components/NotificationCenter.tsx', () => ({ default: () => <div>Notification Center</div> }));
 vi.mock('../components/GlobalCommandPalette.tsx', () => ({ default: () => <div>Command Palette</div> }));
 
 describe('AppRoutes', () => {
@@ -30,7 +30,6 @@ describe('AppRoutes', () => {
     render(<AppRoutes />);
 
     expect(screen.getByText('Landing Page')).toBeInTheDocument();
-    expect(screen.getByText('Notification Center')).toBeInTheDocument();
     expect(screen.getByText('Command Palette')).toBeInTheDocument();
   });
 
@@ -40,5 +39,13 @@ describe('AppRoutes', () => {
     render(<AppRoutes />);
 
     expect(screen.getByText('Dining Page')).toBeInTheDocument();
+  });
+
+  it('renders the forgot-password route', () => {
+    window.history.pushState({}, '', '/login/forgot-password');
+
+    render(<AppRoutes />);
+
+    expect(screen.getByText('Forgot Password Page')).toBeInTheDocument();
   });
 });

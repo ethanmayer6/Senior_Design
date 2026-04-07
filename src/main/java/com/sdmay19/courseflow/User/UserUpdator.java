@@ -13,6 +13,7 @@ public class UserUpdator {
     private Boolean showMajorToFriends;
     private Boolean showEmailToFriends;
     private Boolean showPhoneToFriends;
+    private String selectedBadgeCourseIdent;
     private String password;
     // Getters
     public String getFirstName() {
@@ -50,6 +51,9 @@ public class UserUpdator {
     }
     public Boolean getShowPhoneToFriends() {
         return showPhoneToFriends;
+    }
+    public String getSelectedBadgeCourseIdent() {
+        return selectedBadgeCourseIdent;
     }
     public String getPassword() {
         return password;
@@ -91,6 +95,9 @@ public class UserUpdator {
     }
     public void setShowPhoneToFriends(Boolean showPhoneToFriends) {
         this.showPhoneToFriends = showPhoneToFriends;
+    }
+    public void setSelectedBadgeCourseIdent(String selectedBadgeCourseIdent) {
+        this.selectedBadgeCourseIdent = selectedBadgeCourseIdent;
     }
     public void setPassword(String password) {
         this.password = password;

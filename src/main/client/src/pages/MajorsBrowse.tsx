@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import Header from '../components/header';
-import { getMajorById, getMajorByName, getMajorSummaries, type Major, type MajorSummary } from '../api/majorsApi';
+import {
+  getMajorById,
+  getMajorSummaries,
+  type Major,
+  type MajorCourse,
+  type MajorRequirement,
+  type MajorSummary,
+} from '../api/majorsApi';
 import api from '../api/axiosClient';
 import {
-  getFlowchartRequirementCoverage,
   getMyFlowchartById,
   getUserFlowchart,
   type Flowchart,
-  type FlowchartRequirementCoverage
 } from '../api/flowchartApi';
 import {
   buildMajorProgress,
@@ -15,7 +20,180 @@ import {
   persistMajorsBrowseSelectedMajorId,
 } from '../utils/majorProgress';
 import { normalizeCourseIdent } from '../utils/flowchartStatus';
-import { publishAppNotification } from '../utils/notifications';
+
+type RequirementBrowseSummary = {
+  displayTargetCredits: number | null;
+  listedCourseCount: number;
+  optionGroupCount: number;
+  optionChoiceCount: number;
+  completedCourseMatches: string[];
+  inProgressCourseMatches: string[];
+  completedGroupCount: number;
+  inProgressGroupCount: number;
+  completedMatchedCredits: number;
+  statusLabel: 'Target met' | 'All listed courses matched' | 'Has matches' | 'No matches yet';
+  helperText: string;
+};
+
+function normalizeTextKey(value: string | null | undefined): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function formatCreditValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return '0';
+  }
+  return Number.isInteger(value) ? String(value) : String(value);
+}
+
+function extractRequirementTargetCredits(requirement: MajorRequirement): number | null {
+  const labelMatch = requirement.name.match(/(\d+(?:\.\d+)?)\s*cr\b/i);
+  if (labelMatch) {
+    const parsed = Number(labelMatch[1]);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  if (requirement.satisfyingCredits > 0) {
+    return requirement.satisfyingCredits;
+  }
+  return null;
+}
+
+function countCourseCredits(courses: MajorCourse[]): number {
+  return courses.reduce((sum, course) => sum + Math.max(0, Number(course.credits ?? 0)), 0);
+}
+
+function pickMajorSummary(
+  majorSummaries: MajorSummary[],
+  majorName: string | null | undefined,
+  preferredCollege: string | null | undefined
+): MajorSummary | null {
+  const normalizedName = normalizeTextKey(majorName);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const exactMatches = majorSummaries.filter((major) => normalizeTextKey(major.name) === normalizedName);
+  const nameMatches = exactMatches.length > 0
+    ? exactMatches
+    : majorSummaries.filter((major) => {
+        const majorKey = normalizeTextKey(major.name);
+        return majorKey.includes(normalizedName) || normalizedName.includes(majorKey);
+      });
+  if (nameMatches.length === 0) {
+    return null;
+  }
+
+  const normalizedCollege = normalizeTextKey(preferredCollege);
+  if (normalizedCollege) {
+    const collegeMatch = nameMatches.find((major) => normalizeTextKey(major.college) === normalizedCollege);
+    if (collegeMatch) {
+      return collegeMatch;
+    }
+  }
+
+  return nameMatches[0] ?? null;
+}
+
+function summarizeRequirementForBrowse(
+  requirement: MajorRequirement,
+  completedCourseIdents: Set<string>,
+  inProgressCourseIdents: Set<string>
+): RequirementBrowseSummary {
+  const directCourses = requirement.courses ?? [];
+  const groups = requirement.requirementGroups ?? [];
+  const completedDirectCourses: MajorCourse[] = [];
+  const inProgressDirectCourses: MajorCourse[] = [];
+  const completedCourseMatches: string[] = [];
+  const inProgressCourseMatches: string[] = [];
+  let completedGroupCount = 0;
+  let inProgressGroupCount = 0;
+  let optionChoiceCount = 0;
+
+  directCourses.forEach((course) => {
+    const normalized = normalizeCourseIdent(course.courseIdent);
+    if (!normalized) {
+      return;
+    }
+    if (completedCourseIdents.has(normalized)) {
+      completedDirectCourses.push(course);
+      completedCourseMatches.push(course.courseIdent);
+      return;
+    }
+    if (inProgressCourseIdents.has(normalized)) {
+      inProgressDirectCourses.push(course);
+      inProgressCourseMatches.push(course.courseIdent);
+    }
+  });
+
+  groups.forEach((group) => {
+    const groupCourses = group.courses ?? [];
+    optionChoiceCount += groupCourses.length;
+
+    const completedGroupCourse = groupCourses.find((course) =>
+      completedCourseIdents.has(normalizeCourseIdent(course.courseIdent))
+    );
+    if (completedGroupCourse) {
+      completedGroupCount += 1;
+      completedCourseMatches.push(completedGroupCourse.courseIdent);
+      return;
+    }
+
+    const inProgressGroupCourse = groupCourses.find((course) =>
+      inProgressCourseIdents.has(normalizeCourseIdent(course.courseIdent))
+    );
+    if (inProgressGroupCourse) {
+      inProgressGroupCount += 1;
+      inProgressCourseMatches.push(inProgressGroupCourse.courseIdent);
+    }
+  });
+
+  const displayTargetCredits = extractRequirementTargetCredits(requirement);
+  const completedMatchedCredits = countCourseCredits(completedDirectCourses);
+  const completedExplicitItemCount = completedDirectCourses.length + completedGroupCount;
+  const totalExplicitItemCount = directCourses.length + groups.length;
+  const totalMatchCount = completedCourseMatches.length + inProgressCourseMatches.length;
+
+  let statusLabel: RequirementBrowseSummary['statusLabel'] = 'No matches yet';
+  if (displayTargetCredits !== null && completedMatchedCredits >= displayTargetCredits) {
+    statusLabel = 'Target met';
+  } else if (
+    displayTargetCredits === null
+    && totalExplicitItemCount > 0
+    && completedExplicitItemCount >= totalExplicitItemCount
+  ) {
+    statusLabel = 'All listed courses matched';
+  } else if (totalMatchCount > 0) {
+    statusLabel = 'Has matches';
+  }
+
+  let helperText = 'No listed courses from this section are on your current flowchart yet.';
+  if (totalMatchCount > 0) {
+    const courseSummary = `${completedCourseMatches.length} completed + ${inProgressCourseMatches.length} in progress listed course match${completedCourseMatches.length + inProgressCourseMatches.length === 1 ? '' : 'es'}`;
+    const groupSummary =
+      groups.length > 0
+        ? ` | ${completedGroupCount} completed + ${inProgressGroupCount} in progress option group match${completedGroupCount + inProgressGroupCount === 1 ? '' : 'es'}`
+        : '';
+    helperText = `${courseSummary}${groupSummary}`;
+  }
+
+  return {
+    displayTargetCredits,
+    listedCourseCount: directCourses.length,
+    optionGroupCount: groups.length,
+    optionChoiceCount,
+    completedCourseMatches,
+    inProgressCourseMatches,
+    completedGroupCount,
+    inProgressGroupCount,
+    completedMatchedCredits,
+    statusLabel,
+    helperText,
+  };
+}
 
 export default function MajorsBrowse() {
   const [majorSummaries, setMajorSummaries] = useState<MajorSummary[]>([]);
@@ -28,15 +206,10 @@ export default function MajorsBrowse() {
   const [loadingMajor, setLoadingMajor] = useState(false);
   const [majorError, setMajorError] = useState<string | null>(null);
   const [userMajorName, setUserMajorName] = useState<string | null>(null);
+  const [userMajorCollege, setUserMajorCollege] = useState<string | null>(null);
   const [didAttemptAutoSelect, setDidAttemptAutoSelect] = useState(false);
   const [hasManualMajorSelection, setHasManualMajorSelection] = useState(false);
   const [userFlowchart, setUserFlowchart] = useState<Flowchart | null>(null);
-  const [flowchartCoverage, setFlowchartCoverage] = useState<FlowchartRequirementCoverage | null>(null);
-
-  const normalizeMajorName = (value: string | null | undefined): string =>
-    String(value ?? '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
 
   useEffect(() => {
     async function loadCurrentUserMajor() {
@@ -52,40 +225,15 @@ export default function MajorsBrowse() {
   }, []);
 
   useEffect(() => {
-    if (!userMajorName || didAttemptAutoSelect || hasManualMajorSelection) {
+    if (!userMajorName || didAttemptAutoSelect || hasManualMajorSelection || majorSummaries.length === 0) {
       return;
     }
-    const majorName = userMajorName;
-    let active = true;
-    async function autoSelectMajorByName() {
-      try {
-        const major = await getMajorByName(majorName);
-        if (!active || !major?.id) return;
-        setSelectedMajorId(major.id);
-      } catch {
-        const normalizedTarget = normalizeMajorName(majorName);
-        const fallback = majorSummaries.find((major) => {
-          const normalizedName = normalizeMajorName(major.name);
-          return (
-            normalizedName === normalizedTarget
-            || normalizedName.includes(normalizedTarget)
-            || normalizedTarget.includes(normalizedName)
-          );
-        });
-        if (active && fallback?.id) {
-          setSelectedMajorId(fallback.id);
-        }
-      } finally {
-        if (active) {
-          setDidAttemptAutoSelect(true);
-        }
-      }
+    const preferredMajor = pickMajorSummary(majorSummaries, userMajorName, userMajorCollege);
+    if (preferredMajor?.id) {
+      setSelectedMajorId(preferredMajor.id);
     }
-    void autoSelectMajorByName();
-    return () => {
-      active = false;
-    };
-  }, [userMajorName, didAttemptAutoSelect, hasManualMajorSelection, majorSummaries]);
+    setDidAttemptAutoSelect(true);
+  }, [userMajorName, userMajorCollege, didAttemptAutoSelect, hasManualMajorSelection, majorSummaries]);
 
   useEffect(() => {
     async function loadMajors() {
@@ -102,12 +250,7 @@ export default function MajorsBrowse() {
             if (current) {
               return current;
             }
-            const preferredMajor =
-              userMajorName
-                ? majors.find(
-                    (major) => normalizeMajorName(major.name) === normalizeMajorName(userMajorName)
-                  )
-                : null;
+            const preferredMajor = pickMajorSummary(majors, userMajorName, userMajorCollege);
             return preferredMajor?.id ?? majors[0].id;
           });
         }
@@ -119,7 +262,7 @@ export default function MajorsBrowse() {
     }
 
     void loadMajors();
-  }, [userMajorName]);
+  }, [userMajorName, userMajorCollege]);
 
   useEffect(() => {
     async function loadFlowchart() {
@@ -141,14 +284,15 @@ export default function MajorsBrowse() {
         }
         setUserFlowchart(flowchart);
         const flowchartMajorName = String(flowchart?.majorName ?? flowchart?.major?.name ?? '').trim();
+        const flowchartMajorCollege = String(flowchart?.major?.college ?? '').trim();
         if (flowchartMajorName) {
           setUserMajorName(flowchartMajorName);
         }
-        const coverage = await getFlowchartRequirementCoverage();
-        setFlowchartCoverage(coverage);
+        if (flowchartMajorCollege) {
+          setUserMajorCollege(flowchartMajorCollege);
+        }
       } catch {
         setUserFlowchart(null);
-        setFlowchartCoverage(null);
       }
     }
     void loadFlowchart();
@@ -190,10 +334,64 @@ export default function MajorsBrowse() {
   const {
     completedCourseIdents,
     inProgressCourseIdents,
-    requirementProgressById,
-    overallRequirementProgress,
-    strictViewCounts,
   } = useMemo(() => buildMajorProgress(selectedMajor, userFlowchart), [selectedMajor, userFlowchart]);
+
+  const requirementBrowseSummaries = useMemo(() => {
+    const summaries = new Map<number, RequirementBrowseSummary>();
+    (selectedMajor?.degreeRequirements ?? []).forEach((requirement) => {
+      summaries.set(
+        requirement.id,
+        summarizeRequirementForBrowse(requirement, completedCourseIdents, inProgressCourseIdents)
+      );
+    });
+    return summaries;
+  }, [selectedMajor, completedCourseIdents, inProgressCourseIdents]);
+
+  const majorBrowseSnapshot = useMemo(() => {
+    const uniqueListedCourses = new Set<string>();
+    let optionGroupCount = 0;
+    let optionChoiceCount = 0;
+
+    (selectedMajor?.degreeRequirements ?? []).forEach((requirement) => {
+      (requirement.courses ?? []).forEach((course) => {
+        const normalized = normalizeCourseIdent(course.courseIdent);
+        if (normalized) {
+          uniqueListedCourses.add(normalized);
+        }
+      });
+      (requirement.requirementGroups ?? []).forEach((group) => {
+        optionGroupCount += 1;
+        optionChoiceCount += group.courses?.length ?? 0;
+        (group.courses ?? []).forEach((course) => {
+          const normalized = normalizeCourseIdent(course.courseIdent);
+          if (normalized) {
+            uniqueListedCourses.add(normalized);
+          }
+        });
+      });
+    });
+
+    let completedListedCourses = 0;
+    let inProgressListedCourses = 0;
+    uniqueListedCourses.forEach((courseIdent) => {
+      if (completedCourseIdents.has(courseIdent)) {
+        completedListedCourses += 1;
+        return;
+      }
+      if (inProgressCourseIdents.has(courseIdent)) {
+        inProgressListedCourses += 1;
+      }
+    });
+
+    return {
+      requirementSectionCount: selectedMajor?.degreeRequirements?.length ?? 0,
+      listedCourseCount: uniqueListedCourses.size,
+      optionGroupCount,
+      optionChoiceCount,
+      completedListedCourses,
+      inProgressListedCourses,
+    };
+  }, [selectedMajor, completedCourseIdents, inProgressCourseIdents]);
 
   const filteredMajorSummaries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -207,52 +405,6 @@ export default function MajorsBrowse() {
     });
   }, [majorSummaries, query]);
 
-  const selectedMatchesFlowchartMajor = useMemo(() => {
-    const selectedMajorName = String(selectedMajor?.name ?? '').trim();
-    const flowchartMajorName = String(userFlowchart?.majorName ?? userFlowchart?.major?.name ?? '').trim();
-    if (!selectedMajorName || !flowchartMajorName) {
-      return true;
-    }
-    return normalizeMajorName(selectedMajorName) === normalizeMajorName(flowchartMajorName);
-  }, [selectedMajor?.name, userFlowchart?.majorName, userFlowchart?.major?.name]);
-
-  useEffect(() => {
-    if (!flowchartCoverage || !selectedMajor || !selectedMatchesFlowchartMajor) return;
-    const reqDiff = Math.abs((flowchartCoverage.totalRequirements ?? 0) - strictViewCounts.total);
-    const satDiff = Math.abs((flowchartCoverage.satisfiedRequirements ?? 0) - strictViewCounts.satisfied);
-    const ipDiff = Math.abs((flowchartCoverage.inProgressRequirements ?? 0) - strictViewCounts.inProgress);
-    const unmetDiff = Math.abs((flowchartCoverage.unmetRequirements ?? 0) - strictViewCounts.unmet);
-    const diverged = reqDiff > 2 || satDiff > 2 || ipDiff > 2 || unmetDiff > 2;
-    if (!diverged) return;
-
-    publishAppNotification({
-      level: 'warning',
-      title: 'Coverage Consistency Warning',
-      message:
-        'Majors Browse coverage and Flowchart coverage are out of sync. Re-import progress report or refresh major data.',
-      actionLabel: 'Open Dashboard',
-      actionPath: '/dashboard',
-      ttlMs: 12000,
-    });
-  }, [flowchartCoverage, strictViewCounts, selectedMajor?.id, selectedMatchesFlowchartMajor]);
-
-  const inferredGroupCredits = (requirementCredits: number, group: { satisfyingCredits: number; courses: { credits: number }[] }): number => {
-    if (group.satisfyingCredits > 0) {
-      return group.satisfyingCredits;
-    }
-    const positives = (group.courses ?? [])
-      .map((course) => Math.max(0, course.credits))
-      .filter((credit) => credit > 0);
-    if (positives.length === 0) {
-      return 0;
-    }
-    // If requirement has a known total, min positive works best for OR groups.
-    if (requirementCredits > 0) {
-      return Math.min(...positives);
-    }
-    return Math.min(...positives);
-  };
-
   const courseStatusTone = (courseIdent: string): string => {
     const normalized = normalizeCourseIdent(courseIdent);
     if (completedCourseIdents.has(normalized)) {
@@ -265,8 +417,12 @@ export default function MajorsBrowse() {
   };
 
   const requirementStatusTone = (statusLabel: string): string => {
-    if (statusLabel === 'Satisfied') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-    if (statusLabel === 'In progress') return 'border-amber-200 bg-amber-50 text-amber-700';
+    if (statusLabel === 'Target met' || statusLabel === 'All listed courses matched') {
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    }
+    if (statusLabel === 'Has matches') {
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    }
     return 'border-slate-200 bg-slate-100 text-slate-600';
   };
 
@@ -283,6 +439,7 @@ export default function MajorsBrowse() {
             {userMajorName && (
               <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
                 Auto-selected your major: {userMajorName}
+                {userMajorCollege ? ` (${userMajorCollege.replaceAll('_', ' ')})` : ''}
               </div>
             )}
 
@@ -364,103 +521,94 @@ export default function MajorsBrowse() {
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span className="font-semibold text-slate-800">Requirement Progress</span>
+                    <span className="font-semibold text-slate-800">Major Snapshot</span>
                     <span className="text-slate-600">
-                      {overallRequirementProgress.completed}/{overallRequirementProgress.total} met,{' '}
-                      {overallRequirementProgress.inProgress} in progress
+                      {majorBrowseSnapshot.requirementSectionCount} section{majorBrowseSnapshot.requirementSectionCount === 1 ? '' : 's'}
                     </span>
                   </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                    {(() => {
-                      const total = overallRequirementProgress.total || 1;
-                      const completedPct = (overallRequirementProgress.completed / total) * 100;
-                      const inProgressPct = (overallRequirementProgress.inProgress / total) * 100;
-                      return (
-                        <div className="flex h-full w-full">
-                          <div className="h-full bg-emerald-500" style={{ width: `${completedPct}%` }} />
-                          <div className="h-full bg-orange-500" style={{ width: `${inProgressPct}%` }} />
-                        </div>
-                      );
-                    })()}
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Requirement Sections</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-800">
+                        {majorBrowseSnapshot.requirementSectionCount}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Listed Courses</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-800">
+                        {majorBrowseSnapshot.listedCourseCount}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Option Groups</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-800">
+                        {majorBrowseSnapshot.optionGroupCount}
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        {majorBrowseSnapshot.optionChoiceCount} listed choice{majorBrowseSnapshot.optionChoiceCount === 1 ? '' : 's'}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Flowchart Matches</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-800">
+                        {majorBrowseSnapshot.completedListedCourses} completed
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        {majorBrowseSnapshot.inProgressListedCourses} in progress
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-2 text-xs text-slate-600">
-                    {overallRequirementProgress.completed} satisfied, {overallRequirementProgress.inProgress} in progress,{' '}
-                    {overallRequirementProgress.unmet} unmet
+                  <div className="mt-3 text-xs text-slate-600">
+                    Majors Browse reflects the major record as stored. For credit buckets and choice-heavy sections like Biology,
+                    matches are shown against the listed courses and option groups instead of assuming every listed course is a
+                    separately required slot.
                   </div>
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  {selectedMajor.degreeRequirements?.map((requirement) => (
+                  {selectedMajor.degreeRequirements?.map((requirement) => {
+                    const browseSummary = requirementBrowseSummaries.get(requirement.id);
+                    if (!browseSummary) {
+                      return null;
+                    }
+
+                    return (
                     <article key={requirement.id} className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-sm font-semibold text-slate-800">{requirement.name}</h3>
                         <span className="text-xs text-slate-600">
-                          {requirement.satisfyingCredits > 0
-                            ? `${requirement.satisfyingCredits} credits`
-                            : 'No credit cap specified'}
+                          {browseSummary.displayTargetCredits !== null
+                            ? `Target: ${formatCreditValue(browseSummary.displayTargetCredits)} credits`
+                            : 'Requirement section'}
                         </span>
                       </div>
                       <div className="mt-2 text-xs text-slate-600">
-                        Direct courses: {requirement.courses?.length ?? 0} | Option groups:{' '}
-                        {requirement.requirementGroups?.length ?? 0}
+                        Listed courses: {browseSummary.listedCourseCount} | Option groups: {browseSummary.optionGroupCount}
+                        {browseSummary.optionChoiceCount > 0 ? ` | Listed choices: ${browseSummary.optionChoiceCount}` : ''}
                       </div>
-                      {(() => {
-                        const progress = requirementProgressById.get(requirement.id);
-                        if (!progress) return null;
-                        const totalSlots = progress.totalSlots || 1;
-                        const completedPct = (progress.completedSlots / totalSlots) * 100;
-                        const inProgressPct = (progress.inProgressSlots / totalSlots) * 100;
-                        const statusLabel =
-                          progress.totalSlots === 0 || progress.completedSlots >= progress.totalSlots
-                            ? 'Satisfied'
-                            : progress.inProgressSlots > 0
-                              ? 'In progress'
-                              : 'Unmet';
-                        return (
-                          <div className="mt-3 rounded-md border border-slate-200 bg-white p-2.5">
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                              <span className="font-medium text-slate-700">Flowchart progress</span>
-                              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${requirementStatusTone(statusLabel)}`}>
-                                {statusLabel}
-                              </span>
-                              <span className="text-slate-600">
-                                {progress.completedSlots} met + {progress.inProgressSlots} in progress / {progress.totalSlots}
-                              </span>
-                            </div>
-                            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                              <div className="flex h-full w-full">
-                                <div className="h-full bg-emerald-500" style={{ width: `${completedPct}%` }} />
-                                <div className="h-full bg-orange-500" style={{ width: `${inProgressPct}%` }} />
-                              </div>
-                            </div>
-                            {(progress.completedMatches.length > 0 || progress.inProgressMatches.length > 0) && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {progress.completedMatches.slice(0, 8).map((courseIdent) => (
-                                  <span
-                                    key={`${requirement.id}-met-${courseIdent}`}
-                                    className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700"
-                                  >
-                                    {courseIdent}
-                                  </span>
-                                ))}
-                                {progress.inProgressMatches.slice(0, 8).map((courseIdent) => (
-                                  <span
-                                    key={`${requirement.id}-ip-${courseIdent}`}
-                                    className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700"
-                                  >
-                                    {courseIdent}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+
+                      <div className="mt-3 rounded-md border border-slate-200 bg-white p-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span className="font-medium text-slate-700">Flowchart matches</span>
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] ${requirementStatusTone(browseSummary.statusLabel)}`}>
+                            {browseSummary.statusLabel}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 text-xs text-slate-600">
+                          {browseSummary.helperText}
+                        </div>
+                        {browseSummary.displayTargetCredits !== null && browseSummary.completedMatchedCredits > 0 && (
+                          <div className="mt-1 text-[11px] text-slate-500">
+                            Completed listed-course credits: {formatCreditValue(browseSummary.completedMatchedCredits)} /{' '}
+                            {formatCreditValue(browseSummary.displayTargetCredits)}
                           </div>
-                        );
-                      })()}
+                        )}
+                      </div>
 
                       {(requirement.courses?.length ?? 0) > 0 && (
                         <div className="mt-3">
                           <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                            Direct Courses
+                            Listed Courses
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {requirement.courses.map((course) => (
@@ -482,11 +630,29 @@ export default function MajorsBrowse() {
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="text-xs font-semibold text-slate-700">{group.name}</div>
                                 <div className="text-xs text-slate-600">
-                                  {inferredGroupCredits(requirement.satisfyingCredits, group) > 0
-                                    ? `${inferredGroupCredits(requirement.satisfyingCredits, group)} credits required`
-                                    : 'OR option group'}
+                                  {group.satisfyingCredits > 0
+                                    ? `Choose ${formatCreditValue(group.satisfyingCredits)} credits from this group`
+                                    : 'Choose from this option group'}
                                 </div>
                               </div>
+                              {(() => {
+                                const completedGroupCourse = (group.courses ?? []).find((course) =>
+                                  completedCourseIdents.has(normalizeCourseIdent(course.courseIdent))
+                                );
+                                const inProgressGroupCourse = (group.courses ?? []).find((course) =>
+                                  inProgressCourseIdents.has(normalizeCourseIdent(course.courseIdent))
+                                );
+
+                                return (
+                                  <div className="mt-2 text-[11px] text-slate-500">
+                                    {completedGroupCourse
+                                      ? `Current flowchart match: ${completedGroupCourse.courseIdent} completed`
+                                      : inProgressGroupCourse
+                                        ? `Current flowchart match: ${inProgressGroupCourse.courseIdent} in progress`
+                                        : 'No current flowchart match in this option group.'}
+                                  </div>
+                                );
+                              })()}
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 {group.courses?.map((course) => (
                                   <span
@@ -502,7 +668,8 @@ export default function MajorsBrowse() {
                         </div>
                       )}
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

@@ -13,5 +13,6 @@ public record UserSearchResult(
         String profileHeadline,
         String bio,
         String accentColor,
-        String profilePictureUrl) {
+        String profilePictureUrl,
+        String selectedBadgeCourseIdent) {
 }

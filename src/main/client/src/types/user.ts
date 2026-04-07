@@ -11,6 +11,7 @@ export type User = {
   showMajorToFriends?: boolean;
   showEmailToFriends?: boolean;
   showPhoneToFriends?: boolean;
+  selectedBadgeCourseIdent?: string | null;
   email: string;
   password: string;
   phone: string;

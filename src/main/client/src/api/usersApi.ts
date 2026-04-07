@@ -14,6 +14,7 @@ export type StudentSearchResult = {
   bio?: string | null;
   accentColor?: string | null;
   profilePictureUrl?: string | null;
+  selectedBadgeCourseIdent?: string | null;
 };
 
 export async function searchUsersByUsername(username: string): Promise<StudentSearchResult[]> {

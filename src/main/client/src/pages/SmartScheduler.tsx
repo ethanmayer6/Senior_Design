@@ -30,25 +30,6 @@ type ApplyFeedback = {
   message: string;
 };
 
-const schedulerRoadmap = [
-  {
-    title: 'Future-term section data',
-    body: 'Useful schedules need real section meeting times, delivery modes, and seat data for the selected term so the planner can avoid time conflicts instead of guessing.',
-  },
-  {
-    title: 'Preference-aware scoring',
-    body: 'The scheduler should score against student preferences like no-Friday classes, work-hour windows, preferred delivery mode, and instructor preferences instead of keeping those settings advisory only.',
-  },
-  {
-    title: 'Stronger degree-rule semantics',
-    body: 'Requirement groups still need cleaner credit semantics, co-requisite handling, and elective-bucket rules so the app knows exactly when a requirement is truly satisfied.',
-  },
-  {
-    title: 'Move-or-replace actions',
-    body: 'A truly smart workflow should let students accept a draft by moving later planned courses forward and replacing lower-value picks instead of only avoiding duplicates.',
-  },
-];
-
 function getErrorMessage(error: unknown, fallback: string): string {
   if (typeof error === 'object' && error !== null) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -80,6 +61,38 @@ function formatCourseIdent(courseIdent: string): string {
 
 function formatSemesterLabel(term: string, year: number): string {
   return `${String(term ?? '').toUpperCase()} ${year}`;
+}
+
+function clampSchedulerCreditLimit(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(20, Math.floor(value)));
+}
+
+function fitDraftCoursesWithinCreditLimit(courses: SchedulerDraftCourse[], creditLimit: number) {
+  if (creditLimit <= 0) {
+    return {
+      courses: [] as SchedulerDraftCourse[],
+      skippedCount: courses.length,
+    };
+  }
+
+  const selected: SchedulerDraftCourse[] = [];
+  let runningCredits = 0;
+  let skippedCount = 0;
+
+  for (const course of courses) {
+    const credits = Number(course.credits ?? 0);
+    if (!Number.isFinite(credits) || credits <= 0 || runningCredits + credits > creditLimit) {
+      skippedCount += 1;
+      continue;
+    }
+    selected.push(course);
+    runningCredits += credits;
+  }
+
+  return { courses: selected, skippedCount };
 }
 
 function CourseList({
@@ -274,7 +287,10 @@ export default function SmartScheduler() {
       return;
     }
 
-    const courseIdents = option.recommendedCourses
+    const selectedMaxCredits = clampSchedulerCreditLimit(maxCredits);
+    const remainingCreditBudget = Math.max(0, selectedMaxCredits - option.lockedCredits);
+    const cappedRecommendedCourses = fitDraftCoursesWithinCreditLimit(option.recommendedCourses, remainingCreditBudget);
+    const courseIdents = cappedRecommendedCourses.courses
       .map((course) => String(course.courseIdent ?? '').trim().toUpperCase())
       .filter(Boolean);
 
@@ -282,7 +298,10 @@ export default function SmartScheduler() {
       setApplyFeedback({
         optionId: option.id,
         tone: 'success',
-        message: `There are no new suggested courses to add for ${formatSemesterLabel(parsedTargetTerm.term, parsedTargetTerm.year)}.`,
+        message:
+          option.lockedCredits >= selectedMaxCredits
+            ? `${formatSemesterLabel(parsedTargetTerm.term, parsedTargetTerm.year)} is already at or above your selected ${selectedMaxCredits}-credit cap, so no new courses were added.`
+            : `There are no new suggested courses to add for ${formatSemesterLabel(parsedTargetTerm.term, parsedTargetTerm.year)} within your selected ${selectedMaxCredits}-credit cap.`,
       });
       return;
     }
@@ -326,7 +345,8 @@ export default function SmartScheduler() {
       const addedCourseIdents: string[] = [];
       const failedMessages = new Map<string, string>();
 
-      for (let pass = 0; pass < 3 && remainingCourseIdents.length > 0; pass += 1) {
+      const maxPasses = Math.max(3, remainingCourseIdents.length);
+      for (let pass = 0; pass < maxPasses && remainingCourseIdents.length > 0; pass += 1) {
         let madeProgress = false;
         const nextRemaining: string[] = [];
 
@@ -361,10 +381,14 @@ export default function SmartScheduler() {
 
       const semesterLabel = formatSemesterLabel(parsedTargetTerm.term, parsedTargetTerm.year);
       if (addedCourseIdents.length > 0 && remainingCourseIdents.length === 0) {
+        const creditCapNote =
+          cappedRecommendedCourses.skippedCount > 0
+            ? ` ${cappedRecommendedCourses.skippedCount} additional suggested ${cappedRecommendedCourses.skippedCount === 1 ? 'course was' : 'courses were'} held back to stay within your ${selectedMaxCredits}-credit limit.`
+            : '';
         setApplyFeedback({
           optionId: option.id,
           tone: 'success',
-          message: `Added ${addedCourseIdents.length} ${addedCourseIdents.length === 1 ? 'course' : 'courses'} to ${semesterLabel}.`,
+          message: `Added ${addedCourseIdents.length} ${addedCourseIdents.length === 1 ? 'course' : 'courses'} to ${semesterLabel}.${creditCapNote}`,
         });
         return;
       }
@@ -422,11 +446,6 @@ export default function SmartScheduler() {
         <section className="rounded-2xl border border-red-100 bg-white/90 p-6 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500">Planning Tool</p>
           <h1 className="mt-2 text-3xl font-bold text-gray-900 sm:text-4xl">Smart Scheduler</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-            This version builds drafts from your active flowchart and target term, keeps already planned target-term
-            courses locked, avoids duplicating courses already scheduled later, and ranks suggestions by requirement
-            coverage plus downstream unlock value.
-          </p>
         </section>
 
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
@@ -447,10 +466,14 @@ export default function SmartScheduler() {
             <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Max Credits</label>
             <input
               type="number"
-              min={6}
+              min={1}
               max={20}
+              step={1}
               value={maxCredits}
-              onChange={(event) => setMaxCredits(Number(event.target.value))}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setMaxCredits(Number.isFinite(nextValue) ? nextValue : 0);
+              }}
               className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700"
             />
           </div>
@@ -477,74 +500,6 @@ export default function SmartScheduler() {
           >
             {generated ? 'Refresh Drafts' : 'Generate Drafts'}
           </button>
-        </section>
-
-        <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-gray-800">Planning Context</h2>
-            <span className="text-xs text-gray-500">{majorName ? `Major: ${majorName}` : 'Major not set'}</span>
-          </div>
-
-          {loadingMajorData && <div className="mt-3 text-sm text-gray-600">Loading requirement data...</div>}
-          {loadingFlowchart && <div className="mt-3 text-sm text-gray-600">Loading flowchart data...</div>}
-          {!loadingMajorData && majorDataError && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {majorDataError}
-            </div>
-          )}
-          {!loadingFlowchart && flowchartError && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {flowchartError}
-            </div>
-          )}
-
-          {!loadingMajorData && !majorDataError && (
-            <>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Flowchart Source</div>
-                  <div className="text-sm font-semibold text-gray-800">{flowchartSource}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Requirements</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.requirements}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Requirement Groups</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.groupedRequirements}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Scheduler Course Pool</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.coursePool}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Remaining Direct Courses</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.unmetDirectCount}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Remaining Option Groups</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.unmetGroupCount}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Remaining Group Credits</div>
-                  <div className="text-lg font-semibold text-gray-800">{schedulerSummary.remainingGroupCredits}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Already In Target Term</div>
-                  <div className="text-lg font-semibold text-gray-800">
-                    {schedulerSummary.lockedTargetCount} courses / {schedulerSummary.lockedTargetCredits} credits
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                {schedulerSummary.targetTermIsFuture
-                  ? 'Future-term draft rules are active, so in-progress courses count toward prerequisite readiness and requirement coverage.'
-                  : 'Current-term draft rules are active, so in-progress courses are not treated as completed prerequisites yet.'}
-                {schedulerSummary.plannedElsewhereCount > 0 && ` ${schedulerSummary.plannedElsewhereCount} remaining requirement courses are already scheduled in later semesters, so the generator avoids duplicating them here.`}
-              </div>
-            </>
-          )}
         </section>
 
         <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -662,21 +617,6 @@ export default function SmartScheduler() {
           )}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-gray-800">What Still Needs To Be Added</h2>
-            <span className="text-xs text-gray-500">To make the scheduler truly smart</span>
-          </div>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {schedulerRoadmap.map((item) => (
-              <article key={item.title} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold text-slate-800">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
       </main>
     </div>
   );

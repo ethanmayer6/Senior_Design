@@ -202,10 +202,12 @@ export default function ProfessorReviews() {
 
   const canReviewFromRole = viewerRole === 'USER' || viewerRole === 'STUDENT';
   const canReview = canReviewFromRole && Boolean(detail?.currentUserCanReview);
-  const canManageExternalLinks = viewerRole === 'ADMIN';
   const directoryReady = Boolean(directoryStatus?.ready);
   const directorySeeding = Boolean(directoryStatus?.seeding);
   const directoryKnown = directoryStatus !== null;
+  const currentRmpLink = getRateMyProfessorsLink(detail?.externalRatings);
+  const canAddMissingRmpLink = Boolean(detail) && !currentRmpLink;
+  const canManageExternalLinks = viewerRole === 'ADMIN';
 
   const selectedProfessor = useMemo(
     () => professors.find((p) => p.id === selectedProfessorId) ?? null,
@@ -642,25 +644,15 @@ export default function ProfessorReviews() {
                     </p>
                   )}
 
-                  {canManageExternalLinks && (
+                  {canAddMissingRmpLink && (
                     <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/80 p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-semibold text-sky-900">Rate My Professors Link</h3>
                           <p className="text-xs text-sky-800">
-                            Admin only. Paste the public professor link here to make it show up on this page.
+                            Missing from this profile. Paste the public professor link here and we will attach it to this professor.
                           </p>
                         </div>
-                        {getRateMyProfessorsLink(detail.externalRatings) && (
-                          <a
-                            href={getRateMyProfessorsLink(detail.externalRatings)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-medium text-sky-700 hover:underline"
-                          >
-                            Open current link
-                          </a>
-                        )}
                       </div>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <input
@@ -677,8 +669,29 @@ export default function ProfessorReviews() {
                           disabled={!manualRmpLink.trim() || savingManualLink}
                           className="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-sky-300"
                         >
-                          {savingManualLink ? 'Saving...' : 'Save Link'}
+                          {savingManualLink ? 'Saving...' : 'Add Link'}
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {canManageExternalLinks && currentRmpLink && (
+                    <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/80 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-sky-900">Rate My Professors Link</h3>
+                          <p className="text-xs text-sky-800">
+                            Admin shortcut. Open the current public link for verification.
+                          </p>
+                        </div>
+                        <a
+                          href={currentRmpLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-medium text-sky-700 hover:underline"
+                        >
+                          Open current link
+                        </a>
                       </div>
                     </div>
                   )}

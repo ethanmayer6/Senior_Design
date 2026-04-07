@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Locale;
 
 import com.sdmay19.courseflow.File.FileStorageService;
+import com.sdmay19.courseflow.course.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,9 @@ public class UserService {
 
     @Autowired
     private MajorRepository majorRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
 
     // CREATE SERVICE - still need to add spring security
     public AppUser register(AppUser user) {
@@ -173,6 +177,10 @@ public class UserService {
       if (updates.getShowMajorToFriends() != null) user.setShowMajorToFriends(updates.getShowMajorToFriends());
       if (updates.getShowEmailToFriends() != null) user.setShowEmailToFriends(updates.getShowEmailToFriends());
       if (updates.getShowPhoneToFriends() != null) user.setShowPhoneToFriends(updates.getShowPhoneToFriends());
+      if (updates.getSelectedBadgeCourseIdent() != null) {
+          user.setSelectedBadgeCourseIdent(normalizeSelectedBadgeCourseIdent(updates.getSelectedBadgeCourseIdent()));
+          validateSelectedBadgeCourseIdent(user.getSelectedBadgeCourseIdent());
+      }
       if (updates.getPassword() != null)
           user.setPassword(passwordEncoder.encode(updates.getPassword()));
 
@@ -306,6 +314,8 @@ public class UserService {
         if (user.getShowMajorToFriends() == null) user.setShowMajorToFriends(true);
         if (user.getShowEmailToFriends() == null) user.setShowEmailToFriends(false);
         if (user.getShowPhoneToFriends() == null) user.setShowPhoneToFriends(false);
+        user.setSelectedBadgeCourseIdent(normalizeSelectedBadgeCourseIdent(user.getSelectedBadgeCourseIdent()));
+        validateSelectedBadgeCourseIdent(user.getSelectedBadgeCourseIdent());
     }
 
     private UserPreferencesResponse toPreferencesResponse(AppUser user) {
@@ -364,7 +374,8 @@ public class UserService {
                 canSeeExtended ? normalizeOptionalText(user.getProfileHeadline(), 160) : null,
                 canSeeExtended ? normalizeOptionalText(user.getBio(), 1200) : null,
                 normalizeAccentColor(user.getAccentColor()),
-                user.getProfilePictureUrl());
+                user.getProfilePictureUrl(),
+                canSeeExtended ? normalizeSelectedBadgeCourseIdent(user.getSelectedBadgeCourseIdent()) : null);
     }
 
     private String normalizeOptionalText(String value, int maxLength) {
@@ -398,5 +409,35 @@ public class UserService {
             case "EVERYONE", "FRIENDS_ONLY" -> normalized;
             default -> "EVERYONE";
         };
+    }
+
+    private String normalizeSelectedBadgeCourseIdent(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String compact = value.trim().toUpperCase(Locale.ROOT);
+        if (compact.isEmpty()) {
+            return null;
+        }
+
+        compact = compact.replaceAll("[\\s-]+", "_").replaceAll("_+", "_");
+        String collapsed = compact.replace("_", "");
+        if (collapsed.matches("^[A-Z]{2,8}\\d{4}[A-Z]?$")) {
+            String department = collapsed.replaceAll("\\d.*$", "");
+            String code = collapsed.substring(department.length());
+            return department + "_" + code;
+        }
+
+        return compact;
+    }
+
+    private void validateSelectedBadgeCourseIdent(String selectedBadgeCourseIdent) {
+        if (selectedBadgeCourseIdent == null || selectedBadgeCourseIdent.isBlank()) {
+            return;
+        }
+        if (courseRepository.findByCourseIdent(selectedBadgeCourseIdent).isEmpty()) {
+            throw new IllegalArgumentException("Enter a valid course ident for the featured badge.");
+        }
     }
 }

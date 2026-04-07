@@ -9,6 +9,7 @@ import {
   getProfessorDetail,
   getProfessorDirectoryStatus,
   getProfessorReviews,
+  saveRateMyProfessorsLink,
   updateMyProfessorReview,
 } from './professorsApi';
 
@@ -60,5 +61,16 @@ describe('professorsApi', () => {
     await deleteMyProfessorReview(7);
 
     expect(mockedApi.delete).toHaveBeenCalledWith('/professors/7/reviews/me');
+  });
+
+  it('saves a missing Rate My Professors link through the public professor endpoint', async () => {
+    mockedApi.put.mockResolvedValueOnce({ data: { sourceUrl: 'https://www.ratemyprofessors.com/professor/123456' } });
+
+    expect(await saveRateMyProfessorsLink(7, 'https://www.ratemyprofessors.com/professor/123456')).toEqual({
+      sourceUrl: 'https://www.ratemyprofessors.com/professor/123456',
+    });
+    expect(mockedApi.put).toHaveBeenCalledWith('/professors/7/rate-my-professors-link', {
+      sourceUrl: 'https://www.ratemyprofessors.com/professor/123456',
+    });
   });
 });

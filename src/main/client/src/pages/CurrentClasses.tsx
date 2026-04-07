@@ -7,13 +7,27 @@ import { createStatusLookup, normalizeStatus, resolveCourseStatus } from '../uti
 import { FileUpload } from 'primereact/fileupload';
 import type { FileUploadSelectEvent } from 'primereact/fileupload';
 import {
+  createCustomScheduleEvent,
+  deleteCustomScheduleEvent,
   getCurrentClassSchedule,
   importClassSchedule,
   type ClassScheduleEntry,
 } from '../api/classScheduleApi';
 import { publishAppNotification } from '../utils/notifications';
+import {
+  type WeekdayCode,
+  WEEKDAY_COLUMNS,
+  formatScheduleTime,
+  getCurrentDayCode,
+  getCurrentTerm,
+  getScheduleWeekStart,
+  getScheduleEntryPrimaryLabel,
+  isCustomScheduleEntry,
+  parseMeetingDays,
+  parseScheduleDate,
+  parseScheduleMinutes,
+} from '../utils/classSchedule';
 
-type WeekdayCode = 'M' | 'T' | 'W' | 'R' | 'F' | 'S' | 'U';
 type WeeklyMeetingEntry = {
   day: WeekdayCode;
   entry: ClassScheduleEntry;
@@ -24,16 +38,6 @@ type PositionedWeeklyMeetingEntry = WeeklyMeetingEntry & {
   laneIndex: number;
   laneCount: number;
 };
-
-const WEEKDAY_COLUMNS: Array<{ code: WeekdayCode; label: string; fullLabel: string }> = [
-  { code: 'M', label: 'Mon', fullLabel: 'Monday' },
-  { code: 'T', label: 'Tue', fullLabel: 'Tuesday' },
-  { code: 'W', label: 'Wed', fullLabel: 'Wednesday' },
-  { code: 'R', label: 'Thu', fullLabel: 'Thursday' },
-  { code: 'F', label: 'Fri', fullLabel: 'Friday' },
-  { code: 'S', label: 'Sat', fullLabel: 'Saturday' },
-  { code: 'U', label: 'Sun', fullLabel: 'Sunday' },
-];
 
 const COURSE_BLOCK_STYLES = [
   'border-red-300 bg-red-100 text-red-900',
@@ -46,86 +50,19 @@ const COURSE_BLOCK_STYLES = [
   'border-orange-300 bg-orange-100 text-orange-900',
 ];
 
-function getCurrentTerm(date: Date): 'SPRING' | 'SUMMER' | 'FALL' {
-  const month = date.getMonth() + 1;
-  if (month <= 5) return 'SPRING';
-  if (month <= 8) return 'SUMMER';
-  return 'FALL';
-}
-
-function getCurrentDayCode(date: Date): WeekdayCode {
-  const codeByDayIndex: WeekdayCode[] = ['U', 'M', 'T', 'W', 'R', 'F', 'S'];
-  return codeByDayIndex[date.getDay()] ?? 'M';
-}
-
-function parseMinutes(raw: string | null | undefined): number | null {
-  if (!raw) return null;
-  const trimmed = raw.trim().toUpperCase();
-  if (!trimmed) return null;
-
-  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/);
-  if (!match) return null;
-
-  let hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const meridiem = match[3];
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes >= 60) {
-    return null;
-  }
-
-  if (meridiem === 'AM') {
-    if (hours === 12) hours = 0;
-  } else if (meridiem === 'PM') {
-    if (hours < 12) hours += 12;
-  }
-
-  if (hours < 0 || hours >= 24) return null;
-  return hours * 60 + minutes;
-}
-
-function formatTime(minutes: number): string {
-  const normalizedHours = Math.floor(minutes / 60);
-  const normalizedMinutes = minutes % 60;
-  const suffix = normalizedHours >= 12 ? 'PM' : 'AM';
-  const displayHours = normalizedHours % 12 === 0 ? 12 : normalizedHours % 12;
-  return `${displayHours}:${String(normalizedMinutes).padStart(2, '0')} ${suffix}`;
-}
-
-function parseMeetingDays(raw: string | null | undefined): WeekdayCode[] {
-  if (!raw) return [];
-  const compact = raw.toUpperCase().replace(/[^A-Z]/g, '');
-  if (!compact || /(TBA|ARR|ONLINE|ASYNCHRONOUS)/.test(compact)) {
-    return [];
-  }
-
-  const normalized = compact
-    .replace(/SUNDAY|SUN/g, 'U')
-    .replace(/SATURDAY|SAT/g, 'S')
-    .replace(/THURSDAY|THURS|THUR|TH/g, 'R')
-    .replace(/TUESDAY|TUES|TUE/g, 'T')
-    .replace(/MONDAY|MON/g, 'M')
-    .replace(/WEDNESDAY|WEDS|WED/g, 'W')
-    .replace(/FRIDAY|FRI/g, 'F');
-
-  const seen = new Set<WeekdayCode>();
-  const result: WeekdayCode[] = [];
-  normalized.split('').forEach((character) => {
-    const code = character as WeekdayCode;
-    if (!WEEKDAY_COLUMNS.some((day) => day.code === code) || seen.has(code)) {
-      return;
-    }
-    seen.add(code);
-    result.push(code);
-  });
-  return result;
-}
-
 function courseBlockTone(courseIdent: string): string {
   let hash = 0;
   for (let index = 0; index < courseIdent.length; index += 1) {
     hash = (hash * 31 + courseIdent.charCodeAt(index)) % COURSE_BLOCK_STYLES.length;
   }
   return COURSE_BLOCK_STYLES[Math.abs(hash) % COURSE_BLOCK_STYLES.length];
+}
+
+function weeklyEntryTone(entry: ClassScheduleEntry): string {
+  if (isCustomScheduleEntry(entry)) {
+    return 'border-blue-300 bg-blue-100 text-blue-900';
+  }
+  return courseBlockTone(entry.courseIdent || entry.sectionCode || 'COURSE');
 }
 
 function layoutMeetingsForDay(entries: WeeklyMeetingEntry[]): PositionedWeeklyMeetingEntry[] {
@@ -191,11 +128,28 @@ export default function CurrentClasses() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomEventForm, setShowCustomEventForm] = useState(false);
+  const [savingCustomEvent, setSavingCustomEvent] = useState(false);
+  const [deletingCustomEventId, setDeletingCustomEventId] = useState<number | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const currentYear = today.getFullYear();
   const currentTerm = getCurrentTerm(today);
   const todayCode = getCurrentDayCode(today);
+  const todayDateValue = useMemo(() => {
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, [today]);
+  const [customEventForm, setCustomEventForm] = useState({
+    title: '',
+    eventDate: todayDateValue,
+    startTime: '09:00',
+    endTime: '10:00',
+    location: '',
+    notes: '',
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -234,7 +188,27 @@ export default function CurrentClasses() {
     });
   }, [currentSemester?.courses, statusLookup]);
 
-  const hasImportedSchedule = scheduleEntries.length > 0;
+  const importedScheduleEntries = useMemo(
+    () => scheduleEntries.filter((entry) => !isCustomScheduleEntry(entry)),
+    [scheduleEntries]
+  );
+  const customEventEntries = useMemo(
+    () =>
+      scheduleEntries
+        .filter((entry) => isCustomScheduleEntry(entry))
+        .sort((left, right) => {
+          const leftDate = left.customEventDate || '';
+          const rightDate = right.customEventDate || '';
+          if (leftDate !== rightDate) {
+            return leftDate.localeCompare(rightDate);
+          }
+          const leftStart = parseScheduleMinutes(left.meetingStartTime) ?? 0;
+          const rightStart = parseScheduleMinutes(right.meetingStartTime) ?? 0;
+          return leftStart - rightStart;
+        }),
+    [scheduleEntries]
+  );
+  const hasImportedSchedule = importedScheduleEntries.length > 0;
 
   const formattedDate = useMemo(
     () =>
@@ -246,12 +220,47 @@ export default function CurrentClasses() {
     [today]
   );
 
+  const displayedWeekStart = useMemo(() => getScheduleWeekStart(today), [today]);
+  const displayedWeekEnd = useMemo(() => {
+    const end = new Date(displayedWeekStart);
+    end.setDate(displayedWeekStart.getDate() + 6);
+    return end;
+  }, [displayedWeekStart]);
+  const displayedWeekLabel = useMemo(() => {
+    const startLabel = displayedWeekStart.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    const endLabel = displayedWeekEnd.toLocaleDateString('en-US', {
+      month: displayedWeekStart.getMonth() === displayedWeekEnd.getMonth() ? undefined : 'short',
+      day: 'numeric',
+    });
+    return `${startLabel} - ${endLabel}`;
+  }, [displayedWeekEnd, displayedWeekStart]);
+
+  const currentWeekCustomEventEntries = useMemo(
+    () =>
+      customEventEntries.filter((entry) => {
+        const eventDate = parseScheduleDate(entry.customEventDate);
+        if (!eventDate) {
+          return false;
+        }
+        return eventDate >= displayedWeekStart && eventDate <= displayedWeekEnd;
+      }),
+    [customEventEntries, displayedWeekEnd, displayedWeekStart]
+  );
+
   const weeklySchedule = useMemo<WeeklyMeetingEntry[]>(() => {
-    return scheduleEntries
+    return [...importedScheduleEntries, ...currentWeekCustomEventEntries]
       .flatMap((entry) => {
-        const start = parseMinutes(entry.meetingStartTime);
-        const end = parseMinutes(entry.meetingEndTime);
-        const days = parseMeetingDays(entry.meetingDays);
+        const start = parseScheduleMinutes(entry.meetingStartTime);
+        const end = parseScheduleMinutes(entry.meetingEndTime);
+        const days = isCustomScheduleEntry(entry)
+          ? (() => {
+              const eventDate = parseScheduleDate(entry.customEventDate);
+              return eventDate ? [getCurrentDayCode(eventDate)] : [];
+            })()
+          : parseMeetingDays(entry.meetingDays);
         if (start === null || end === null || end <= start || days.length === 0) {
           return [];
         }
@@ -265,9 +274,9 @@ export default function CurrentClasses() {
         if (left.start !== right.start) {
           return left.start - right.start;
         }
-        return left.entry.courseIdent.localeCompare(right.entry.courseIdent);
+        return getScheduleEntryPrimaryLabel(left.entry).localeCompare(getScheduleEntryPrimaryLabel(right.entry));
       });
-  }, [scheduleEntries]);
+  }, [currentWeekCustomEventEntries, importedScheduleEntries]);
 
   const { weeklyTimelineStart, weeklyTimelineEnd, weeklyTimeTicks, weeklyCalendarHeight } = useMemo(() => {
     if (weeklySchedule.length === 0) {
@@ -339,6 +348,92 @@ export default function CurrentClasses() {
       });
     } finally {
       setImporting(false);
+    }
+  };
+
+  const refreshScheduleEntries = async () => {
+    const scheduleResult = await getCurrentClassSchedule().catch(() => []);
+    setScheduleEntries(scheduleResult);
+    return scheduleResult;
+  };
+
+  const resetCustomEventForm = () => {
+    setCustomEventForm({
+      title: '',
+      eventDate: todayDateValue,
+      startTime: '09:00',
+      endTime: '10:00',
+      location: '',
+      notes: '',
+    });
+  };
+
+  const handleCreateCustomEvent = async () => {
+    const title = customEventForm.title.trim();
+    if (!title) {
+      publishAppNotification({
+        level: 'error',
+        title: 'Calendar Item Missing Title',
+        message: 'Add a title before saving a calendar item.',
+      });
+      return;
+    }
+    if (!customEventForm.eventDate || !customEventForm.startTime || !customEventForm.endTime) {
+      publishAppNotification({
+        level: 'error',
+        title: 'Calendar Item Incomplete',
+        message: 'Choose a date, start time, and end time before saving.',
+      });
+      return;
+    }
+
+    setSavingCustomEvent(true);
+    try {
+      const created = await createCustomScheduleEvent({
+        title,
+        eventDate: customEventForm.eventDate,
+        startTime: customEventForm.startTime,
+        endTime: customEventForm.endTime,
+        location: customEventForm.location.trim() || null,
+        notes: customEventForm.notes.trim() || null,
+      });
+      await refreshScheduleEntries();
+      resetCustomEventForm();
+      setShowCustomEventForm(false);
+      publishAppNotification({
+        level: 'success',
+        title: 'Calendar Item Added',
+        message: `${getScheduleEntryPrimaryLabel(created)} will appear on your daily schedule on ${created.customEventDate}.`,
+      });
+    } catch (err: any) {
+      publishAppNotification({
+        level: 'error',
+        title: 'Failed To Add Calendar Item',
+        message: err?.response?.data || err?.message || 'Unable to save the calendar item.',
+      });
+    } finally {
+      setSavingCustomEvent(false);
+    }
+  };
+
+  const handleDeleteCustomEvent = async (entryId: number) => {
+    setDeletingCustomEventId(entryId);
+    try {
+      await deleteCustomScheduleEvent(entryId);
+      await refreshScheduleEntries();
+      publishAppNotification({
+        level: 'success',
+        title: 'Calendar Item Removed',
+        message: 'The personal calendar item was removed from your schedule.',
+      });
+    } catch (err: any) {
+      publishAppNotification({
+        level: 'error',
+        title: 'Failed To Remove Calendar Item',
+        message: err?.response?.data || err?.message || 'Unable to remove the calendar item.',
+      });
+    } finally {
+      setDeletingCustomEventId(null);
     }
   };
 
@@ -420,7 +515,174 @@ export default function CurrentClasses() {
             </div>
           )}
 
-          {!loading && !error && scheduleEntries.length > 0 && (
+          {!loading && !error && flowchart && (
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                    Personal Calendar Items
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    Add one-off events for the current term. They will show up on the home daily schedule on their date.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomEventForm((current) => !current);
+                    if (showCustomEventForm) {
+                      resetCustomEventForm();
+                    }
+                  }}
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-300 hover:bg-red-100"
+                >
+                  {showCustomEventForm ? 'Close Form' : 'Add Calendar Item'}
+                </button>
+              </div>
+
+              {showCustomEventForm && (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <input
+                      type="text"
+                      value={customEventForm.title}
+                      onChange={(event) =>
+                        setCustomEventForm((current) => ({ ...current, title: event.target.value }))
+                      }
+                      placeholder="Event title"
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                      disabled={savingCustomEvent}
+                    />
+                    <input
+                      type="date"
+                      value={customEventForm.eventDate}
+                      onChange={(event) =>
+                        setCustomEventForm((current) => ({ ...current, eventDate: event.target.value }))
+                      }
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                      disabled={savingCustomEvent}
+                    />
+                    <input
+                      type="text"
+                      value={customEventForm.location}
+                      onChange={(event) =>
+                        setCustomEventForm((current) => ({ ...current, location: event.target.value }))
+                      }
+                      placeholder="Location (optional)"
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                      disabled={savingCustomEvent}
+                    />
+                    <input
+                      type="time"
+                      value={customEventForm.startTime}
+                      onChange={(event) =>
+                        setCustomEventForm((current) => ({ ...current, startTime: event.target.value }))
+                      }
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                      disabled={savingCustomEvent}
+                    />
+                    <input
+                      type="time"
+                      value={customEventForm.endTime}
+                      onChange={(event) =>
+                        setCustomEventForm((current) => ({ ...current, endTime: event.target.value }))
+                      }
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                      disabled={savingCustomEvent}
+                    />
+                  </div>
+                  <textarea
+                    value={customEventForm.notes}
+                    onChange={(event) =>
+                      setCustomEventForm((current) => ({ ...current, notes: event.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Notes (optional)"
+                    className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    disabled={savingCustomEvent}
+                  />
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetCustomEventForm();
+                        setShowCustomEventForm(false);
+                      }}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                      disabled={savingCustomEvent}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateCustomEvent()}
+                      className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-300"
+                      disabled={savingCustomEvent}
+                    >
+                      {savingCustomEvent ? 'Saving...' : 'Save Calendar Item'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {customEventEntries.length > 0 ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {customEventEntries.map((entry) => (
+                    <article key={entry.id} className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">
+                            {getScheduleEntryPrimaryLabel(entry)}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-600">
+                            {entry.customEventDate
+                              ? new Date(`${entry.customEventDate}T12:00:00`).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                              : 'Date not set'}
+                            {' | '}
+                            {entry.meetingStartTime && entry.meetingEndTime
+                              ? `${formatScheduleTime(parseScheduleMinutes(entry.meetingStartTime) ?? 0)} - ${formatScheduleTime(parseScheduleMinutes(entry.meetingEndTime) ?? 0)}`
+                              : 'Time not set'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteCustomEvent(entry.id)}
+                          disabled={deletingCustomEventId === entry.id}
+                          className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingCustomEventId === entry.id ? 'Removing...' : 'Remove'}
+                        </button>
+                      </div>
+                      {(entry.locations || entry.customEventNotes) && (
+                        <div className="mt-3 space-y-1 text-xs text-slate-700">
+                          {entry.locations && (
+                            <div>
+                              <span className="font-semibold">Location:</span> {entry.locations}
+                            </div>
+                          )}
+                          {entry.customEventNotes && (
+                            <div>
+                              <span className="font-semibold">Notes:</span> {entry.customEventNotes}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+                  No personal calendar items yet.
+                </div>
+              )}
+            </div>
+          )}
+
+          {!loading && !error && (importedScheduleEntries.length > 0 || currentWeekCustomEventEntries.length > 0) && (
             <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -428,11 +690,8 @@ export default function CurrentClasses() {
                     Weekly Calendar
                   </div>
                   <div className="mt-1 text-xs text-slate-600">
-                    Imported meeting times laid out across the full week for {currentTerm} {currentYear}.
+                    Imported class meetings and personal calendar items for the week of {displayedWeekLabel}.
                   </div>
-                </div>
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {weeklySchedule.length} timed meeting{weeklySchedule.length === 1 ? '' : 's'}
                 </div>
               </div>
 
@@ -466,7 +725,7 @@ export default function CurrentClasses() {
                               className="absolute inset-x-0 -translate-y-1/2 text-right pr-2 text-[11px] text-slate-500"
                               style={{ top: `${topPercent}%` }}
                             >
-                              {formatTime(tick)}
+                              {formatScheduleTime(tick)}
                             </div>
                           );
                         })}
@@ -500,27 +759,31 @@ export default function CurrentClasses() {
                             const blockWidthPercent = laneWidthPercent - 2;
                             const leftPercent = laneIndex * laneWidthPercent + 1;
                             const isCompactBlock = laneCount >= 3 || heightPercent < 10;
+                            const primaryLabel = getScheduleEntryPrimaryLabel(entry);
+                            const detailLabel = isCustomScheduleEntry(entry)
+                              ? entry.locations || entry.customEventNotes || 'Personal calendar item'
+                              : entry.locations || entry.instructionalFormat || entry.deliveryMode || 'Scheduled';
                             return (
                               <div
                                 key={`${day.code}-${entry.id}`}
-                                className={`absolute rounded-xl border px-2 py-1.5 shadow-sm ${courseBlockTone(entry.courseIdent || entry.sectionCode || 'COURSE')}`}
+                                className={`absolute rounded-xl border px-2 py-1.5 shadow-sm ${weeklyEntryTone(entry)}`}
                                 style={{
                                   top: `${Math.max(0, topPercent)}%`,
                                   height: `${Math.max(6, heightPercent)}%`,
                                   left: `${leftPercent}%`,
                                   width: `${Math.max(10, blockWidthPercent)}%`,
                                 }}
-                                title={`${entry.courseIdent} - ${entry.courseTitle || entry.catalogName || ''}`}
+                                title={`${primaryLabel} - ${detailLabel}`}
                               >
                                 <div className="truncate text-[11px] font-semibold">
-                                  {entry.courseIdent || entry.sectionCode || 'Course'}
+                                  {primaryLabel}
                                 </div>
                                 <div className="truncate text-[10px] opacity-90">
-                                  {formatTime(start)} - {formatTime(end)}
+                                  {formatScheduleTime(start)} - {formatScheduleTime(end)}
                                 </div>
                                 {!isCompactBlock && (
                                   <div className="truncate text-[10px] opacity-75">
-                                    {entry.locations || entry.instructionalFormat || entry.deliveryMode || 'Scheduled'}
+                                    {detailLabel}
                                   </div>
                                 )}
                               </div>
@@ -544,19 +807,19 @@ export default function CurrentClasses() {
                 </div>
               ) : (
                 <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-600">
-                  Imported schedule entries were found, but none included a timed weekly meeting pattern that could be placed on the calendar.
+                  No timed imported meetings or current-week personal calendar items could be placed on this calendar.
                 </div>
               )}
             </div>
           )}
 
-          {!loading && !error && scheduleEntries.length > 0 && (
+          {!loading && !error && importedScheduleEntries.length > 0 && (
             <div>
               <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
                 Imported schedule details for {currentTerm} {currentYear}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {scheduleEntries.map((entry) => (
+                {importedScheduleEntries.map((entry) => (
                   <article key={entry.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div className="text-sm font-semibold text-slate-900">
                       {(entry.sectionCode && entry.sectionCode.length > 0 ? entry.sectionCode : entry.courseIdent || 'Course')}
@@ -572,7 +835,7 @@ export default function CurrentClasses() {
                       {(entry.instructor || entry.deliveryMode) && (
                         <div>
                           <span className="font-semibold">Instructor/Mode:</span>{' '}
-                          {[entry.instructor, entry.deliveryMode].filter(Boolean).join(' • ')}
+                          {[entry.instructor, entry.deliveryMode].filter(Boolean).join(' | ')}
                         </div>
                       )}
                       {entry.locations && (
@@ -593,7 +856,7 @@ export default function CurrentClasses() {
             </div>
           )}
 
-          {!loading && !error && scheduleEntries.length === 0 && currentSemester && currentCourses.length > 0 && (
+          {!loading && !error && importedScheduleEntries.length === 0 && currentSemester && currentCourses.length > 0 && (
             <div>
               <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
                 {currentTerm} {currentYear}
@@ -619,3 +882,4 @@ export default function CurrentClasses() {
     </div>
   );
 }
+

@@ -139,6 +139,7 @@ class UserControllerTest {
                         null,
                         null,
                         null,
+                        null,
                         null)));
 
         mockMvc.perform(get("/api/users/search")

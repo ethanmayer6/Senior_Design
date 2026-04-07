@@ -135,7 +135,11 @@ class ClassScheduleImportServiceTest {
         assertThat(flowchart.getSemesters()).hasSize(1);
         assertThat(flowchart.getSemesters().get(0).getCourses()).containsExactly(linkedCourse);
 
-        verify(scheduleRepository).deleteAllByFlowchartAndYearAndTerm(flowchart, 2026, Term.FALL);
+        verify(scheduleRepository).deleteAllByFlowchartAndYearAndTermAndEntryType(
+                flowchart,
+                2026,
+                Term.FALL,
+                ClassScheduleEntryType.IMPORTED_CLASS);
         verify(scheduleRepository).saveAll(entriesCaptor.capture());
         verify(semesterRepository).save(any(Semester.class));
         verify(flowChartRepository).save(flowchart);
@@ -144,6 +148,7 @@ class ClassScheduleImportServiceTest {
         assertThat(persistedEntries).hasSize(2);
         assertThat(persistedEntries.get(0).getCourse()).isEqualTo(linkedCourse);
         assertThat(persistedEntries.get(1).getCourse()).isNull();
+        assertThat(persistedEntries.get(0).getEntryType()).isEqualTo(ClassScheduleEntryType.IMPORTED_CLASS);
     }
 
     @Test
@@ -160,6 +165,58 @@ class ClassScheduleImportServiceTest {
         List<ClassScheduleEntry> entries = importService.getTermEntries(user, 2026, Term.FALL);
 
         assertThat(entries).containsExactly(entry);
+    }
+
+    @Test
+    void createCustomEvent_persistsOneOffCalendarItemForCurrentTerm() {
+        AppUser user = buildUser();
+        Flowchart flowchart = new Flowchart();
+        flowchart.setId(21L);
+
+        LocalDate today = LocalDate.now();
+        String eventDate = today.toString();
+
+        when(flowchartService.getByUser(user)).thenReturn(flowchart);
+        when(scheduleRepository.save(any(ClassScheduleEntry.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ClassScheduleEntry saved = importService.createCustomEvent(
+                new CustomScheduleEventRequest(
+                        "Career fair",
+                        eventDate,
+                        "13:00",
+                        "14:30",
+                        "Memorial Union",
+                        "Bring resumes"),
+                user);
+
+        assertThat(saved.getEntryType()).isEqualTo(ClassScheduleEntryType.CUSTOM_EVENT);
+        assertThat(saved.getCourseIdent()).isEqualTo("CUSTOM_EVENT");
+        assertThat(saved.getCustomEventTitle()).isEqualTo("Career fair");
+        assertThat(saved.getCustomEventDate()).isEqualTo(today);
+        assertThat(saved.getMeetingStartTime()).isEqualTo(LocalTime.of(13, 0));
+        assertThat(saved.getMeetingEndTime()).isEqualTo(LocalTime.of(14, 30));
+        assertThat(saved.getLocations()).isEqualTo("Memorial Union");
+        assertThat(saved.getCustomEventNotes()).isEqualTo("Bring resumes");
+    }
+
+    @Test
+    void deleteCustomEvent_removesOwnedCalendarItem() {
+        AppUser user = buildUser();
+        Flowchart flowchart = new Flowchart();
+        flowchart.setId(21L);
+
+        ClassScheduleEntry entry = new ClassScheduleEntry();
+        entry.setId(9L);
+        entry.setFlowchart(flowchart);
+        entry.setEntryType(ClassScheduleEntryType.CUSTOM_EVENT);
+
+        when(flowchartService.getByUser(user)).thenReturn(flowchart);
+        when(scheduleRepository.findById(9L)).thenReturn(Optional.of(entry));
+
+        importService.deleteCustomEvent(9L, user);
+
+        verify(scheduleRepository).delete(entry);
     }
 
     private MockMultipartFile sampleFile() {

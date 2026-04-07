@@ -47,6 +47,8 @@ public class AppUser implements UserDetails {
     private Boolean showEmailToFriends;
     @Column(name = "show_phone_to_friends")
     private Boolean showPhoneToFriends;
+    @Column(name = "selected_badge_course_ident", length = 32)
+    private String selectedBadgeCourseIdent;
     private Boolean darkMode;
     private String themePreset;
     private String fontScale;
@@ -101,6 +103,7 @@ public class AppUser implements UserDetails {
         this.showMajorToFriends = true;
         this.showEmailToFriends = false;
         this.showPhoneToFriends = false;
+        this.selectedBadgeCourseIdent = null;
         this.darkMode = false;
         this.themePreset = "default";
         this.fontScale = "medium";
@@ -137,6 +140,7 @@ public class AppUser implements UserDetails {
     public Boolean getShowMajorToFriends() { return showMajorToFriends; }
     public Boolean getShowEmailToFriends() { return showEmailToFriends; }
     public Boolean getShowPhoneToFriends() { return showPhoneToFriends; }
+    public String getSelectedBadgeCourseIdent() { return selectedBadgeCourseIdent; }
     @Override // idk why we need this but the class gets mad without it.
     public String getUsername() {
         return email;
@@ -182,6 +186,7 @@ public class AppUser implements UserDetails {
     public void setShowMajorToFriends(Boolean showMajorToFriends) { this.showMajorToFriends = showMajorToFriends; }
     public void setShowEmailToFriends(Boolean showEmailToFriends) { this.showEmailToFriends = showEmailToFriends; }
     public void setShowPhoneToFriends(Boolean showPhoneToFriends) { this.showPhoneToFriends = showPhoneToFriends; }
+    public void setSelectedBadgeCourseIdent(String selectedBadgeCourseIdent) { this.selectedBadgeCourseIdent = selectedBadgeCourseIdent; }
     public void setDarkMode(Boolean darkMode) { this.darkMode = darkMode; }
     public void setThemePreset(String themePreset) { this.themePreset = themePreset; }
     public void setFontScale(String fontScale) { this.fontScale = fontScale; }

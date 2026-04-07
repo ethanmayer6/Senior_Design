@@ -9,6 +9,9 @@ import java.util.List;
 public interface ClassScheduleEntryRepository extends JpaRepository<ClassScheduleEntry, Long> {
     List<ClassScheduleEntry> findAllByFlowchartOrderByYearAscTermAscMeetingStartTimeAsc(Flowchart flowchart);
     List<ClassScheduleEntry> findAllByFlowchartAndYearAndTermOrderByMeetingStartTimeAsc(Flowchart flowchart, int year, Term term);
-    void deleteAllByFlowchartAndYearAndTerm(Flowchart flowchart, int year, Term term);
+    void deleteAllByFlowchartAndYearAndTermAndEntryType(
+            Flowchart flowchart,
+            int year,
+            Term term,
+            ClassScheduleEntryType entryType);
 }
-

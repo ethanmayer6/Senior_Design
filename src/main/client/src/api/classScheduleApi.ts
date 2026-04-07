@@ -23,6 +23,10 @@ export interface ClassScheduleEntry {
   instructionalFormat: string | null;
   credits: number | null;
   catalogName: string | null;
+  entryType: 'IMPORTED_CLASS' | 'CUSTOM_EVENT' | null;
+  customEventTitle: string | null;
+  customEventDate: string | null;
+  customEventNotes: string | null;
 }
 
 export interface ClassScheduleImportResult {
@@ -32,6 +36,15 @@ export interface ClassScheduleImportResult {
   distinctCoursesSynced: number;
   touchedSemesters: number;
   message: string;
+}
+
+export interface CustomScheduleEventRequest {
+  title: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  location?: string | null;
+  notes?: string | null;
 }
 
 export async function importClassSchedule(file: File): Promise<ClassScheduleImportResult> {
@@ -46,6 +59,17 @@ export async function importClassSchedule(file: File): Promise<ClassScheduleImpo
 export async function getCurrentClassSchedule(): Promise<ClassScheduleEntry[]> {
   const res = await api.get<ClassScheduleEntry[]>('/class-schedule/current');
   return res.data ?? [];
+}
+
+export async function createCustomScheduleEvent(
+  payload: CustomScheduleEventRequest
+): Promise<ClassScheduleEntry> {
+  const res = await api.post<ClassScheduleEntry>('/class-schedule/events', payload);
+  return res.data;
+}
+
+export async function deleteCustomScheduleEvent(entryId: number): Promise<void> {
+  await api.delete(`/class-schedule/events/${entryId}`);
 }
 
 export async function getCourseByIdent(courseIdent: string): Promise<Course | null> {

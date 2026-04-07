@@ -39,12 +39,12 @@ import type {
 } from '../api/flowchartApi';
 import type { FlowchartInsights } from '../api/flowchartApi';
 import type { FlowchartRequirementCoverage } from '../api/flowchartApi';
-import { getMajorById, getMajorByName, type Major } from '../api/majorsApi';
+import { getMajorByName, type Major } from '../api/majorsApi';
 import Header from '../components/header';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Button } from 'primereact/button';
 import { createStatusLookup, normalizeCourseIdent, normalizeStatus, resolveCourseStatus } from '../utils/flowchartStatus';
-import { buildMajorProgress, loadMajorsBrowseSelectedMajorId } from '../utils/majorProgress';
+import { buildMajorProgress } from '../utils/majorProgress';
 import api from '../api/axiosClient';
 
 function semesterRank(year: number, term: string): number {
@@ -87,7 +87,8 @@ export default function Dashboard() {
   const [insights, setInsights] = useState<FlowchartInsights | null>(null);
   const [requirementCoverage, setRequirementCoverage] = useState<FlowchartRequirementCoverage | null>(null);
   const [insightsMajor, setInsightsMajor] = useState<Major | null>(null);
-  const [insightsMajorSource, setInsightsMajorSource] = useState<'browse' | 'flowchart' | null>(null);
+  const [insightsMajorSource, setInsightsMajorSource] = useState<'profile' | 'flowchart' | null>(null);
+  const [storedMajorName, setStoredMajorName] = useState<string | null>(null);
   const [showRequirementCoverage, setShowRequirementCoverage] = useState(false);
   const [showProgressInsights, setShowProgressInsights] = useState(false);
   const [showMiniCatalog, setShowMiniCatalog] = useState(false);
@@ -244,6 +245,32 @@ export default function Dashboard() {
   const linkedRequirementCounts = linkedMajorProgress.strictViewCounts;
   const showLinkedRequirementCoverage = Boolean(insightsMajor && linkedRequirementEntries.length > 0);
   const showFallbackRequirementCoverage = Boolean(requirementCoverage && requirementCoverage.totalRequirements > 0);
+
+  useEffect(() => {
+    if (readOnlyMode) {
+      setStoredMajorName(null);
+      return;
+    }
+
+    let active = true;
+
+    async function loadStoredMajorName() {
+      try {
+        const response = await api.get<{ major?: string | null }>('/users/me');
+        if (!active) return;
+        const majorName = String(response?.data?.major ?? '').trim();
+        setStoredMajorName(majorName || null);
+      } catch {
+        if (!active) return;
+        setStoredMajorName(null);
+      }
+    }
+
+    void loadStoredMajorName();
+    return () => {
+      active = false;
+    };
+  }, [readOnlyMode]);
 
   const loadInsightsAndCoverage = async () => {
     try {
@@ -724,26 +751,15 @@ export default function Dashboard() {
 
     async function loadInsightsMajor() {
       const flowchartMajorName = String(currentFlowchart.majorName ?? currentFlowchart.major?.name ?? '').trim();
-      const browseMajorId = readOnlyMode ? null : loadMajorsBrowseSelectedMajorId();
+      const preferredMajorName = readOnlyMode ? '' : String(storedMajorName ?? '').trim();
+      const majorNameToLoad = preferredMajorName || flowchartMajorName;
 
-      if (browseMajorId) {
+      if (majorNameToLoad) {
         try {
-          const major = await getMajorById(browseMajorId);
+          const major = await getMajorByName(majorNameToLoad);
           if (!active) return;
           setInsightsMajor(major);
-          setInsightsMajorSource('browse');
-          return;
-        } catch {
-          // Fall back to the flowchart major below.
-        }
-      }
-
-      if (flowchartMajorName) {
-        try {
-          const major = await getMajorByName(flowchartMajorName);
-          if (!active) return;
-          setInsightsMajor(major);
-          setInsightsMajorSource('flowchart');
+          setInsightsMajorSource(preferredMajorName ? 'profile' : 'flowchart');
           return;
         } catch {
           // Fall through to clearing the linked major state.
@@ -759,7 +775,7 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [flowchart?.id, flowchart?.majorName, readOnlyMode]);
+  }, [flowchart?.id, flowchart?.majorName, flowchart?.major?.name, readOnlyMode, storedMajorName]);
 
   useEffect(() => {
     if (readOnlyMode || !showMiniCatalog) {
@@ -1256,9 +1272,11 @@ export default function Dashboard() {
                             {showLinkedRequirementCoverage && insightsMajor && (
                               <>
                                 <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-600">
-                                  Showing major progress for{' '}
+                                  Showing requirement progress for{' '}
                                   <span className="font-semibold text-slate-700">{insightsMajor.name}</span>
-                                  {insightsMajorSource === 'browse' ? ' from Majors Browse.' : ' from the flowchart major.'}
+                                  {insightsMajorSource === 'profile'
+                                    ? ' based on your saved major.'
+                                    : ' based on this flowchart major.'}
                                 </div>
                                 {linkedRequirementEntries.map((item) => (
                                   <div

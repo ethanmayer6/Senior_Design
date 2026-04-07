@@ -169,7 +169,7 @@ export async function saveRateMyProfessorsLink(
   sourceUrl: string
 ): Promise<ProfessorExternalRating> {
   const res = await api.put<ProfessorExternalRating>(
-    `/admin/professors/${professorId}/rate-my-professors-link`,
+    `/professors/${professorId}/rate-my-professors-link`,
     { sourceUrl }
   );
   return res.data;

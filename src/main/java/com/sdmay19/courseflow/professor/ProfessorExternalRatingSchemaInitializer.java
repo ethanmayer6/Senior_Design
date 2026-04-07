@@ -2,22 +2,21 @@ package com.sdmay19.courseflow.professor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.autoconfigure.orm.jpa.EntityManagerFactoryDependsOnPostProcessor;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 
 @Component
-@Order(5)
 @ConditionalOnProperty(
         value = "courseflow.professors.external-ratings.schema-align.enabled",
         havingValue = "true",
         matchIfMissing = true)
-public class ProfessorExternalRatingSchemaInitializer implements ApplicationRunner {
+public class ProfessorExternalRatingSchemaInitializer implements InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(ProfessorExternalRatingSchemaInitializer.class);
 
@@ -28,7 +27,7 @@ public class ProfessorExternalRatingSchemaInitializer implements ApplicationRunn
     }
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void afterPropertiesSet() {
         try {
             if (jdbcTemplate.getDataSource() == null) {
                 return;
@@ -59,5 +58,17 @@ public class ProfessorExternalRatingSchemaInitializer implements ApplicationRunn
     private void dropNotNull(String columnName) {
         jdbcTemplate.execute(
                 "ALTER TABLE IF EXISTS professor_external_ratings ALTER COLUMN " + columnName + " DROP NOT NULL");
+    }
+}
+
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(
+        value = "courseflow.professors.external-ratings.schema-align.enabled",
+        havingValue = "true",
+        matchIfMissing = true)
+class ProfessorExternalRatingEntityManagerDependsOnInitializer extends EntityManagerFactoryDependsOnPostProcessor {
+
+    ProfessorExternalRatingEntityManagerDependsOnInitializer() {
+        super("professorExternalRatingSchemaInitializer");
     }
 }

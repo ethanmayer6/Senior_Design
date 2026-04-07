@@ -4,12 +4,16 @@ import { createStatusLookup, normalizeCourseIdent, normalizeStatus } from './flo
 type SchedulerTerm = 'SPRING' | 'SUMMER' | 'FALL';
 type ParsedTerm = { term: SchedulerTerm; year: number };
 type StrategyId = 'balanced' | 'acceleration' | 'light';
+type DeliveryPreference = 'Any' | 'In Person' | 'Online' | 'Hybrid';
+type DeliveryMode = 'IN_PERSON' | 'ONLINE' | 'HYBRID' | 'UNKNOWN';
 
 export type SchedulerCourse = {
   id: number;
   courseIdent: string;
   name: string;
   credits: number;
+  description?: string;
+  hours?: string;
   offered?: string;
   prerequisites?: string[];
   prereq_txt?: string;
@@ -49,6 +53,8 @@ type CandidateCourse = {
   reasons: RequirementReason[];
   unlockCount: number;
   prereqOk: boolean;
+  coreqOk: boolean;
+  deliveryOk: boolean;
   offeredOk: boolean;
   validCredits: boolean;
   plannedElsewhere: boolean;
@@ -59,6 +65,7 @@ type CandidatePoolSnapshot = {
   blockedCount: number;
   invalidCreditCount: number;
   plannedElsewhereCount: number;
+  deliveryMismatchCount: number;
 };
 
 type RequirementState = {
@@ -73,6 +80,12 @@ type StrategyConfig = {
   summary: string;
   creditLimit: number;
   maxClasses: number;
+};
+
+type CappedCourseSelection<T extends Pick<SchedulerCourse, 'credits'>> = {
+  courses: T[];
+  totalCredits: number;
+  skippedCount: number;
 };
 
 type ScheduledContext = {
@@ -171,7 +184,7 @@ export function generateDraftOptions(
   flowchart: Flowchart | null,
   targetTermRaw: string,
   maxCredits: number,
-  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid'
+  preferredMode: DeliveryPreference
 ): DraftGenerationResult {
   const emptyResult: DraftGenerationResult = {
     options: [],
@@ -220,8 +233,7 @@ export function generateDraftOptions(
   ]);
   const prereqReadySet = new Set<string>([
     ...completedSet,
-    ...priorScheduledSet,
-    ...inProgressCoverageSet,
+    ...scheduledContext.inProgress,
   ]);
 
   const groupedRequirements = (majorData.degreeRequirements ?? []).reduce(
@@ -237,10 +249,12 @@ export function generateDraftOptions(
     majorData,
     coverageBaseline,
     prereqReadySet,
+    new Set<string>([...prereqReadySet, ...lockedTargetSet]),
     parsedTargetTerm,
     scheduledContext.laterScheduled,
     scheduledContext.scheduledAnywhere,
-    unlockMap
+    unlockMap,
+    preferredMode
   );
 
   const summary: SchedulerPlanSummary = {
@@ -268,7 +282,7 @@ export function generateDraftOptions(
     scheduledContext.scheduledAnywhere
   );
 
-  const strategies = buildStrategyConfigs(maxCredits, lockedTargetCredits);
+  const strategies = buildStrategyConfigs(maxCredits);
   const options = strategies.map((strategy) =>
     buildOption({
       strategy,
@@ -276,6 +290,7 @@ export function generateDraftOptions(
       parsedTargetTerm,
       coverageBaseline,
       prereqReadySet,
+      lockedTargetSet,
       lockedTargetDraftCourses,
       lockedTargetCredits,
       laterScheduled: scheduledContext.laterScheduled,
@@ -294,12 +309,13 @@ function buildOption(params: {
   parsedTargetTerm: ParsedTerm;
   coverageBaseline: Set<string>;
   prereqReadySet: Set<string>;
+  lockedTargetSet: Set<string>;
   lockedTargetDraftCourses: SchedulerDraftCourse[];
   lockedTargetCredits: number;
   laterScheduled: Map<string, SchedulerCourse>;
   scheduledAnywhere: Set<string>;
   unlockMap: Map<string, SchedulerCourse[]>;
-  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid';
+  preferredMode: DeliveryPreference;
 }): DraftOption {
   const {
     strategy,
@@ -307,6 +323,7 @@ function buildOption(params: {
     parsedTargetTerm,
     coverageBaseline,
     prereqReadySet,
+    lockedTargetSet,
     lockedTargetDraftCourses,
     lockedTargetCredits,
     laterScheduled,
@@ -319,33 +336,39 @@ function buildOption(params: {
     majorData,
     coverageBaseline,
     prereqReadySet,
+    lockedTargetSet,
     parsedTargetTerm,
     laterScheduled,
     scheduledAnywhere,
-    unlockMap
+    unlockMap,
+    preferredMode
   );
   const selectedCourses: SchedulerDraftCourse[] = [];
   const selectedIdents = new Set<string>();
   const coverageAfterSelections = new Set<string>(coverageBaseline);
+  const coreqReadySet = new Set<string>([...prereqReadySet, ...lockedTargetSet]);
   const departmentCounts = new Map<string, number>();
-  const creditLimit = Math.max(strategy.creditLimit, lockedTargetCredits);
+  const creditLimit = sanitizeSchedulerCreditLimit(strategy.creditLimit);
+  const remainingCreditBudget = Math.max(0, creditLimit - lockedTargetCredits);
   let recommendedCredits = 0;
 
-  while (selectedCourses.length < strategy.maxClasses) {
+  while (selectedCourses.length < strategy.maxClasses && recommendedCredits < remainingCreditBudget) {
     const candidatePool = buildCandidatePool(
       majorData,
       coverageAfterSelections,
       prereqReadySet,
+      coreqReadySet,
       parsedTargetTerm,
       laterScheduled,
       scheduledAnywhere,
-      unlockMap
+      unlockMap,
+      preferredMode
     );
     const eligible = candidatePool.candidates
       .filter((candidate) => !selectedIdents.has(candidate.normalizedIdent))
       .filter((candidate) => !candidate.plannedElsewhere)
-      .filter((candidate) => candidate.prereqOk && candidate.offeredOk && candidate.validCredits)
-      .filter((candidate) => lockedTargetCredits + recommendedCredits + courseCredits(candidate.course) <= creditLimit)
+      .filter((candidate) => candidate.prereqOk && candidate.coreqOk && candidate.deliveryOk && candidate.offeredOk && candidate.validCredits)
+      .filter((candidate) => recommendedCredits + courseCredits(candidate.course) <= remainingCreditBudget)
       .map((candidate) => ({
         candidate,
         score: scoreCandidate(candidate, strategy.id, departmentCounts),
@@ -370,25 +393,29 @@ function buildOption(params: {
     selectedCourses.push(candidateToDraftCourse(winner, 'Suggested for this draft because'));
     selectedIdents.add(winner.normalizedIdent);
     coverageAfterSelections.add(winner.normalizedIdent);
+    coreqReadySet.add(winner.normalizedIdent);
     recommendedCredits += courseCredits(winner.course);
     departmentCounts.set(winnerDepartment, (departmentCounts.get(winnerDepartment) ?? 0) + 1);
   }
+
+  const cappedSelection = capCoursesToCreditLimit(selectedCourses, remainingCreditBudget);
 
   return {
     id: strategy.id,
     title: strategy.title,
     summary: strategy.summary,
-    projectedCredits: lockedTargetCredits + recommendedCredits,
+    projectedCredits: lockedTargetCredits + cappedSelection.totalCredits,
     lockedCredits: lockedTargetCredits,
-    recommendedCredits,
+    recommendedCredits: cappedSelection.totalCredits,
     lockedCourses: lockedTargetDraftCourses,
-    recommendedCourses: selectedCourses,
+    recommendedCourses: cappedSelection.courses,
     notes: buildOptionNotes({
-      selectedCourses,
+      selectedCourses: cappedSelection.courses,
       lockedTargetCredits,
-      creditLimit: strategy.creditLimit,
+      creditLimit,
       initialPool,
       preferredMode,
+      creditCapSkippedCount: cappedSelection.skippedCount,
     }),
     blockedCount: initialPool.blockedCount,
     invalidCreditCount: initialPool.invalidCreditCount,
@@ -397,11 +424,11 @@ function buildOption(params: {
   };
 }
 
-function buildStrategyConfigs(maxCredits: number, lockedTargetCredits: number): StrategyConfig[] {
-  const clampedCredits = clamp(maxCredits, 6, 20);
-  const balancedLimit = Math.max(clampedCredits, lockedTargetCredits);
-  const accelerationLimit = Math.max(Math.min(20, clampedCredits + 2), lockedTargetCredits);
-  const lightLimit = Math.max(Math.max(6, clampedCredits - 3), lockedTargetCredits);
+function buildStrategyConfigs(maxCredits: number): StrategyConfig[] {
+  const clampedCredits = sanitizeSchedulerCreditLimit(maxCredits);
+  const balancedLimit = clampedCredits;
+  const accelerationLimit = clampedCredits;
+  const lightLimit = Math.max(0, Math.min(clampedCredits, clampedCredits - 3));
 
   return [
     {
@@ -433,9 +460,10 @@ function buildOptionNotes(params: {
   lockedTargetCredits: number;
   creditLimit: number;
   initialPool: CandidatePoolSnapshot;
-  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid';
+  preferredMode: DeliveryPreference;
+  creditCapSkippedCount: number;
 }): string {
-  const { selectedCourses, lockedTargetCredits, creditLimit, initialPool, preferredMode } = params;
+  const { selectedCourses, lockedTargetCredits, creditLimit, initialPool, preferredMode, creditCapSkippedCount } = params;
   const notes: string[] = [];
 
   if (lockedTargetCredits > creditLimit) {
@@ -444,17 +472,25 @@ function buildOptionNotes(params: {
   if (selectedCourses.length === 0) {
     notes.push('No additional courses fit the current prerequisite, offering, and credit-cap constraints.');
   }
+  if (creditCapSkippedCount > 0) {
+    notes.push(`${creditCapSkippedCount} suggested ${creditCapSkippedCount === 1 ? 'course was' : 'courses were'} held back to stay within your selected max credits.`);
+  }
   if (initialPool.plannedElsewhereCount > 0) {
     notes.push(`${initialPool.plannedElsewhereCount} remaining requirement courses were skipped because they are already planned in later semesters.`);
   }
   if (initialPool.blockedCount > 0) {
-    notes.push(`${initialPool.blockedCount} remaining courses are blocked by prerequisites or term availability.`);
+    notes.push(`${initialPool.blockedCount} remaining courses are blocked by prerequisites, co-requisites, or term availability.`);
+  }
+  if (preferredMode !== 'Any' && initialPool.deliveryMismatchCount > 0) {
+    notes.push(`${initialPool.deliveryMismatchCount} remaining courses were skipped because they do not match the "${preferredMode}" delivery preference.`);
   }
   if (initialPool.invalidCreditCount > 0) {
     notes.push(`${initialPool.invalidCreditCount} courses were skipped because their credit values look incomplete or invalid.`);
   }
-  if (preferredMode !== 'Any') {
-    notes.push(`"${preferredMode}" remains advisory only until future-term section delivery data is available.`);
+  if (preferredMode === 'In Person') {
+    notes.push('In-person preference is enforced by excluding courses tagged online or hybrid; untagged catalog courses are treated as in person.');
+  } else if (preferredMode !== 'Any') {
+    notes.push(`"${preferredMode}" preference is enforced using course delivery hints already present in the catalog data.`);
   }
 
   return notes.join(' ');
@@ -472,10 +508,12 @@ function buildLockedTargetDraftCourses(
     majorData,
     coverageWithoutTarget,
     prereqReadySet,
+    new Set(scheduledAnywhere),
     parsedTargetTerm,
     new Map<string, SchedulerCourse>(),
     scheduledAnywhere,
-    collectUnlockMap(majorData)
+    collectUnlockMap(majorData),
+    'Any'
   );
   const candidateByIdent = new Map(
     candidatePool.candidates.map((candidate) => [candidate.normalizedIdent, candidate] as const)
@@ -500,10 +538,12 @@ function buildCandidatePool(
   majorData: SchedulerMajor,
   coverageSet: Set<string>,
   prereqReadySet: Set<string>,
+  coreqReadySet: Set<string>,
   parsedTargetTerm: ParsedTerm,
   laterScheduled: Map<string, SchedulerCourse>,
   scheduledAnywhere: Set<string>,
-  unlockMap: Map<string, SchedulerCourse[]>
+  unlockMap: Map<string, SchedulerCourse[]>,
+  preferredMode: DeliveryPreference
 ): CandidatePoolSnapshot {
   const candidateByIdent = new Map<string, CandidateCourse>();
   const state = computeRequirementStateWithGroups(majorData, coverageSet);
@@ -541,6 +581,8 @@ function buildCandidatePool(
   const candidates = Array.from(candidateByIdent.values()).map((candidate) => {
     const offeredOk = isOfferedInTerm(candidate.course, parsedTargetTerm.term);
     const prereqOk = prerequisitesSatisfied(candidate.course, prereqReadySet);
+    const coreqOk = corequisitesSatisfied(candidate.course, coreqReadySet);
+    const deliveryOk = matchesDeliveryPreference(candidate.course, preferredMode);
     const validCredits = hasValidCredits(candidate.course);
     const plannedElsewhere = laterScheduled.has(candidate.normalizedIdent);
     const unlockCount = countUnlockedCourses(
@@ -555,6 +597,8 @@ function buildCandidatePool(
       ...candidate,
       offeredOk,
       prereqOk,
+      coreqOk,
+      deliveryOk,
       validCredits,
       plannedElsewhere,
       unlockCount,
@@ -563,9 +607,10 @@ function buildCandidatePool(
 
   return {
     candidates,
-    blockedCount: candidates.filter((candidate) => !candidate.prereqOk || !candidate.offeredOk).length,
+    blockedCount: candidates.filter((candidate) => !candidate.prereqOk || !candidate.coreqOk || !candidate.offeredOk).length,
     invalidCreditCount: candidates.filter((candidate) => !candidate.validCredits).length,
     plannedElsewhereCount: candidates.filter((candidate) => candidate.plannedElsewhere).length,
+    deliveryMismatchCount: candidates.filter((candidate) => !candidate.deliveryOk).length,
   };
 }
 
@@ -710,7 +755,7 @@ function buildScheduledContext(flowchart: Flowchart | null, parsedTargetTerm: Pa
 function collectUnlockMap(majorData: SchedulerMajor): Map<string, SchedulerCourse[]> {
   const unlockMap = new Map<string, SchedulerCourse[]>();
   for (const course of collectUniqueCourses(majorData).values()) {
-    for (const rawPrereq of course.prerequisites ?? []) {
+    for (const rawPrereq of extractPrerequisiteIdents(course)) {
       const normalizedPrereq = normalizeCourseIdent(rawPrereq);
       if (!normalizedPrereq) {
         continue;
@@ -740,7 +785,7 @@ function countUnlockedCourses(
 }
 
 function prerequisitesSatisfied(course: SchedulerCourse, satisfied: Set<string>): boolean {
-  const prereqs = course.prerequisites ?? [];
+  const prereqs = extractPrerequisiteIdents(course);
   if (prereqs.length === 0) {
     return true;
   }
@@ -755,7 +800,7 @@ function prerequisitesSatisfiedWithAddedCourse(
   satisfied: Set<string>,
   addedIdent: string
 ): boolean {
-  const prereqs = course.prerequisites ?? [];
+  const prereqs = extractPrerequisiteIdents(course);
   if (prereqs.length === 0) {
     return true;
   }
@@ -765,12 +810,105 @@ function prerequisitesSatisfiedWithAddedCourse(
   });
 }
 
+function corequisitesSatisfied(course: SchedulerCourse, satisfied: Set<string>): boolean {
+  const coreqs = extractCorequisiteIdents(course);
+  if (coreqs.length === 0) {
+    return true;
+  }
+  return coreqs.every((rawCoreq) => {
+    const normalized = normalizeCourseIdent(rawCoreq);
+    return !normalized || satisfied.has(normalized);
+  });
+}
+
 function isOfferedInTerm(course: SchedulerCourse, term: SchedulerTerm): boolean {
   const offered = String(course.offered ?? '').toUpperCase();
   if (!offered) {
     return true;
   }
   return offered.includes(term) || offered.includes('EVERY');
+}
+
+function matchesDeliveryPreference(course: SchedulerCourse, preferredMode: DeliveryPreference): boolean {
+  if (preferredMode === 'Any') {
+    return true;
+  }
+
+  const inferredMode = inferDeliveryMode(course);
+  if (preferredMode === 'Online') {
+    return inferredMode === 'ONLINE';
+  }
+  if (preferredMode === 'Hybrid') {
+    return inferredMode === 'HYBRID';
+  }
+  return inferredMode !== 'ONLINE' && inferredMode !== 'HYBRID';
+}
+
+function inferDeliveryMode(course: SchedulerCourse): DeliveryMode {
+  const modeHints = [
+    course.name,
+    course.description,
+    course.hours,
+    course.offered,
+    course.prereq_txt,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (!modeHints) {
+    return 'UNKNOWN';
+  }
+
+  if (
+    containsAny(modeHints, [
+      'hybrid',
+      'blended',
+      'combines online and in-person',
+      'combines online and in person',
+      'online and in-person',
+      'online and in person',
+      'web and classroom',
+    ])
+  ) {
+    return 'HYBRID';
+  }
+
+  if (
+    containsAny(modeHints, [
+      'online',
+      'distance education',
+      'distance learning',
+      'distance course',
+      'web-based',
+      'web based',
+      'asynchronous',
+      'synchronous online',
+      'virtual',
+      'remote',
+    ])
+  ) {
+    return 'ONLINE';
+  }
+
+  if (
+    containsAny(modeHints, [
+      'face-to-face',
+      'face to face',
+      'in person',
+      'in-person',
+      'on campus',
+      'on-campus',
+      'classroom',
+      'studio',
+      'laboratory',
+      'lab section',
+    ])
+  ) {
+    return 'IN_PERSON';
+  }
+
+  return 'UNKNOWN';
 }
 
 function hasValidCredits(course: SchedulerCourse): boolean {
@@ -864,6 +1002,8 @@ function upsertCandidate(
       reasons: [reason],
       unlockCount: 0,
       prereqOk: true,
+      coreqOk: true,
+      deliveryOk: true,
       offeredOk: true,
       validCredits: true,
       plannedElsewhere: false,
@@ -981,10 +1121,67 @@ function toSchedulerCourse(course: Partial<SchedulerCourse>): SchedulerCourse {
     courseIdent: String(course.courseIdent ?? ''),
     name: String(course.name ?? ''),
     credits: Number(course.credits ?? 0),
+    description: course.description,
+    hours: course.hours,
     offered: course.offered,
     prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
     prereq_txt: course.prereq_txt,
   };
+}
+
+function extractPrerequisiteIdents(course: SchedulerCourse): string[] {
+  const structured = unique(
+    (course.prerequisites ?? [])
+      .map((prereq) => normalizeCourseIdent(prereq))
+      .filter(Boolean)
+  );
+  if (structured.length > 0) {
+    return structured;
+  }
+  return parseCourseIdentsFromPrereqText(course.prereq_txt, false);
+}
+
+function extractCorequisiteIdents(course: SchedulerCourse): string[] {
+  return parseCourseIdentsFromPrereqText(course.prereq_txt, true);
+}
+
+function parseCourseIdentsFromPrereqText(prereqText: string | undefined, coreqOnly: boolean): string[] {
+  if (!prereqText) {
+    return [];
+  }
+
+  const coursePattern = /\b([A-Z]{2,8}(?:\s+[A-Z]{1,3})?)\s*[-_ ]?\s*(\d{4})\b/g;
+  const segments = String(prereqText).toUpperCase().split(/[.;\n]/);
+  const results = new Set<string>();
+
+  for (const segment of segments) {
+    const trimmed = segment.trim();
+    if (!trimmed) continue;
+    const isCoreq = isCorequisiteSegment(trimmed);
+    if (coreqOnly !== isCoreq) continue;
+
+    for (const match of trimmed.matchAll(coursePattern)) {
+      const rawPrefix = match[1] ?? '';
+      const digits = match[2] ?? '';
+      const prefix = rawPrefix.replace(/[^A-Z]/g, '');
+      if (!prefix || !digits) continue;
+      results.add(normalizeCourseIdent(`${prefix}_${digits}`));
+    }
+  }
+
+  return Array.from(results);
+}
+
+function isCorequisiteSegment(segmentUpper: string): boolean {
+  return (
+    segmentUpper.includes('CO-REQ') ||
+    segmentUpper.includes('CO REQ') ||
+    segmentUpper.includes('COREQ') ||
+    segmentUpper.includes('CONCURRENT') ||
+    segmentUpper.includes('ENROLLMENT IN') ||
+    segmentUpper.includes('ENROLLED IN') ||
+    segmentUpper.includes('TAKEN WITH')
+  );
 }
 
 function unique(values: string[]): string[] {
@@ -1006,6 +1203,47 @@ function capitalize(value: string): string {
     return value;
   }
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function containsAny(value: string, needles: string[]): boolean {
+  return needles.some((needle) => value.includes(needle));
+}
+
+function sanitizeSchedulerCreditLimit(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return clamp(Math.floor(numeric), 0, 20);
+}
+
+function capCoursesToCreditLimit<T extends Pick<SchedulerCourse, 'credits'>>(
+  courses: T[],
+  creditLimit: number
+): CappedCourseSelection<T> {
+  if (creditLimit <= 0) {
+    return {
+      courses: [],
+      totalCredits: 0,
+      skippedCount: courses.length,
+    };
+  }
+
+  const selected: T[] = [];
+  let totalCredits = 0;
+  let skippedCount = 0;
+
+  for (const course of courses) {
+    const credits = Number(course.credits ?? 0);
+    if (credits <= 0 || totalCredits + credits > creditLimit) {
+      skippedCount += 1;
+      continue;
+    }
+    selected.push(course);
+    totalCredits += credits;
+  }
+
+  return { courses: selected, totalCredits, skippedCount };
 }
 
 function clamp(value: number, min: number, max: number): number {

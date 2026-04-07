@@ -65,6 +65,35 @@ public class ClassScheduleImportController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/events")
+    public ResponseEntity<?> createCustomEvent(
+            @RequestBody CustomScheduleEventRequest request,
+            Authentication auth) {
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser user)) {
+            return ResponseEntity.status(401).body("Authentication required.");
+        }
+        try {
+            ClassScheduleEntryResponse response = ClassScheduleEntryResponse.from(
+                    importService.createCustomEvent(request, user));
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/events/{entryId}")
+    public ResponseEntity<?> deleteCustomEvent(@PathVariable long entryId, Authentication auth) {
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser user)) {
+            return ResponseEntity.status(401).body("Authentication required.");
+        }
+        try {
+            importService.deleteCustomEvent(entryId, user);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     public record ClassScheduleEntryResponse(
             long id,
             String courseIdent,
@@ -86,7 +115,11 @@ public class ClassScheduleImportController {
             String locations,
             String instructionalFormat,
             Integer credits,
-            String catalogName) {
+            String catalogName,
+            String entryType,
+            String customEventTitle,
+            String customEventDate,
+            String customEventNotes) {
 
         static ClassScheduleEntryResponse from(ClassScheduleEntry entry) {
             Integer credits = entry.getCourse() == null ? null : entry.getCourse().getCredits();
@@ -112,8 +145,11 @@ public class ClassScheduleImportController {
                     entry.getLocations(),
                     entry.getInstructionalFormat(),
                     credits,
-                    catalogName);
+                    catalogName,
+                    entry.getEntryType() == null ? null : entry.getEntryType().name(),
+                    entry.getCustomEventTitle(),
+                    entry.getCustomEventDate() == null ? null : entry.getCustomEventDate().toString(),
+                    entry.getCustomEventNotes());
         }
     }
 }
-

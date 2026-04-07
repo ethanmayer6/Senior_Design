@@ -36,6 +36,7 @@ export default function Register() {
     { label: 'Student', value: 'USER' },
     { label: 'Advisor/Faculty', value: 'ADVISOR' },
   ];
+  const isAdvisorOrFaculty = user.role === 'ADVISOR';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -68,7 +69,12 @@ export default function Register() {
       setIncorrectPassword(confirmPassword);
       return;
     }
-    if (!majorOptions.includes(user.major)) {
+    if (isAdvisorOrFaculty) {
+      if (!user.major.trim()) {
+        setError('Please enter a job title.');
+        return;
+      }
+    } else if (!majorOptions.includes(user.major)) {
       setError('Please select a valid major from the list.');
       return;
     }
@@ -155,7 +161,22 @@ export default function Register() {
             <label className="text-sm font-medium text-gray-600 mb-1">User Type</label>
             <SelectButton
               value={user.role}
-              onChange={(e) => setUser((prev) => ({ ...prev, role: e.value }))}
+              onChange={(e) =>
+                setUser((prev) => {
+                  const nextRole = e.value;
+                  const currentValue = prev.major;
+                  const nextValue =
+                    nextRole === 'ADVISOR'
+                      ? (majorOptions.includes(currentValue) ? '' : currentValue)
+                      : (majorOptions.includes(currentValue) ? currentValue : '');
+
+                  return {
+                    ...prev,
+                    role: nextRole,
+                    major: nextValue,
+                  };
+                })
+              }
               options={roleOptions}
               allowEmpty={false}
               className="w-full flex"
@@ -212,7 +233,7 @@ export default function Register() {
             )}
           </div>
 
-          {/* Phone Number / Major */}
+          {/* Phone Number / Major or Job Title */}
           <div className="flex gap-4">
             <div className="w-[40%]">
               <label className="text-sm font-medium text-gray-600 mb-1">Phone Number</label>
@@ -226,16 +247,29 @@ export default function Register() {
               />
             </div>
             <div className="w-[60%]">
-              <label className="text-sm font-medium text-gray-600 mb-1">Major</label>
-              <Dropdown
-                value={user.major}
-                onChange={(e) => setUser((prev) => ({ ...prev, major: e.value || '' }))}
-                options={majorOptions}
-                className="w-full"
-                placeholder="Select major"
-                filter
-                required
-              />
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                {isAdvisorOrFaculty ? 'Job Title' : 'Major'}
+              </label>
+              {isAdvisorOrFaculty ? (
+                <InputText
+                  name="major"
+                  value={user.major}
+                  onChange={handleChange}
+                  className="w-full"
+                  placeholder="Academic Advisor"
+                  required
+                />
+              ) : (
+                <Dropdown
+                  value={user.major}
+                  onChange={(e) => setUser((prev) => ({ ...prev, major: e.value || '' }))}
+                  options={majorOptions}
+                  className="w-full"
+                  placeholder="Select major"
+                  filter
+                  required
+                />
+              )}
             </div>
           </div>
 
@@ -252,7 +286,7 @@ export default function Register() {
                 }))
               }
               feedback={false}
-              toggleMask={false}
+              toggleMask
               inputClassName="w-full"
               placeholder="••••••••"
               required
@@ -267,7 +301,7 @@ export default function Register() {
               value={confirmPassword}
               onChange={(e: any) => setConfirmPassword(e?.target?.value ?? e?.value ?? '')}
               feedback={false}
-              toggleMask={false}
+              toggleMask
               inputClassName="w-full"
               placeholder="••••••••"
               required

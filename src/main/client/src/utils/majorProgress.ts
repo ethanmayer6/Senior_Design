@@ -170,7 +170,7 @@ export function buildMajorProgress(
     let status: 'SATISFIED' | 'IN_PROGRESS' | 'UNMET' = 'UNMET';
     if (progress.totalSlots === 0 || progress.completedSlots >= progress.totalSlots) {
       status = 'SATISFIED';
-    } else if (progress.inProgressSlots > 0) {
+    } else if (progress.completedSlots > 0 || progress.inProgressSlots > 0) {
       status = 'IN_PROGRESS';
     }
 
@@ -199,9 +199,9 @@ export function buildMajorProgress(
   const overallRequirementProgress = {
     total: requirementEntries.length,
     completed: strictViewCounts.satisfied,
-    inProgress: Math.max(requirementEntries.length - strictViewCounts.satisfied, 0),
+    inProgress: strictViewCounts.inProgress,
     inProgressOnly: strictViewCounts.inProgress,
-    unmet: 0,
+    unmet: strictViewCounts.unmet,
   };
 
   return {

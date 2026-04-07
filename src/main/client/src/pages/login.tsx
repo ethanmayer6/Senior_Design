@@ -4,7 +4,7 @@ import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import Header from '../components/header.tsx';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axiosClient';
 
 export default function Login() {
@@ -46,7 +46,7 @@ export default function Login() {
           <h2 className="text-2xl font-bold text-gray-800 mt-1">Welcome back</h2>
         </div>
 
-        <div className="flex flex-col w-[360px] gap-5 m-0">
+        <div className="p-fluid flex flex-col w-[360px] gap-5 m-0">
           <div className="flex flex-col">
             <label htmlFor="email" className="text-sm font-medium text-gray-600 mb-1">
               Email address
@@ -74,8 +74,9 @@ export default function Login() {
                 setPassword(e.target.value);
                 if (noEmailOrPassword) setNoEmailOrPassword(false);
               }}
+              className="w-full"
               feedback={false}
-              toggleMask={false}
+              toggleMask
               inputClassName="w-full"
               placeholder="********"
             />
@@ -95,21 +96,21 @@ export default function Login() {
                 Remember me
               </label>
             </div>
-            <a
-              href="#"
-              className="text-red-600 hover:text-red-700 transition-colors duration-150 cursor-pointer"
+            <Link
+              to="/login/forgot-password"
+              className="cursor-pointer text-red-600 transition-colors duration-150 hover:text-red-700"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <Button label="Sign In" onClick={handleLogin} className="w-full justify-center py-2" />
 
           <p className="text-center text-sm text-gray-500">
             Don't have an account?{' '}
-            <a href="/register" className="text-red-600 hover:text-red-700 font-medium">
+            <Link to="/register" className="font-medium text-red-600 hover:text-red-700">
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </Card>

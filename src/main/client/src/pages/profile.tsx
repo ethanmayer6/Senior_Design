@@ -3,13 +3,18 @@ import Header from '../components/header';
 import type { User } from '../types/user';
 import api from '../api/axiosClient';
 import { Card } from 'primereact/card';
-import { Avatar } from 'primereact/avatar';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputMask } from 'primereact/inputmask';
 import { Dropdown } from 'primereact/dropdown';
 import { Password } from 'primereact/password';
+import { Badge } from '../components/Badge';
+import {
+  buildBadgePreviewCourse,
+  formatBadgeCourseIdent,
+  normalizeBadgeCourseIdentInput,
+} from '../utils/courseBadge';
 
 type ProfileUser = Partial<User> & {
   id?: number;
@@ -30,6 +35,7 @@ type ProfileFormState = {
   showMajorToFriends: boolean;
   showEmailToFriends: boolean;
   showPhoneToFriends: boolean;
+  selectedBadgeCourseIdent: string;
 };
 
 const visibilityOptions: Array<{ label: string; value: VisibilityOption }> = [
@@ -51,6 +57,43 @@ function toDisplayName(user?: ProfileUser | null): string {
   if (preferredName) return preferredName;
   const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
   return fullName || user.email || 'Unnamed User';
+}
+
+function ProfileAvatarDisplay({
+  user,
+  initials,
+  accentColor,
+  sizeClass,
+  textClass,
+}: {
+  user: ProfileUser;
+  initials: string;
+  accentColor: string;
+  sizeClass: string;
+  textClass: string;
+}) {
+  const wrapperClass = `${sizeClass} shrink-0 overflow-hidden rounded-full border border-white/80 bg-slate-100 shadow-sm ring-4 ring-white/70`;
+
+  if (user.profilePictureUrl) {
+    return (
+      <div className={wrapperClass}>
+        <img
+          src={user.profilePictureUrl}
+          alt={`${toDisplayName(user)} profile`}
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${wrapperClass} flex items-center justify-center font-semibold text-white ${textClass}`}
+      style={{ backgroundColor: accentColor }}
+    >
+      {initials}
+    </div>
+  );
 }
 
 export default function Profile() {
@@ -77,6 +120,7 @@ export default function Profile() {
     showMajorToFriends: true,
     showEmailToFriends: false,
     showPhoneToFriends: false,
+    selectedBadgeCourseIdent: '',
   });
   const [contactForm, setContactForm] = useState({ phone: '' });
   const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
@@ -97,14 +141,14 @@ export default function Profile() {
 
   const displayName = useMemo(() => toDisplayName(user), [user]);
   const accentColor = useMemo(() => normalizeAccentColor(user?.accentColor), [user?.accentColor]);
-  const visibilityLabel = useMemo(
-    () =>
-      normalizeVisibility(user?.profileVisibility) === 'FRIENDS_ONLY'
-        ? 'Only friends can see your custom profile details.'
-        : 'Your custom profile details are visible across CourseFlow.',
-    [user?.profileVisibility],
+  const selectedBadgeCourse = useMemo(
+    () => buildBadgePreviewCourse(user?.selectedBadgeCourseIdent),
+    [user?.selectedBadgeCourseIdent]
   );
-
+  const editingSelectedBadgeCourse = useMemo(
+    () => buildBadgePreviewCourse(profileForm.selectedBadgeCourseIdent),
+    [profileForm.selectedBadgeCourseIdent]
+  );
   const friendPreviewFields = useMemo(() => {
     if (!user) return [];
     const fields: Array<{ label: string; value: string }> = [];
@@ -160,6 +204,7 @@ export default function Profile() {
         showMajorToFriends: user.showMajorToFriends ?? true,
         showEmailToFriends: user.showEmailToFriends ?? false,
         showPhoneToFriends: user.showPhoneToFriends ?? false,
+        selectedBadgeCourseIdent: user.selectedBadgeCourseIdent ?? '',
       });
       setError('');
       setSuccess('');
@@ -238,6 +283,8 @@ export default function Profile() {
     const currentShowMajor = user.showMajorToFriends ?? true;
     const currentShowEmail = user.showEmailToFriends ?? false;
     const currentShowPhone = user.showPhoneToFriends ?? false;
+    const currentSelectedBadge = normalizeBadgeCourseIdentInput(user.selectedBadgeCourseIdent);
+    const nextSelectedBadge = normalizeBadgeCourseIdentInput(profileForm.selectedBadgeCourseIdent);
 
     if (profileForm.preferredName !== currentPreferredName) updates.preferredName = profileForm.preferredName;
     if (profileForm.profileHeadline !== currentHeadline) updates.profileHeadline = profileForm.profileHeadline;
@@ -247,6 +294,7 @@ export default function Profile() {
     if (profileForm.showMajorToFriends !== currentShowMajor) updates.showMajorToFriends = profileForm.showMajorToFriends;
     if (profileForm.showEmailToFriends !== currentShowEmail) updates.showEmailToFriends = profileForm.showEmailToFriends;
     if (profileForm.showPhoneToFriends !== currentShowPhone) updates.showPhoneToFriends = profileForm.showPhoneToFriends;
+    if (nextSelectedBadge !== currentSelectedBadge) updates.selectedBadgeCourseIdent = nextSelectedBadge;
 
     if (Object.keys(updates).length === 0) {
       setError('No changes to save.');
@@ -379,21 +427,18 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+        <div className="space-y-5">
           <Card className="overflow-hidden shadow-sm">
             <div className="rounded-2xl p-6" style={{ background: `linear-gradient(135deg, ${accentColor}18 0%, rgba(255,255,255,1) 60%)` }}>
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                  {user.profilePictureUrl ? (
-                    <Avatar image={user.profilePictureUrl} size="xlarge" shape="circle" />
-                  ) : (
-                    <Avatar
-                      label={initials}
-                      size="xlarge"
-                      shape="circle"
-                      style={{ backgroundColor: accentColor, color: 'white' }}
-                    />
-                  )}
+                <div className="flex items-center gap-5">
+                  <ProfileAvatarDisplay
+                    user={user}
+                    initials={initials}
+                    accentColor={accentColor}
+                    sizeClass="h-24 w-24"
+                    textClass="text-3xl"
+                  />
                   <div>
                     <div className="text-2xl font-bold text-slate-900">{displayName}</div>
                     {displayName !== fullName && <div className="text-sm text-slate-500">{fullName}</div>}
@@ -411,6 +456,19 @@ export default function Profile() {
                         {normalizeVisibility(user.profileVisibility) === 'FRIENDS_ONLY' ? 'Friends-only profile' : 'Campus-visible profile'}
                       </div>
                     </div>
+                    {selectedBadgeCourse && (
+                      <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm">
+                        <Badge course={selectedBadgeCourse} size={64} />
+                        <div>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Featured Course Badge
+                          </div>
+                          <div className="text-sm font-semibold text-slate-900">
+                            {formatBadgeCourseIdent(user.selectedBadgeCourseIdent)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -434,89 +492,61 @@ export default function Profile() {
                   />
                 </div>
               </div>
-            </div>
-          </Card>
 
-          <Card className="shadow-sm">
-            <div className="space-y-3">
-              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Account</div>
-              <div className="text-sm">
-                <div className="text-slate-500">User ID</div>
-                <div className="font-medium text-slate-800">{user.id ?? 'N/A'}</div>
-              </div>
-              <div className="text-sm">
-                <div className="text-slate-500">Email (Username)</div>
-                <div className="font-medium text-slate-800">{user.email || 'N/A'}</div>
-              </div>
-              <div className="text-sm">
-                <div className="text-slate-500">Visibility</div>
-                <div className="font-medium text-slate-800">{visibilityLabel}</div>
-              </div>
-            </div>
-          </Card>
+              <div className="mt-6 border-t border-slate-200 pt-6">
+                <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+                  <section className="space-y-3 rounded-2xl border border-slate-200 bg-white/85 p-4 shadow-sm">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Profile Details</div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="text-sm">
+                        <div className="text-slate-500">User ID</div>
+                        <div className="font-medium text-slate-800">{user.id ?? 'N/A'}</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="text-slate-500">Major</div>
+                        <div className="font-medium text-slate-800">{user.major || 'Not set'}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Phone</div>
+                        <div className="font-medium text-slate-800">{formatPhone(user.phone)}</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="text-slate-500">Profile Accent</div>
+                        <div className="mt-1 flex items-center gap-2 font-medium text-slate-800">
+                          <span className="inline-block h-4 w-4 rounded-full border border-slate-200" style={{ backgroundColor: accentColor }} />
+                          {accentColor}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
 
-          <Card className="shadow-sm">
-            <div className="space-y-4">
-              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Identity & Social</div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <div className="text-xs text-slate-500">Preferred Name</div>
-                  <div className="text-sm font-medium text-slate-800">{user.preferredName || 'Using full name'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500">Profile Accent</div>
-                  <div className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-800">
-                    <span className="inline-block h-4 w-4 rounded-full border border-slate-200" style={{ backgroundColor: accentColor }} />
-                    {accentColor}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Headline</div>
-                <div className="text-sm font-medium text-slate-800">{user.profileHeadline || 'Not set'}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Bio</div>
-                <div className="whitespace-pre-wrap text-sm font-medium text-slate-800">
-                  {user.bio || 'Add a short bio to tell friends what you are studying, building, or looking for.'}
-                </div>
-              </div>
-            </div>
-          </Card>
+                  <section className="space-y-4 rounded-2xl border border-slate-200 bg-white/85 p-4 shadow-sm">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Bio</div>
+                    <div>
+                      <div className="whitespace-pre-wrap text-sm font-medium text-slate-800">
+                        {user.bio || 'Add a short bio to tell friends what you are studying, building, or looking for.'}
+                      </div>
+                    </div>
+                  </section>
 
-          <Card className="shadow-sm">
-            <div className="space-y-4">
-              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Privacy & Sharing</div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                {visibilityLabel}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
-                  <span className="text-sm text-slate-700">Show major to friends</span>
-                  <span className="text-xs font-semibold text-slate-500">{user.showMajorToFriends ? 'Visible' : 'Hidden'}</span>
+                  <section className="space-y-4 rounded-2xl border border-slate-200 bg-white/85 p-4 shadow-sm xl:col-span-2">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Privacy & Sharing</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                        <span className="text-sm text-slate-700">Show major to friends</span>
+                        <span className="text-xs font-semibold text-slate-500">{user.showMajorToFriends ? 'Visible' : 'Hidden'}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                        <span className="text-sm text-slate-700">Show email to friends</span>
+                        <span className="text-xs font-semibold text-slate-500">{user.showEmailToFriends ? 'Visible' : 'Hidden'}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                        <span className="text-sm text-slate-700">Show phone to friends</span>
+                        <span className="text-xs font-semibold text-slate-500">{user.showPhoneToFriends ? 'Visible' : 'Hidden'}</span>
+                      </div>
+                    </div>
+                  </section>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
-                  <span className="text-sm text-slate-700">Show email to friends</span>
-                  <span className="text-xs font-semibold text-slate-500">{user.showEmailToFriends ? 'Visible' : 'Hidden'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
-                  <span className="text-sm text-slate-700">Show phone to friends</span>
-                  <span className="text-xs font-semibold text-slate-500">{user.showPhoneToFriends ? 'Visible' : 'Hidden'}</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="shadow-sm">
-            <div className="space-y-4">
-              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Academic & Contact</div>
-              <div>
-                <div className="text-xs text-slate-500">Major</div>
-                <div className="text-sm font-medium text-slate-800">{user.major || 'Not set'}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Phone</div>
-                <div className="text-sm font-medium text-slate-800">{formatPhone(user.phone)}</div>
               </div>
             </div>
           </Card>
@@ -528,16 +558,13 @@ export default function Profile() {
                 <div className="h-2" style={{ backgroundColor: accentColor }} />
                 <div className="bg-white p-4">
                   <div className="flex items-start gap-4">
-                    {user.profilePictureUrl ? (
-                      <Avatar image={user.profilePictureUrl} size="xlarge" shape="circle" />
-                    ) : (
-                      <Avatar
-                        label={initials}
-                        size="xlarge"
-                        shape="circle"
-                        style={{ backgroundColor: accentColor, color: 'white' }}
-                      />
-                    )}
+                    <ProfileAvatarDisplay
+                      user={user}
+                      initials={initials}
+                      accentColor={accentColor}
+                      sizeClass="h-20 w-20"
+                      textClass="text-2xl"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-lg font-semibold text-slate-900">{displayName}</div>
@@ -557,6 +584,19 @@ export default function Profile() {
                           <span className="text-xs text-slate-500">No extra profile details are currently visible to friends.</span>
                         )}
                       </div>
+                      {selectedBadgeCourse && (
+                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <Badge course={selectedBadgeCourse} size={58} />
+                          <div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              Featured Course Badge
+                            </div>
+                            <div className="text-sm font-semibold text-slate-800">
+                              {formatBadgeCourseIdent(user.selectedBadgeCourseIdent)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
@@ -623,6 +663,32 @@ export default function Profile() {
               onChange={(e) => setProfileForm((f) => ({ ...f, profileHeadline: e.target.value }))}
               placeholder="Example: Software engineering student building planning tools"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Featured Course Badge</label>
+            <InputText
+              className="w-full"
+              value={profileForm.selectedBadgeCourseIdent}
+              onChange={(e) => setProfileForm((f) => ({ ...f, selectedBadgeCourseIdent: e.target.value }))}
+              placeholder="Example: COMS 2270"
+            />
+            <div className="mt-1 text-xs text-slate-500">
+              Enter a course ident from the catalog. Leave this blank to remove the featured badge.
+            </div>
+            {editingSelectedBadgeCourse && (
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <Badge course={editingSelectedBadgeCourse} size={58} />
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Preview
+                  </div>
+                  <div className="text-sm font-semibold text-slate-800">
+                    {formatBadgeCourseIdent(profileForm.selectedBadgeCourseIdent)}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

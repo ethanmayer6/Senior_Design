@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import Header from '../components/header';
 import api from '../api/axiosClient';
+import { Badge } from '../components/Badge';
 import {
   addFriend,
   getFriends,
   searchUsersByUsername,
   type StudentSearchResult,
 } from '../api/usersApi';
+import { buildBadgePreviewCourse, formatBadgeCourseIdent } from '../utils/courseBadge';
 
 function normalizeRole(role: string | null | undefined): string {
   if (!role) {
@@ -180,6 +182,19 @@ export default function StudentSearch() {
                           <div className="mt-1 text-xs text-slate-500">
                             Major: {user.major || 'Not set'}
                           </div>
+                          {buildBadgePreviewCourse(user.selectedBadgeCourseIdent) && (
+                            <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                              <Badge course={buildBadgePreviewCourse(user.selectedBadgeCourseIdent)!} size={54} />
+                              <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                  Featured Course Badge
+                                </div>
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {formatBadgeCourseIdent(user.selectedBadgeCourseIdent)}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex shrink-0 flex-col gap-2">
                           {canViewStudentFlowcharts && (

@@ -450,6 +450,40 @@ public class ProfessorService {
         return toExternalRatingResponse(saved);
     }
 
+    public ProfessorExternalRatingResponse addMissingRateMyProfessorsLink(
+            long professorId,
+            String sourceUrl,
+            AppUser principal) {
+        requireAuthenticatedPrincipal(principal);
+
+        Professor professor = getProfessorOrThrow(professorId);
+        ProfessorExternalRating existing = professorExternalRatingRepository
+                .findByProfessorAndSourceSystem(professor, RATE_MY_PROFESSORS)
+                .orElse(null);
+
+        if (existing != null && trimToNull(existing.getSourceUrl()) != null) {
+            throw new IllegalArgumentException("This professor already has a Rate My Professors link.");
+        }
+
+        String normalizedSourceUrl = normalizeRateMyProfessorsUrl(sourceUrl);
+        ProfessorExternalRating rating = existing == null ? new ProfessorExternalRating() : existing;
+
+        rating.setProfessor(professor);
+        rating.setSourceSystem(RATE_MY_PROFESSORS);
+        rating.setSourceUrl(normalizedSourceUrl);
+
+        String extractedExternalId = extractRateMyProfessorsExternalId(normalizedSourceUrl);
+        if (extractedExternalId != null) {
+            rating.setExternalId(extractedExternalId);
+        }
+        if (rating.getCapturedAt() == null) {
+            rating.setCapturedAt(Instant.now());
+        }
+
+        ProfessorExternalRating saved = professorExternalRatingRepository.save(rating);
+        return toExternalRatingResponse(saved);
+    }
+
     private Professor getProfessorOrThrow(long professorId) {
         return professorRepository.findById(professorId)
                 .orElseThrow(() -> new IllegalArgumentException("Professor not found: " + professorId));
@@ -460,11 +494,15 @@ public class ProfessorService {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + principal.getId()));
     }
 
-    private AppUser requireStudentPrincipal(AppUser principal) {
+    private AppUser requireAuthenticatedPrincipal(AppUser principal) {
         if (principal == null) {
             throw new IllegalArgumentException("Authentication is required.");
         }
-        AppUser reviewer = loadManagedUser(principal);
+        return loadManagedUser(principal);
+    }
+
+    private AppUser requireStudentPrincipal(AppUser principal) {
+        AppUser reviewer = requireAuthenticatedPrincipal(principal);
         if (!isStudentRole(reviewer.getRole())) {
             throw new IllegalArgumentException("Only student users can create professor reviews.");
         }

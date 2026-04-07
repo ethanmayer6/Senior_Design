@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -113,12 +115,20 @@ public class ClassScheduleImportService {
             entry.setDeliveryMode(row.deliveryMode());
             entry.setLocations(row.locations());
             entry.setInstructionalFormat(row.instructionalFormat());
+            entry.setEntryType(ClassScheduleEntryType.IMPORTED_CLASS);
+            entry.setCustomEventTitle(null);
+            entry.setCustomEventDate(null);
+            entry.setCustomEventNotes(null);
             toPersist.add(entry);
         }
 
         for (String termKey : touchedTermKeys) {
             YearTerm yearTerm = parseYearTermKey(termKey);
-            scheduleRepository.deleteAllByFlowchartAndYearAndTerm(flowchart, yearTerm.year(), yearTerm.term());
+            scheduleRepository.deleteAllByFlowchartAndYearAndTermAndEntryType(
+                    flowchart,
+                    yearTerm.year(),
+                    yearTerm.term(),
+                    ClassScheduleEntryType.IMPORTED_CLASS);
         }
         scheduleRepository.saveAll(toPersist);
 
@@ -152,6 +162,71 @@ public class ClassScheduleImportService {
     public List<ClassScheduleEntry> getTermEntries(AppUser user, int year, Term term) {
         Flowchart flowchart = flowchartService.getByUser(user);
         return scheduleRepository.findAllByFlowchartAndYearAndTermOrderByMeetingStartTimeAsc(flowchart, year, term);
+    }
+
+    @Transactional
+    public ClassScheduleEntry createCustomEvent(CustomScheduleEventRequest request, AppUser user) {
+        if (request == null) {
+            throw new IllegalArgumentException("Event details are required.");
+        }
+
+        String title = trimToNull(request.title());
+        if (title == null) {
+            throw new IllegalArgumentException("Event title is required.");
+        }
+
+        LocalDate eventDate = parseDate(request.eventDate(), "Event date is required.");
+        LocalTime startTime = parseTime(request.startTime(), "Start time is required.");
+        LocalTime endTime = parseTime(request.endTime(), "End time is required.");
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("End time must be after start time.");
+        }
+
+        LocalDate today = LocalDate.now();
+        Term currentTerm = inferCurrentTerm(today.getMonthValue());
+        Term eventTerm = inferCurrentTerm(eventDate.getMonthValue());
+        if (eventDate.getYear() != today.getYear() || eventTerm != currentTerm) {
+            throw new IllegalArgumentException("Custom calendar items must be scheduled during the current term.");
+        }
+
+        Flowchart flowchart = flowchartService.getByUser(user);
+        ClassScheduleEntry entry = new ClassScheduleEntry();
+        entry.setFlowchart(flowchart);
+        entry.setCourse(null);
+        entry.setCourseIdent("CUSTOM_EVENT");
+        entry.setSectionCode(title);
+        entry.setCourseTitle(title);
+        entry.setAcademicPeriodLabel("Personal calendar event");
+        entry.setYear(eventDate.getYear());
+        entry.setTerm(eventTerm);
+        entry.setMeetingPatternRaw(buildCustomEventPattern(eventDate, startTime, endTime));
+        entry.setMeetingDays(dayCodeFor(eventDate));
+        entry.setMeetingStartTime(startTime);
+        entry.setMeetingEndTime(endTime);
+        entry.setInstructor(null);
+        entry.setDeliveryMode("Personal");
+        entry.setLocations(trimToNull(request.location()));
+        entry.setInstructionalFormat(null);
+        entry.setEntryType(ClassScheduleEntryType.CUSTOM_EVENT);
+        entry.setCustomEventTitle(title);
+        entry.setCustomEventDate(eventDate);
+        entry.setCustomEventNotes(trimToNull(request.notes()));
+        return scheduleRepository.save(entry);
+    }
+
+    @Transactional
+    public void deleteCustomEvent(long entryId, AppUser user) {
+        Flowchart flowchart = flowchartService.getByUser(user);
+        ClassScheduleEntry entry = scheduleRepository.findById(entryId)
+                .orElseThrow(() -> new IllegalArgumentException("Calendar item not found."));
+
+        if (entry.getFlowchart() == null || entry.getFlowchart().getId() != flowchart.getId()) {
+            throw new IllegalArgumentException("Calendar item not found.");
+        }
+        if (entry.getEntryType() != ClassScheduleEntryType.CUSTOM_EVENT) {
+            throw new IllegalArgumentException("Only custom calendar items can be removed here.");
+        }
+        scheduleRepository.delete(entry);
     }
 
     private Semester createSemester(Flowchart flowchart, int year, Term term, String majorName) {
@@ -212,6 +287,54 @@ public class ClassScheduleImportService {
         return Term.FALL;
     }
 
+    private LocalDate parseDate(String raw, String requiredMessage) {
+        String trimmed = trimToNull(raw);
+        if (trimmed == null) {
+            throw new IllegalArgumentException(requiredMessage);
+        }
+        try {
+            return LocalDate.parse(trimmed);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Event date must use YYYY-MM-DD.");
+        }
+    }
+
+    private LocalTime parseTime(String raw, String requiredMessage) {
+        String trimmed = trimToNull(raw);
+        if (trimmed == null) {
+            throw new IllegalArgumentException(requiredMessage);
+        }
+        try {
+            return LocalTime.parse(trimmed);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Time values must use HH:MM.");
+        }
+    }
+
+    private String buildCustomEventPattern(LocalDate eventDate, LocalTime startTime, LocalTime endTime) {
+        return eventDate + " | " + startTime + " - " + endTime;
+    }
+
+    private String dayCodeFor(LocalDate date) {
+        return switch (date.getDayOfWeek()) {
+            case MONDAY -> "M";
+            case TUESDAY -> "T";
+            case WEDNESDAY -> "W";
+            case THURSDAY -> "R";
+            case FRIDAY -> "F";
+            case SATURDAY -> "S";
+            case SUNDAY -> "U";
+        };
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
     private record YearTerm(int year, Term term) {
     }
 
@@ -224,4 +347,3 @@ public class ClassScheduleImportService {
             String message) {
     }
 }
-

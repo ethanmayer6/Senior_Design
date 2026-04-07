@@ -25,8 +25,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -120,6 +123,46 @@ class ClassScheduleImportControllerTest {
         verify(importService).getTermEntries(user, 2026, Term.SPRING);
     }
 
+    @Test
+    void createCustomEvent_returnsMappedEntry() throws Exception {
+        AppUser user = buildUser(14L);
+        ClassScheduleEntry entry = buildEntry(3L, "CUSTOM_EVENT");
+        entry.setEntryType(ClassScheduleEntryType.CUSTOM_EVENT);
+        entry.setCustomEventTitle("Career fair");
+        entry.setCustomEventDate(LocalDate.of(2026, 4, 15));
+        entry.setCustomEventNotes("Bring resumes");
+
+        when(importService.createCustomEvent(any(), eq(user))).thenReturn(entry);
+
+        mockMvc.perform(post("/api/class-schedule/events")
+                        .principal(authFor(user))
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Career fair",
+                                  "eventDate": "2026-04-15",
+                                  "startTime": "13:00",
+                                  "endTime": "14:30",
+                                  "location": "Memorial Union",
+                                  "notes": "Bring resumes"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entryType").value("CUSTOM_EVENT"))
+                .andExpect(jsonPath("$.customEventTitle").value("Career fair"))
+                .andExpect(jsonPath("$.customEventDate").value("2026-04-15"));
+    }
+
+    @Test
+    void deleteCustomEvent_returnsNoContent() throws Exception {
+        AppUser user = buildUser(14L);
+
+        mockMvc.perform(delete("/api/class-schedule/events/9").principal(authFor(user)))
+                .andExpect(status().isNoContent());
+
+        verify(importService).deleteCustomEvent(9L, user);
+    }
+
     private MockMultipartFile sampleFile() {
         return new MockMultipartFile(
                 "file",
@@ -168,6 +211,7 @@ class ClassScheduleImportControllerTest {
         entry.setDeliveryMode("In Person");
         entry.setLocations("Durham 1212");
         entry.setInstructionalFormat("Lecture");
+        entry.setEntryType(ClassScheduleEntryType.IMPORTED_CLASS);
         return entry;
     }
 }

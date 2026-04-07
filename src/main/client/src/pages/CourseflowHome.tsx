@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/header';
 import { logout } from '../utils/auth';
 import { getFriends, type StudentSearchResult } from '../api/usersApi';
+import { Badge } from '../components/Badge';
 import FocusSafeModal from '../components/FocusSafeModal';
 import { getCurrentClassSchedule, getCourseByIdent, type ClassScheduleEntry } from '../api/classScheduleApi';
 import type { Course } from '../api/flowchartApi';
@@ -15,8 +16,52 @@ import {
   loadHiddenCourseflowModuleIds,
   saveHiddenCourseflowModuleIds,
 } from '../utils/courseflowModuleVisibility';
+import {
+  entryOccursOnDate,
+  formatScheduleTime,
+  getScheduleEntryPrimaryLabel,
+  getScheduleEntrySecondaryLabel,
+  isCustomScheduleEntry,
+  parseScheduleMinutes,
+} from '../utils/classSchedule';
+import { buildBadgePreviewCourse, formatBadgeCourseIdent } from '../utils/courseBadge';
 
 const HOME_WALKTHROUGH_KEY_PREFIX = 'courseflow_home_walkthrough_seen';
+
+function buildTimelineTicks(start: number, end: number): number[] {
+  const duration = Math.max(end - start, 1);
+  const step = duration > 12 * 60 ? 180 : 120;
+  const ticks: number[] = [];
+
+  for (let minute = start; minute <= end; minute += step) {
+    ticks.push(minute);
+  }
+
+  if (ticks[ticks.length - 1] !== end) {
+    ticks.push(end);
+  }
+
+  return ticks;
+}
+
+function normalizeAccentColor(value?: string | null): string {
+  return /^#[a-fA-F0-9]{6}$/.test(value ?? '') ? String(value).toLowerCase() : '#dc2626';
+}
+
+function formatPhoneNumber(value?: string | null): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return value;
+}
+
+function getFriendInitials(friend: StudentSearchResult): string {
+  const first = friend.firstName?.[0] ?? friend.displayName?.[0] ?? '';
+  const last = friend.lastName?.[0] ?? '';
+  return `${first}${last}`.trim().toUpperCase() || 'FR';
+}
 
 export default function CourseflowHome() {
   const navigate = useNavigate();
@@ -105,45 +150,16 @@ export default function CourseflowHome() {
     }
   }, []);
 
-  const todayCode = (() => {
-    const day = now.getDay();
-    if (day === 0) return 'U';
-    if (day === 1) return 'M';
-    if (day === 2) return 'T';
-    if (day === 3) return 'W';
-    if (day === 4) return 'R';
-    if (day === 5) return 'F';
-    return 'S';
-  })();
-
-  const parseMinutes = (timeValue: string | null | undefined): number | null => {
-    if (!timeValue || typeof timeValue !== 'string') return null;
-    const match = timeValue.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-    if (!match) return null;
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-    return hours * 60 + minutes;
-  };
-
-  const formatTime = (totalMinutes: number): string => {
-    const h24 = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    const suffix = h24 >= 12 ? 'PM' : 'AM';
-    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-    return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
-  };
-
   const formatIsoTime = (timeValue: string | null | undefined): string => {
-    const minutes = parseMinutes(timeValue ?? null);
+    const minutes = parseScheduleMinutes(timeValue ?? null);
     if (minutes === null) return 'TBD';
-    return formatTime(minutes);
+    return formatScheduleTime(minutes);
   };
 
   const openTimelineCourse = async (entry: ClassScheduleEntry) => {
     setSelectedTimelineEntry(entry);
     setSelectedTimelineCourse(null);
-    if (!entry.courseIdent) return;
+    if (!entry.courseIdent || isCustomScheduleEntry(entry)) return;
     setTimelineDetailsLoading(true);
     try {
       const details = await getCourseByIdent(entry.courseIdent);
@@ -156,10 +172,10 @@ export default function CourseflowHome() {
   };
 
   const todaysSchedule = scheduleEntries
-    .filter((entry) => (entry.meetingDays || '').toUpperCase().includes(todayCode))
+    .filter((entry) => entryOccursOnDate(entry, now))
     .map((entry) => {
-      const start = parseMinutes(entry.meetingStartTime);
-      const end = parseMinutes(entry.meetingEndTime);
+      const start = parseScheduleMinutes(entry.meetingStartTime);
+      const end = parseScheduleMinutes(entry.meetingEndTime);
       return { entry, start, end };
     })
     .filter((x) => x.start !== null && x.end !== null && (x.end as number) > (x.start as number))
@@ -170,8 +186,14 @@ export default function CourseflowHome() {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const clampedNow = Math.max(timelineStart, Math.min(timelineEnd, nowMinutes));
   const nowPercent = ((clampedNow - timelineStart) / (timelineEnd - timelineStart)) * 100;
+  const nowLineLeft =
+    nowPercent <= 0
+      ? '0px'
+      : nowPercent >= 100
+        ? 'calc(100% - 2px)'
+        : `calc(${nowPercent}% - 1px)`;
 
-  const timeTicks = [8 * 60, 10 * 60, 12 * 60, 14 * 60, 16 * 60, 18 * 60, 20 * 60];
+  const timeTicks = buildTimelineTicks(timelineStart, timelineEnd);
 
   const toggleModuleVisibility = (moduleId: string) => {
     setHiddenModuleIds((current) =>
@@ -201,6 +223,19 @@ export default function CourseflowHome() {
     .map((group) => ({
       group,
       modules: courseflowNavItems.filter((module) => module.groupId === group.id),
+    }))
+    .filter((entry) => entry.modules.length > 0);
+
+  const quickActionModules = courseflowNavItems.map((module) =>
+    module.id === 'profile' || module.id === 'student-search'
+      ? { ...module, groupId: 'MORE' as const }
+      : module,
+  );
+
+  const groupedQuickActionModules = courseflowNavGroups
+    .map((group) => ({
+      group,
+      modules: quickActionModules.filter((module) => module.groupId === group.id),
     }))
     .filter((entry) => entry.modules.length > 0);
 
@@ -303,27 +338,43 @@ export default function CourseflowHome() {
                         onClick={() => {
                           void openTimelineCourse(entry);
                         }}
-                        className="absolute bottom-2 top-2 rounded-md border border-red-300 bg-red-100 px-2 py-1 text-left text-[11px] font-semibold text-gray-700 transition hover:bg-red-200"
+                        className={`absolute bottom-2 top-2 rounded-md border px-2 py-1 text-left text-[11px] font-semibold text-gray-700 transition ${
+                          isCustomScheduleEntry(entry)
+                            ? 'border-blue-300 bg-blue-100 hover:bg-blue-200'
+                            : 'border-red-300 bg-red-100 hover:bg-red-200'
+                        }`}
                         style={{ left: `${Math.max(0, left)}%`, width: `${Math.max(4, width)}%` }}
-                        title={`${entry.courseIdent} • ${entry.courseTitle || entry.catalogName || ''}`}
+                        title={`${getScheduleEntryPrimaryLabel(entry)} - ${getScheduleEntrySecondaryLabel(entry)}`}
                       >
-                        <div className="truncate">{entry.courseIdent}</div>
+                        <div className="truncate">{getScheduleEntryPrimaryLabel(entry)}</div>
                         <div className="truncate text-[10px] font-normal text-gray-600">
-                          {formatTime(start as number)} - {formatTime(end as number)}
+                          {formatScheduleTime(start as number)} - {formatScheduleTime(end as number)}
                         </div>
                       </button>
                     );
                   })}
-                  <div className="absolute bottom-0 top-0 w-0.5 bg-blue-500" style={{ left: `${nowPercent}%` }} />
+                  <div className="absolute bottom-0 top-0 w-0.5 bg-blue-500" style={{ left: nowLineLeft }} />
                 </div>
-                <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
-                  {timeTicks.map((tick) => (
-                    <span key={tick}>{formatTime(tick)}</span>
-                  ))}
+                <div className="relative mt-2 h-4 text-[10px] text-gray-500">
+                  {timeTicks.map((tick, index) => {
+                    const tickPercent = ((tick - timelineStart) / (timelineEnd - timelineStart)) * 100;
+                    const transform =
+                      index === 0 ? 'translateX(0)' : index === timeTicks.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)';
+
+                    return (
+                      <span
+                        key={tick}
+                        className="absolute top-0 whitespace-nowrap"
+                        style={{ left: `${tickPercent}%`, transform }}
+                      >
+                        {formatScheduleTime(tick)}
+                      </span>
+                    );
+                  })}
                 </div>
                 {todaysSchedule.length === 0 && (
                   <p className="mt-2 text-xs text-gray-500">
-                    No timed classes found for today. Import your schedule file on Current Classes if needed.
+                    No timed schedule items found for today. Add a class import or custom event on Current Classes if needed.
                   </p>
                 )}
               </div>
@@ -401,7 +452,7 @@ export default function CourseflowHome() {
             </Link>
 
             <div className="mt-3 space-y-2.5">
-              {groupedAllModules.map(({ group, modules }) => (
+              {groupedQuickActionModules.map(({ group, modules }) => (
                 <section key={group.id}>
                   {group.id === 'MORE' ? (
                     <>
@@ -566,27 +617,65 @@ export default function CourseflowHome() {
           ) : (
             <div className="max-h-[24rem] space-y-2 overflow-y-auto pr-1">
               {friends.map((friend) => (
-                <button
-                  key={friend.id}
-                  type="button"
-                  onClick={() => {
-                    setShowFriendsList(false);
-                    setSelectedFriend(friend);
-                  }}
-                  className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-red-300 hover:bg-red-50"
-                >
-                  <div className="text-sm font-semibold text-gray-800">
-                    {friend.displayName || friend.username}
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">@{friend.username}</div>
-                  <div className="mt-1 text-xs text-gray-600">
-                    {`${friend.firstName || ''} ${friend.lastName || ''}`.trim() || 'Name not provided'}
-                  </div>
-                  {friend.profileHeadline && (
-                    <div className="mt-2 text-xs font-medium text-gray-700">{friend.profileHeadline}</div>
-                  )}
-                  {friend.major && <div className="mt-1 text-xs text-gray-500">Major: {friend.major}</div>}
-                </button>
+                (() => {
+                  const friendBadge = buildBadgePreviewCourse(friend.selectedBadgeCourseIdent);
+                  const accentColor = normalizeAccentColor(friend.accentColor);
+                  const fullName = `${friend.firstName || ''} ${friend.lastName || ''}`.trim();
+                  const displayName = friend.displayName || friend.username;
+
+                  return (
+                    <button
+                      key={friend.id}
+                      type="button"
+                      onClick={() => {
+                        setShowFriendsList(false);
+                        setSelectedFriend(friend);
+                      }}
+                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-red-300 hover:bg-red-50"
+                    >
+                      <div className="flex items-start gap-3">
+                        {friend.profilePictureUrl ? (
+                          <img
+                            src={friend.profilePictureUrl}
+                            alt={`${displayName} profile`}
+                            className="h-12 w-12 rounded-full border border-gray-200 object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="flex h-12 w-12 items-center justify-center rounded-full text-xs font-semibold text-white"
+                            style={{ backgroundColor: accentColor }}
+                          >
+                            {getFriendInitials(friend)}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-gray-800">{displayName}</div>
+                          {fullName && displayName !== fullName && (
+                            <div className="mt-0.5 text-xs text-gray-500">{fullName}</div>
+                          )}
+                          <div className="mt-1 text-xs text-gray-500">{friend.username}</div>
+                          {friend.profileHeadline && (
+                            <div className="mt-2 text-xs font-medium text-gray-700">{friend.profileHeadline}</div>
+                          )}
+                          {friend.major && <div className="mt-1 text-xs text-gray-500">Major: {friend.major}</div>}
+                          {friendBadge && (
+                            <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+                              <Badge course={friendBadge} size={42} />
+                              <div className="min-w-0">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                  Featured Badge
+                                </div>
+                                <div className="truncate text-xs font-semibold text-slate-800">
+                                  {formatBadgeCourseIdent(friend.selectedBadgeCourseIdent)}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()
               ))}
             </div>
           )}
@@ -600,81 +689,112 @@ export default function CourseflowHome() {
         maxWidthClass="max-w-md"
       >
         {selectedFriend && (
-          <>
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-semibold text-gray-800">Friend Profile</h3>
-              <button
-                type="button"
-                onClick={() => setSelectedFriend(null)}
-                className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-              >
-                Close
-              </button>
-            </div>
+          (() => {
+            const accentColor = normalizeAccentColor(selectedFriend.accentColor);
+            const friendBadge = buildBadgePreviewCourse(selectedFriend.selectedBadgeCourseIdent);
+            const fullName = `${selectedFriend.firstName || ''} ${selectedFriend.lastName || ''}`.trim();
+            const displayName = selectedFriend.displayName || selectedFriend.username;
+            const visibleFields = [
+              selectedFriend.major ? `Major: ${selectedFriend.major}` : null,
+              selectedFriend.email ? `Email: ${selectedFriend.email}` : null,
+              formatPhoneNumber(selectedFriend.phone) ? `Phone: ${formatPhoneNumber(selectedFriend.phone)}` : null,
+            ].filter((value): value is string => Boolean(value));
 
-            <div className="mt-4 flex items-center gap-4">
-              {selectedFriend.profilePictureUrl ? (
-                <img
-                  src={selectedFriend.profilePictureUrl}
-                  alt={`${selectedFriend.username} profile`}
-                  className="h-20 w-20 rounded-full border border-gray-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-semibold text-gray-600">
-                  {`${selectedFriend.firstName?.[0] ?? ''}${selectedFriend.lastName?.[0] ?? ''}`.trim() || 'FR'}
+            return (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Friend Profile</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFriend(null)}
+                    className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 transition hover:border-red-300 hover:bg-red-50"
+                  >
+                    Close
+                  </button>
                 </div>
-              )}
 
-              <div>
-                <div className="text-sm font-semibold text-gray-800">
-                  {selectedFriend.displayName || selectedFriend.username}
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="h-2" style={{ backgroundColor: accentColor }} />
+                  <div className="p-4">
+                    <div className="flex items-start gap-4">
+                      {selectedFriend.profilePictureUrl ? (
+                        <img
+                          src={selectedFriend.profilePictureUrl}
+                          alt={`${displayName} profile`}
+                          className="h-20 w-20 rounded-full border border-gray-200 object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-20 w-20 items-center justify-center rounded-full text-lg font-semibold text-white"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          {getFriendInitials(selectedFriend)}
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-lg font-semibold text-slate-900">{displayName}</div>
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                            {selectedFriend.username}
+                          </span>
+                        </div>
+                        {fullName && displayName !== fullName && (
+                          <div className="mt-1 text-sm text-slate-500">{fullName}</div>
+                        )}
+                        {selectedFriend.profileHeadline && (
+                          <div className="mt-2 text-sm font-medium text-slate-700">
+                            {selectedFriend.profileHeadline}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {visibleFields.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {visibleFields.map((field) => (
+                          <span
+                            key={field}
+                            className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-600"
+                          >
+                            {field}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {friendBadge && (
+                      <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <Badge course={friendBadge} size={58} />
+                        <div>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Featured Course Badge
+                          </div>
+                          <div className="text-sm font-semibold text-slate-800">
+                            {formatBadgeCourseIdent(selectedFriend.selectedBadgeCourseIdent)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedFriend.bio ? (
+                      <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                        {selectedFriend.bio}
+                      </div>
+                    ) : (
+                      visibleFields.length === 0 &&
+                      !friendBadge &&
+                      !selectedFriend.profileHeadline && (
+                        <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
+                          No extra profile details are shared yet.
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">@{selectedFriend.username}</div>
-                <div className="mt-1 text-sm text-gray-600">
-                  {`${selectedFriend.firstName || ''} ${selectedFriend.lastName || ''}`.trim() || 'Name not provided'}
-                </div>
-                {selectedFriend.profileHeadline && (
-                  <div className="mt-2 text-sm font-medium text-gray-700">
-                    {selectedFriend.profileHeadline}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              {selectedFriend.bio && (
-                <div
-                  className="rounded-xl border border-gray-200 p-3 text-sm text-gray-700"
-                  style={{
-                    borderTopWidth: '4px',
-                    borderTopColor: selectedFriend.accentColor || '#dc2626',
-                  }}
-                >
-                  {selectedFriend.bio}
-                </div>
-              )}
-              <div className="grid gap-2 text-xs text-gray-600">
-                {selectedFriend.major && (
-                  <div>
-                    <span className="font-semibold text-gray-700">Major:</span> {selectedFriend.major}
-                  </div>
-                )}
-                {selectedFriend.email && (
-                  <div>
-                    <span className="font-semibold text-gray-700">Email:</span> {selectedFriend.email}
-                  </div>
-                )}
-                {selectedFriend.phone && (
-                  <div>
-                    <span className="font-semibold text-gray-700">Phone:</span> {selectedFriend.phone}
-                  </div>
-                )}
-                {!selectedFriend.major &&
-                  !selectedFriend.email &&
-                  !selectedFriend.phone &&
-                  !selectedFriend.bio && <div>No extra profile details are shared yet.</div>}
-              </div>
-            </div>
-          </>
+              </>
+            );
+          })()
         )}
       </FocusSafeModal>
 
@@ -685,17 +805,17 @@ export default function CourseflowHome() {
           setSelectedTimelineCourse(null);
           setTimelineDetailsLoading(false);
         }}
-        title="Course Details"
+        title="Schedule Details"
         maxWidthClass="max-w-2xl"
       >
         {selectedTimelineEntry && (
           <div className="space-y-3 text-sm">
             <div className="rounded-lg border border-gray-200 bg-slate-50 p-3">
               <div className="text-base font-semibold text-gray-800">
-                {selectedTimelineEntry.sectionCode || selectedTimelineEntry.courseIdent || 'Course'}
+                {getScheduleEntryPrimaryLabel(selectedTimelineEntry)}
               </div>
               <div className="mt-1 text-gray-700">
-                {selectedTimelineEntry.courseTitle || selectedTimelineEntry.catalogName || 'Untitled course'}
+                {getScheduleEntrySecondaryLabel(selectedTimelineEntry)}
               </div>
               <div className="mt-2 grid gap-2 text-xs text-gray-700 sm:grid-cols-2">
                 <div>
@@ -708,20 +828,32 @@ export default function CourseflowHome() {
                   {formatIsoTime(selectedTimelineEntry.meetingEndTime)}
                 </div>
                 <div>
-                  <span className="font-semibold">Instructor:</span>{' '}
-                  {selectedTimelineEntry.instructor || 'TBD'}
+                  <span className="font-semibold">
+                    {isCustomScheduleEntry(selectedTimelineEntry) ? 'Event Date:' : 'Instructor:'}
+                  </span>{' '}
+                  {isCustomScheduleEntry(selectedTimelineEntry)
+                    ? selectedTimelineEntry.customEventDate || 'TBD'
+                    : selectedTimelineEntry.instructor || 'TBD'}
                 </div>
                 <div>
-                  <span className="font-semibold">Mode:</span>{' '}
-                  {selectedTimelineEntry.deliveryMode || 'TBD'}
+                  <span className="font-semibold">
+                    {isCustomScheduleEntry(selectedTimelineEntry) ? 'Type:' : 'Mode:'}
+                  </span>{' '}
+                  {isCustomScheduleEntry(selectedTimelineEntry)
+                    ? 'Personal calendar item'
+                    : selectedTimelineEntry.deliveryMode || 'TBD'}
                 </div>
                 <div>
                   <span className="font-semibold">Location:</span>{' '}
                   {selectedTimelineEntry.locations || 'TBD'}
                 </div>
                 <div>
-                  <span className="font-semibold">Format:</span>{' '}
-                  {selectedTimelineEntry.instructionalFormat || 'TBD'}
+                  <span className="font-semibold">
+                    {isCustomScheduleEntry(selectedTimelineEntry) ? 'Notes:' : 'Format:'}
+                  </span>{' '}
+                  {isCustomScheduleEntry(selectedTimelineEntry)
+                    ? selectedTimelineEntry.customEventNotes || 'TBD'
+                    : selectedTimelineEntry.instructionalFormat || 'TBD'}
                 </div>
                 <div>
                   <span className="font-semibold">Free Drop:</span>{' '}

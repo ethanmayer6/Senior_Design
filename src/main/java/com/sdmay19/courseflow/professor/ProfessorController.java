@@ -101,4 +101,17 @@ public class ProfessorController {
         professorService.deleteMyProfessorReview(professorId, user);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{professorId}/rate-my-professors-link")
+    public ResponseEntity<ProfessorExternalRatingResponse> addMissingRateMyProfessorsLink(
+            @PathVariable long professorId,
+            @RequestBody ProfessorRateMyProfessorsLinkRequest request,
+            Authentication auth) {
+        AppUser user = auth == null ? null : (AppUser) auth.getPrincipal();
+        ProfessorExternalRatingResponse response = professorService.addMissingRateMyProfessorsLink(
+                professorId,
+                request == null ? null : request.sourceUrl(),
+                user);
+        return ResponseEntity.ok(response);
+    }
 }

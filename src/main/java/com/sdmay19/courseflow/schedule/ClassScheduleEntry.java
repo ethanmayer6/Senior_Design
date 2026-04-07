@@ -81,6 +81,19 @@ public class ClassScheduleEntry {
     @Column(name = "instructional_format")
     private String instructionalFormat;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_type", nullable = false)
+    private ClassScheduleEntryType entryType = ClassScheduleEntryType.IMPORTED_CLASS;
+
+    @Column(name = "custom_event_title")
+    private String customEventTitle;
+
+    @Column(name = "custom_event_date")
+    private LocalDate customEventDate;
+
+    @Column(name = "custom_event_notes", columnDefinition = "TEXT")
+    private String customEventNotes;
+
     public long getId() {
         return id;
     }
@@ -247,5 +260,37 @@ public class ClassScheduleEntry {
 
     public void setInstructionalFormat(String instructionalFormat) {
         this.instructionalFormat = instructionalFormat;
+    }
+
+    public ClassScheduleEntryType getEntryType() {
+        return entryType;
+    }
+
+    public void setEntryType(ClassScheduleEntryType entryType) {
+        this.entryType = entryType;
+    }
+
+    public String getCustomEventTitle() {
+        return customEventTitle;
+    }
+
+    public void setCustomEventTitle(String customEventTitle) {
+        this.customEventTitle = customEventTitle;
+    }
+
+    public LocalDate getCustomEventDate() {
+        return customEventDate;
+    }
+
+    public void setCustomEventDate(LocalDate customEventDate) {
+        this.customEventDate = customEventDate;
+    }
+
+    public String getCustomEventNotes() {
+        return customEventNotes;
+    }
+
+    public void setCustomEventNotes(String customEventNotes) {
+        this.customEventNotes = customEventNotes;
     }
 }
