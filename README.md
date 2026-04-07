@@ -8,10 +8,14 @@ CourseFlow is a Senior Design Project built to help students and advisors have a
 - Have Node and NPM installed 
 ### Navigate to the `\courseflow\courseflow` folder
 For Local Development
-  * Run `./mvnw clean package` to build project
-    * If that doesn't work try `.\mvnw.cmd clean package`
-  * Run `java -jar target\courseflow-0.0.1-SNAPSHOT.jar` to run project in localhost:8080
-  * OR for fast reload during development use `./mvnw spring-boot:run`
+  * Linux/macOS bash:
+    * Build with `./mvnw clean package`
+    * Run packaged app with `java -jar ./target/courseflow-0.0.1-SNAPSHOT.jar`
+    * Or use fast reload with `./mvnw spring-boot:run`
+  * Windows PowerShell:
+    * Build with `.\mvnw.cmd clean package`
+    * Run packaged app with `java -jar .\target\courseflow-0.0.1-SNAPSHOT.jar`
+    * Or use fast reload with `.\mvnw.cmd spring-boot:run`
 
 [//]: # (* Building for Docker &#40;Also can be used for local development&#41; )
 
@@ -44,24 +48,36 @@ Houses all the business logic and helper services
 Database and JWT configuration should be provided through environment variables rather than committed
 operational credentials. The default public-safe configuration in `src/main/resources/application.properties`
 expects these values:
-* `COURSEFLOW_DB_URL`
-* `COURSEFLOW_DB_USERNAME`
-* `COURSEFLOW_DB_PASSWORD`
-* `COURSEFLOW_JWT_SECRET`
+* `SPRING_DATASOURCE_URL`
+* `SPRING_DATASOURCE_USERNAME`
+* `SPRING_DATASOURCE_PASSWORD`
+* `APP_JWT_SECRET`
 
 Example local development setup:
-* `COURSEFLOW_DB_URL=jdbc:postgresql://localhost:5432/courseflow`
-* `COURSEFLOW_DB_USERNAME=courseflow`
-* `COURSEFLOW_DB_PASSWORD=courseflow`
-* `COURSEFLOW_JWT_SECRET=replace-with-a-long-random-local-secret`
+* `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/courseflow`
+* `SPRING_DATASOURCE_USERNAME=courseflow`
+* `SPRING_DATASOURCE_PASSWORD=courseflow`
+* `APP_JWT_SECRET=replace-with-a-long-random-local-secret`
 
 Spring profile shortcuts:
 * Default config uses the local Postgres defaults from `src/main/resources/application.properties`
 * To use the legacy shared database instead, activate the `olddb` profile:
-  * Maven run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=olddb`
-  * Packaged jar: `java -jar target/courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
+  * Linux/macOS Maven run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=olddb`
+  * Linux/macOS packaged jar: `java -jar ./target/courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
+  * Windows Maven run: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=olddb"`
+  * Windows packaged jar: `java -jar .\target\courseflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=olddb`
 
 Uploaded profile pictures are runtime data and should stay out of git.
+
+## GitLab CI/CD
+The repository now includes a GitLab pipeline that runs the backend verification suite, frontend unit tests with coverage, the Playwright browser check, and the production frontend build.
+
+For deployment, the cleanest setup is to let each platform deploy natively from the GitLab repository:
+* Render auto-deploys the backend from `main` using `render.yaml`
+* Vercel auto-deploys the frontend from `main` using `vercel.json`
+* GitLab CI acts as the quality gate before those platform deployments
+
+Setup details are documented in `docs/gitlab-cicd.md`.
 
 ## Iowa State Degree Data Import
 CourseFlow now includes a JSON importer for major requirement data used by Requirement Coverage and Smart Scheduler.

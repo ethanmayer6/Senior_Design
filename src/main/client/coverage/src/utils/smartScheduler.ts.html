@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/pages/ProfessorReviews.tsx</title>
+    <title>Code coverage report for src/utils/smartScheduler.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> ProfessorReviews.tsx</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/utils</a> smartScheduler.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/249</span>
+                <span class='fraction'>0/354</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/291</span>
+                <span class='fraction'>0/243</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/75</span>
+                <span class='fraction'>0/71</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/222</span>
+                <span class='fraction'>0/347</span>
             </div>
         
             
@@ -996,7 +996,87 @@
 <a name='L931'></a><a href='#L931'>931</a>
 <a name='L932'></a><a href='#L932'>932</a>
 <a name='L933'></a><a href='#L933'>933</a>
-<a name='L934'></a><a href='#L934'>934</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L934'></a><a href='#L934'>934</a>
+<a name='L935'></a><a href='#L935'>935</a>
+<a name='L936'></a><a href='#L936'>936</a>
+<a name='L937'></a><a href='#L937'>937</a>
+<a name='L938'></a><a href='#L938'>938</a>
+<a name='L939'></a><a href='#L939'>939</a>
+<a name='L940'></a><a href='#L940'>940</a>
+<a name='L941'></a><a href='#L941'>941</a>
+<a name='L942'></a><a href='#L942'>942</a>
+<a name='L943'></a><a href='#L943'>943</a>
+<a name='L944'></a><a href='#L944'>944</a>
+<a name='L945'></a><a href='#L945'>945</a>
+<a name='L946'></a><a href='#L946'>946</a>
+<a name='L947'></a><a href='#L947'>947</a>
+<a name='L948'></a><a href='#L948'>948</a>
+<a name='L949'></a><a href='#L949'>949</a>
+<a name='L950'></a><a href='#L950'>950</a>
+<a name='L951'></a><a href='#L951'>951</a>
+<a name='L952'></a><a href='#L952'>952</a>
+<a name='L953'></a><a href='#L953'>953</a>
+<a name='L954'></a><a href='#L954'>954</a>
+<a name='L955'></a><a href='#L955'>955</a>
+<a name='L956'></a><a href='#L956'>956</a>
+<a name='L957'></a><a href='#L957'>957</a>
+<a name='L958'></a><a href='#L958'>958</a>
+<a name='L959'></a><a href='#L959'>959</a>
+<a name='L960'></a><a href='#L960'>960</a>
+<a name='L961'></a><a href='#L961'>961</a>
+<a name='L962'></a><a href='#L962'>962</a>
+<a name='L963'></a><a href='#L963'>963</a>
+<a name='L964'></a><a href='#L964'>964</a>
+<a name='L965'></a><a href='#L965'>965</a>
+<a name='L966'></a><a href='#L966'>966</a>
+<a name='L967'></a><a href='#L967'>967</a>
+<a name='L968'></a><a href='#L968'>968</a>
+<a name='L969'></a><a href='#L969'>969</a>
+<a name='L970'></a><a href='#L970'>970</a>
+<a name='L971'></a><a href='#L971'>971</a>
+<a name='L972'></a><a href='#L972'>972</a>
+<a name='L973'></a><a href='#L973'>973</a>
+<a name='L974'></a><a href='#L974'>974</a>
+<a name='L975'></a><a href='#L975'>975</a>
+<a name='L976'></a><a href='#L976'>976</a>
+<a name='L977'></a><a href='#L977'>977</a>
+<a name='L978'></a><a href='#L978'>978</a>
+<a name='L979'></a><a href='#L979'>979</a>
+<a name='L980'></a><a href='#L980'>980</a>
+<a name='L981'></a><a href='#L981'>981</a>
+<a name='L982'></a><a href='#L982'>982</a>
+<a name='L983'></a><a href='#L983'>983</a>
+<a name='L984'></a><a href='#L984'>984</a>
+<a name='L985'></a><a href='#L985'>985</a>
+<a name='L986'></a><a href='#L986'>986</a>
+<a name='L987'></a><a href='#L987'>987</a>
+<a name='L988'></a><a href='#L988'>988</a>
+<a name='L989'></a><a href='#L989'>989</a>
+<a name='L990'></a><a href='#L990'>990</a>
+<a name='L991'></a><a href='#L991'>991</a>
+<a name='L992'></a><a href='#L992'>992</a>
+<a name='L993'></a><a href='#L993'>993</a>
+<a name='L994'></a><a href='#L994'>994</a>
+<a name='L995'></a><a href='#L995'>995</a>
+<a name='L996'></a><a href='#L996'>996</a>
+<a name='L997'></a><a href='#L997'>997</a>
+<a name='L998'></a><a href='#L998'>998</a>
+<a name='L999'></a><a href='#L999'>999</a>
+<a name='L1000'></a><a href='#L1000'>1000</a>
+<a name='L1001'></a><a href='#L1001'>1001</a>
+<a name='L1002'></a><a href='#L1002'>1002</a>
+<a name='L1003'></a><a href='#L1003'>1003</a>
+<a name='L1004'></a><a href='#L1004'>1004</a>
+<a name='L1005'></a><a href='#L1005'>1005</a>
+<a name='L1006'></a><a href='#L1006'>1006</a>
+<a name='L1007'></a><a href='#L1007'>1007</a>
+<a name='L1008'></a><a href='#L1008'>1008</a>
+<a name='L1009'></a><a href='#L1009'>1009</a>
+<a name='L1010'></a><a href='#L1010'>1010</a>
+<a name='L1011'></a><a href='#L1011'>1011</a>
+<a name='L1012'></a><a href='#L1012'>1012</a>
+<a name='L1013'></a><a href='#L1013'>1013</a>
+<a name='L1014'></a><a href='#L1014'>1014</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1035,7 +1115,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1051,58 +1130,34 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1124,7 +1179,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1147,93 +1201,46 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1241,181 +1248,80 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1431,6 +1337,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1439,6 +1346,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1446,7 +1356,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1454,7 +1363,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1462,16 +1370,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1487,7 +1391,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1496,7 +1402,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1506,22 +1420,39 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1546,8 +1477,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1556,7 +1490,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1580,14 +1513,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1598,6 +1546,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1606,17 +1555,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1629,8 +1583,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1639,7 +1601,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1648,6 +1616,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1655,6 +1629,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1665,12 +1640,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1684,20 +1663,35 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1707,6 +1701,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1715,27 +1710,72 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1746,9 +1786,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1758,12 +1808,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1773,19 +1834,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1794,37 +1861,71 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1834,6 +1935,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1842,69 +1945,116 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1916,951 +2066,1041 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import Header from '../components/header';
-import {
-  browseProfessors,
-  createProfessorReview,
-  deleteMyProfessorReview,
-  getProfessorDirectoryStatus,
-  getProfessorDepartments,
-  getProfessorDetail,
-  getProfessorReviews,
-  saveRateMyProfessorsLink,
-  updateMyProfessorReview,
-  type ProfessorDetail,
-  type ProfessorDirectoryStatus,
-  type ProfessorExternalRating,
-  type ProfessorReview,
-  type ProfessorReviewPageResponse,
-  type ProfessorSummary,
-} from '../api/professorsApi';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Flowchart, Semester } from '../api/flowchartApi';
+import { createStatusLookup, normalizeCourseIdent, normalizeStatus } from './flowchartStatus';
 &nbsp;
-type SortMode = 'name' | 'rating';
+type SchedulerTerm = 'SPRING' | 'SUMMER' | 'FALL';
+type ParsedTerm = { term: SchedulerTerm; year: number };
+type StrategyId = 'balanced' | 'acceleration' | 'light';
 &nbsp;
-type ReviewFormState = {
-  rating: number;
-  difficultyRating: number | null;
-  workloadRating: number | null;
-  wouldTakeAgain: string;
-  classTaken: string;
-  periodTaken: string;
-  gradeReceived: string;
-  positives: string;
-  negatives: string;
-  wouldLikeToSee: string;
-  studyTips: string;
-  anonymous: boolean;
+export type SchedulerCourse = {
+  id: number;
+  courseIdent: string;
+  name: string;
+  credits: number;
+  offered?: string;
+  prerequisites?: string[];
+  prereq_txt?: string;
 };
 &nbsp;
-const DEFAULT_FORM: ReviewFormState = <span class="cstat-no" title="statement not covered" >{</span>
-  rating: 5,
-  difficultyRating: null,
-  workloadRating: null,
-  wouldTakeAgain: '',
-  classTaken: '',
-  periodTaken: '',
-  gradeReceived: '',
-  positives: '',
-  negatives: '',
-  wouldLikeToSee: '',
-  studyTips: '',
-  anonymous: false,
+export type SchedulerRequirementGroup = {
+  id: number;
+  name: string;
+  satisfyingCredits: number;
+  courses: SchedulerCourse[];
 };
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >summarizeExternalRating(r</span>ating: ProfessorExternalRating): string {
-<span class="cstat-no" title="statement not covered" >  if (rating.averageRating !== null &amp;&amp; rating.reviewCount !== null) {</span>
-<span class="cstat-no" title="statement not covered" >    return `${rating.averageRating.toFixed(1)} / 5 · ${rating.reviewCount} ratings`;</span>
+export type SchedulerRequirement = {
+  id: number;
+  name: string;
+  satisfyingCredits: number;
+  courses: SchedulerCourse[];
+  requirementGroups: SchedulerRequirementGroup[];
+};
+&nbsp;
+export type SchedulerMajor = {
+  id: number;
+  name: string;
+  degreeRequirements: SchedulerRequirement[];
+};
+&nbsp;
+type RequirementReason = {
+  key: string;
+  label: string;
+  kind: 'direct' | 'group';
+  creditsApplied: number;
+};
+&nbsp;
+type CandidateCourse = {
+  course: SchedulerCourse;
+  normalizedIdent: string;
+  reasons: RequirementReason[];
+  unlockCount: number;
+  prereqOk: boolean;
+  offeredOk: boolean;
+  validCredits: boolean;
+  plannedElsewhere: boolean;
+};
+&nbsp;
+type CandidatePoolSnapshot = {
+  candidates: CandidateCourse[];
+  blockedCount: number;
+  invalidCreditCount: number;
+  plannedElsewhereCount: number;
+};
+&nbsp;
+type RequirementState = {
+  unmetDirectCount: number;
+  unmetGroupCount: number;
+  remainingGroupCredits: number;
+};
+&nbsp;
+type StrategyConfig = {
+  id: StrategyId;
+  title: string;
+  summary: string;
+  creditLimit: number;
+  maxClasses: number;
+};
+&nbsp;
+type ScheduledContext = {
+  completed: Set&lt;string&gt;;
+  inProgress: Set&lt;string&gt;;
+  priorScheduled: Map&lt;string, SchedulerCourse&gt;;
+  lockedTarget: Map&lt;string, SchedulerCourse&gt;;
+  laterScheduled: Map&lt;string, SchedulerCourse&gt;;
+  scheduledAnywhere: Set&lt;string&gt;;
+};
+&nbsp;
+export type SchedulerDraftCourse = SchedulerCourse &amp; {
+  rationale: string;
+  reasonLabels: string[];
+  unlockCount: number;
+};
+&nbsp;
+export type DraftOption = {
+  id: string;
+  title: string;
+  summary: string;
+  projectedCredits: number;
+  lockedCredits: number;
+  recommendedCredits: number;
+  lockedCourses: SchedulerDraftCourse[];
+  recommendedCourses: SchedulerDraftCourse[];
+  notes: string;
+  blockedCount: number;
+  invalidCreditCount: number;
+  plannedElsewhereCount: number;
+  requirementGain: number;
+};
+&nbsp;
+export type SchedulerPlanSummary = {
+  requirements: number;
+  groupedRequirements: number;
+  coursePool: number;
+  unmetDirectCount: number;
+  unmetGroupCount: number;
+  remainingGroupCredits: number;
+  lockedTargetCount: number;
+  lockedTargetCredits: number;
+  plannedElsewhereCount: number;
+  blockedCount: number;
+  invalidCreditCount: number;
+  targetTermIsFuture: boolean;
+  usesInProgressForFuture: boolean;
+};
+&nbsp;
+export type DraftGenerationResult = {
+  options: DraftOption[];
+  summary: SchedulerPlanSummary;
+};
+&nbsp;
+const TERM_ORDER: SchedulerTerm[] = <span class="cstat-no" title="statement not covered" >['SPRING', 'SUMMER', 'FALL'];</span>
+const TERM_RANK: Record&lt;SchedulerTerm, number&gt; = <span class="cstat-no" title="statement not covered" >{</span>
+  SPRING: 1,
+  SUMMER: 2,
+  FALL: 3,
+};
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >parseSchedulerTerm(v</span>alue: string): ParsedTerm | null {
+  const [rawTerm, rawYear] = <span class="cstat-no" title="statement not covered" >value.trim().toUpperCase().split(/\s+/);</span>
+  const year = <span class="cstat-no" title="statement not covered" >Number(rawYear);</span>
+<span class="cstat-no" title="statement not covered" >  if (!TERM_ORDER.includes(rawTerm as SchedulerTerm) || !Number.isFinite(year)) {</span>
+<span class="cstat-no" title="statement not covered" >    return null;</span>
   }
-<span class="cstat-no" title="statement not covered" >  if (rating.averageRating !== null) {</span>
-<span class="cstat-no" title="statement not covered" >    return `${rating.averageRating.toFixed(1)} / 5`;</span>
+<span class="cstat-no" title="statement not covered" >  return { term: rawTerm as SchedulerTerm, year };</span>
+}
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >nextSchedulerTerm(v</span>alue: ParsedTerm): ParsedTerm {
+  const index = <span class="cstat-no" title="statement not covered" >TERM_ORDER.indexOf(value.term);</span>
+<span class="cstat-no" title="statement not covered" >  if (index &lt; TERM_ORDER.length - 1) {</span>
+<span class="cstat-no" title="statement not covered" >    return { term: TERM_ORDER[index + 1], year: value.year };</span>
   }
-<span class="cstat-no" title="statement not covered" >  if (rating.reviewCount !== null) {</span>
-<span class="cstat-no" title="statement not covered" >    return `${rating.reviewCount} ratings`;</span>
+<span class="cstat-no" title="statement not covered" >  return { term: TERM_ORDER[0], year: value.year + 1 };</span>
+}
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >buildSchedulerTermOptions(c</span>ount = <span class="branch-0 cbranch-no" title="branch not covered" >8): string[] {</span>
+  const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const year = <span class="cstat-no" title="statement not covered" >now.getFullYear();</span>
+  const month = <span class="cstat-no" title="statement not covered" >now.getMonth() + 1;</span>
+  const startingTerm: SchedulerTerm = <span class="cstat-no" title="statement not covered" >month &lt;= 5 ? 'SPRING' : month &lt;= 8 ? 'SUMMER' : 'FALL';</span>
+  const start = <span class="cstat-no" title="statement not covered" >{ term: startingTerm, year };</span>
+  const options: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  let cursor = <span class="cstat-no" title="statement not covered" >start;</span>
+<span class="cstat-no" title="statement not covered" >  for (let index = <span class="cstat-no" title="statement not covered" >0; i</span>ndex &lt; count; index += 1) {</span>
+<span class="cstat-no" title="statement not covered" >    options.push(`${cursor.term} ${cursor.year}`);</span>
+<span class="cstat-no" title="statement not covered" >    cursor = nextSchedulerTerm(cursor);</span>
   }
-<span class="cstat-no" title="statement not covered" >  return 'Profile link available';</span>
+<span class="cstat-no" title="statement not covered" >  return options;</span>
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >normalizeRole(r</span>ole: string | null | undefined): string {
-<span class="cstat-no" title="statement not covered" >  if (!role) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-  const normalized = <span class="cstat-no" title="statement not covered" >role.trim().toUpperCase();</span>
-<span class="cstat-no" title="statement not covered" >  return normalized.startsWith('ROLE_') ? normalized.substring(5) : normalized;</span>
-}
+export function <span class="fstat-no" title="function not covered" >generateDraftOptions(</span>
+  majorData: SchedulerMajor | null,
+  flowchart: Flowchart | null,
+  targetTermRaw: string,
+  maxCredits: number,
+  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid'
+): DraftGenerationResult {
+  const emptyResult: DraftGenerationResult = <span class="cstat-no" title="statement not covered" >{</span>
+    options: [],
+    summary: {
+      requirements: 0,
+      groupedRequirements: 0,
+      coursePool: 0,
+      unmetDirectCount: 0,
+      unmetGroupCount: 0,
+      remainingGroupCredits: 0,
+      lockedTargetCount: 0,
+      lockedTargetCredits: 0,
+      plannedElsewhereCount: 0,
+      blockedCount: 0,
+      invalidCreditCount: 0,
+      targetTermIsFuture: false,
+      usesInProgressForFuture: false,
+    },
+  };
 &nbsp;
-function <span class="fstat-no" title="function not covered" >renderStars(v</span>alue: number): string {
-  const clamped = <span class="cstat-no" title="statement not covered" >Math.max(0, Math.min(5, Math.round(value)));</span>
-<span class="cstat-no" title="statement not covered" >  return `${'★'.repeat(clamped)}${'☆'.repeat(5 - clamped)}`;</span>
-}
+<span class="cstat-no" title="statement not covered" >  if (!majorData) {</span>
+<span class="cstat-no" title="statement not covered" >    return emptyResult;</span>
+  }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >formatDateTime(v</span>alue: string | null | undefined): string {
-<span class="cstat-no" title="statement not covered" >  if (!value) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-  const parsed = <span class="cstat-no" title="statement not covered" >new Date(value);</span>
-<span class="cstat-no" title="statement not covered" >  if (Number.isNaN(parsed.getTime())) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-<span class="cstat-no" title="statement not covered" >  return parsed.toLocaleString();</span>
-}
+  const parsedTargetTerm = <span class="cstat-no" title="statement not covered" >parseSchedulerTerm(targetTermRaw);</span>
+<span class="cstat-no" title="statement not covered" >  if (!parsedTargetTerm) {</span>
+<span class="cstat-no" title="statement not covered" >    return emptyResult;</span>
+  }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >getRateMyProfessorsLink(r</span>atings: ProfessorExternalRating[] | null | undefined): string {
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    ratings?.find(<span class="fstat-no" title="function not covered" >(r</span>ating) =&gt; <span class="cstat-no" title="statement not covered" >rating.sourceSystem === 'RATE_MY_PROFESSORS' &amp;&amp; Boolean(rating.sourceUrl))</span>
-      ?.sourceUrl ?? ''
+  const currentTerm = <span class="cstat-no" title="statement not covered" >inferCurrentSchedulerTerm();</span>
+  const targetTermIsFuture = <span class="cstat-no" title="statement not covered" >compareTerms(parsedTargetTerm, currentTerm) &gt; 0;</span>
+  const scheduledContext = <span class="cstat-no" title="statement not covered" >buildScheduledContext(flowchart, parsedTargetTerm);</span>
+  const completedSet = <span class="cstat-no" title="statement not covered" >new Set(scheduledContext.completed);</span>
+  const priorScheduledSet = <span class="cstat-no" title="statement not covered" >new Set(scheduledContext.priorScheduled.keys());</span>
+  const lockedTargetSet = <span class="cstat-no" title="statement not covered" >new Set(scheduledContext.lockedTarget.keys());</span>
+  const inProgressCoverageSet = <span class="cstat-no" title="statement not covered" >targetTermIsFuture ? new Set(scheduledContext.inProgress) : new Set&lt;string&gt;();</span>
+&nbsp;
+  const coverageWithoutTarget = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;([</span>
+    ...completedSet,
+    ...priorScheduledSet,
+    ...inProgressCoverageSet,
+  ]);
+  const coverageBaseline = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;([</span>
+    ...coverageWithoutTarget,
+    ...lockedTargetSet,
+  ]);
+  const prereqReadySet = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;([</span>
+    ...completedSet,
+    ...priorScheduledSet,
+    ...inProgressCoverageSet,
+  ]);
+&nbsp;
+  const <span class="cstat-no" title="statement not covered" >groupedRequirements = (majorData.degreeRequirements ?? []).reduce(</span>
+<span class="fstat-no" title="function not covered" >    (s</span>um, requirement) =&gt; <span class="cstat-no" title="statement not covered" >sum + (requirement.requirementGroups?.length ?? 0),</span>
+    0
   );
+  const coursePool = <span class="cstat-no" title="statement not covered" >collectUniqueCourses(majorData).size;</span>
+  const lockedTargetCourses = <span class="cstat-no" title="statement not covered" >Array.from(scheduledContext.lockedTarget.values());</span>
+  const lockedTargetCredits = <span class="cstat-no" title="statement not covered" >lockedTargetCourses.reduce(<span class="fstat-no" title="function not covered" >(s</span>um, course) =&gt; <span class="cstat-no" title="statement not covered" >sum + courseCredits(course), 0</span>);</span>
+  const unlockMap = <span class="cstat-no" title="statement not covered" >collectUnlockMap(majorData);</span>
+  const requirementState = <span class="cstat-no" title="statement not covered" >computeRequirementState(majorData, coverageBaseline);</span>
+  const initialCandidatePool = <span class="cstat-no" title="statement not covered" >buildCandidatePool(</span>
+    majorData,
+    coverageBaseline,
+    prereqReadySet,
+    parsedTargetTerm,
+    scheduledContext.laterScheduled,
+    scheduledContext.scheduledAnywhere,
+    unlockMap
+  );
+&nbsp;
+  const summary: SchedulerPlanSummary = <span class="cstat-no" title="statement not covered" >{</span>
+    requirements: majorData.degreeRequirements?.length ?? 0,
+    groupedRequirements,
+    coursePool,
+    unmetDirectCount: requirementState.unmetDirectCount,
+    unmetGroupCount: requirementState.unmetGroupCount,
+    remainingGroupCredits: requirementState.remainingGroupCredits,
+    lockedTargetCount: lockedTargetCourses.length,
+    lockedTargetCredits,
+    plannedElsewhereCount: initialCandidatePool.plannedElsewhereCount,
+    blockedCount: initialCandidatePool.blockedCount,
+    invalidCreditCount: initialCandidatePool.invalidCreditCount,
+    targetTermIsFuture,
+    usesInProgressForFuture: targetTermIsFuture &amp;&amp; scheduledContext.inProgress.size &gt; 0,
+  };
+&nbsp;
+  const lockedTargetDraftCourses = <span class="cstat-no" title="statement not covered" >buildLockedTargetDraftCourses(</span>
+    lockedTargetCourses,
+    majorData,
+    coverageWithoutTarget,
+    prereqReadySet,
+    parsedTargetTerm,
+    scheduledContext.scheduledAnywhere
+  );
+&nbsp;
+  const strategies = <span class="cstat-no" title="statement not covered" >buildStrategyConfigs(maxCredits, lockedTargetCredits);</span>
+  const options = <span class="cstat-no" title="statement not covered" >strategies.map(<span class="fstat-no" title="function not covered" >(s</span>trategy) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    buildOption({</span>
+      strategy,
+      majorData,
+      parsedTargetTerm,
+      coverageBaseline,
+      prereqReadySet,
+      lockedTargetDraftCourses,
+      lockedTargetCredits,
+      laterScheduled: scheduledContext.laterScheduled,
+      scheduledAnywhere: scheduledContext.scheduledAnywhere,
+      unlockMap,
+      preferredMode,
+    })
+  );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return { options, summary };</span>
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >formatSnapshotDate(v</span>alue: string | null | undefined): string {
-<span class="cstat-no" title="statement not covered" >  if (!value) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-  const parsed = <span class="cstat-no" title="statement not covered" >new Date(value);</span>
-<span class="cstat-no" title="statement not covered" >  if (Number.isNaN(parsed.getTime())) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-<span class="cstat-no" title="statement not covered" >  return parsed.toLocaleDateString();</span>
-}
+function <span class="fstat-no" title="function not covered" >buildOption(p</span>arams: {
+  strategy: StrategyConfig;
+  majorData: SchedulerMajor;
+  parsedTargetTerm: ParsedTerm;
+  coverageBaseline: Set&lt;string&gt;;
+  prereqReadySet: Set&lt;string&gt;;
+  lockedTargetDraftCourses: SchedulerDraftCourse[];
+  lockedTargetCredits: number;
+  laterScheduled: Map&lt;string, SchedulerCourse&gt;;
+  scheduledAnywhere: Set&lt;string&gt;;
+  unlockMap: Map&lt;string, SchedulerCourse[]&gt;;
+  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid';
+}): DraftOption {
+  const {
+    strategy,
+    majorData,
+    parsedTargetTerm,
+    coverageBaseline,
+    prereqReadySet,
+    lockedTargetDraftCourses,
+    lockedTargetCredits,
+    laterScheduled,
+    scheduledAnywhere,
+    unlockMap,
+    preferredMode,
+  } = <span class="cstat-no" title="statement not covered" >params;</span>
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >formatExternalSummary(</span>
-  rating: ProfessorExternalRating &amp; { averageRating: number; reviewCount: number }
-): string {
-<span class="cstat-no" title="statement not covered" >  return `${rating.averageRating.toFixed(1)} / 5 · ${rating.reviewCount} ratings`;</span>
-}
+  const initialPool = <span class="cstat-no" title="statement not covered" >buildCandidatePool(</span>
+    majorData,
+    coverageBaseline,
+    prereqReadySet,
+    parsedTargetTerm,
+    laterScheduled,
+    scheduledAnywhere,
+    unlockMap
+  );
+  const selectedCourses: SchedulerDraftCourse[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  const selectedIdents = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
+  const coverageAfterSelections = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;(coverageBaseline);</span>
+  const departmentCounts = <span class="cstat-no" title="statement not covered" >new Map&lt;string, number&gt;();</span>
+  const creditLimit = <span class="cstat-no" title="statement not covered" >Math.max(strategy.creditLimit, lockedTargetCredits);</span>
+  let recommendedCredits = <span class="cstat-no" title="statement not covered" >0;</span>
 &nbsp;
-function <span class="fstat-no" title="function not covered" >fromReview(r</span>eview: ProfessorReview): ReviewFormState {
+<span class="cstat-no" title="statement not covered" >  while (selectedCourses.length &lt; strategy.maxClasses) {</span>
+    const candidatePool = <span class="cstat-no" title="statement not covered" >buildCandidatePool(</span>
+      majorData,
+      coverageAfterSelections,
+      prereqReadySet,
+      parsedTargetTerm,
+      laterScheduled,
+      scheduledAnywhere,
+      unlockMap
+    );
+    const eligible = <span class="cstat-no" title="statement not covered" >candidatePool.candidates</span>
+      .filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >!selectedIdents.has(candidate.normalizedIdent))</span>
+      .filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >!candidate.plannedElsewhere)</span>
+      .filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >candidate.prereqOk &amp;&amp; candidate.offeredOk &amp;&amp; candidate.validCredits)</span>
+      .filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >lockedTargetCredits + recommendedCredits + courseCredits(candidate.course) &lt;= creditLimit)</span>
+      .map(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; (<span class="cstat-no" title="statement not covered" >{</span>
+        candidate,
+        score: scoreCandidate(candidate, strategy.id, departmentCounts),
+      }))
+      .sort(<span class="fstat-no" title="function not covered" >(l</span>eft, right) =&gt; {
+<span class="cstat-no" title="statement not covered" >        if (right.score !== left.score) {</span>
+<span class="cstat-no" title="statement not covered" >          return right.score - left.score;</span>
+        }
+<span class="cstat-no" title="statement not covered" >        if (right.candidate.unlockCount !== left.candidate.unlockCount) {</span>
+<span class="cstat-no" title="statement not covered" >          return right.candidate.unlockCount - left.candidate.unlockCount;</span>
+        }
+<span class="cstat-no" title="statement not covered" >        return courseCredits(left.candidate.course) - courseCredits(right.candidate.course);</span>
+      });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (eligible.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    }
+&nbsp;
+    const winner = <span class="cstat-no" title="statement not covered" >eligible[0].candidate;</span>
+    const winnerDepartment = <span class="cstat-no" title="statement not covered" >extractDepartmentKey(winner.course.courseIdent);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    selectedCourses.push(candidateToDraftCourse(winner, 'Suggested for this draft because'));</span>
+<span class="cstat-no" title="statement not covered" >    selectedIdents.add(winner.normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >    coverageAfterSelections.add(winner.normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >    recommendedCredits += courseCredits(winner.course);</span>
+<span class="cstat-no" title="statement not covered" >    departmentCounts.set(winnerDepartment, (departmentCounts.get(winnerDepartment) ?? 0) + 1);</span>
+  }
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  return {</span>
-    rating: review.rating,
-    difficultyRating: review.difficultyRating ?? null,
-    workloadRating: review.workloadRating ?? null,
-    wouldTakeAgain:
-      review.wouldTakeAgain === null || review.wouldTakeAgain === undefined
-        ? ''
-        : review.wouldTakeAgain
-          ? 'yes'
-          : 'no',
-    classTaken: review.classTaken ?? '',
-    periodTaken: review.periodTaken ?? '',
-    gradeReceived: review.gradeReceived ?? '',
-    positives: review.positives ?? '',
-    negatives: review.negatives ?? '',
-    wouldLikeToSee: review.wouldLikeToSee ?? '',
-    studyTips: review.studyTips ?? '',
-    anonymous: review.anonymous,
+    id: strategy.id,
+    title: strategy.title,
+    summary: strategy.summary,
+    projectedCredits: lockedTargetCredits + recommendedCredits,
+    lockedCredits: lockedTargetCredits,
+    recommendedCredits,
+    lockedCourses: lockedTargetDraftCourses,
+    recommendedCourses: selectedCourses,
+    notes: buildOptionNotes({
+      selectedCourses,
+      lockedTargetCredits,
+      creditLimit: strategy.creditLimit,
+      initialPool,
+      preferredMode,
+    }),
+    blockedCount: initialPool.blockedCount,
+    invalidCreditCount: initialPool.invalidCreditCount,
+    plannedElsewhereCount: initialPool.plannedElsewhereCount,
+    requirementGain: countRequirementMoves(selectedCourses),
   };
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >toPayload(f</span>orm: ReviewFormState) {
+function <span class="fstat-no" title="function not covered" >buildStrategyConfigs(m</span>axCredits: number, lockedTargetCredits: number): StrategyConfig[] {
+  const clampedCredits = <span class="cstat-no" title="statement not covered" >clamp(maxCredits, 6, 20);</span>
+  const balancedLimit = <span class="cstat-no" title="statement not covered" >Math.max(clampedCredits, lockedTargetCredits);</span>
+  const accelerationLimit = <span class="cstat-no" title="statement not covered" >Math.max(Math.min(20, clampedCredits + 2), lockedTargetCredits);</span>
+  const lightLimit = <span class="cstat-no" title="statement not covered" >Math.max(Math.max(6, clampedCredits - 3), lockedTargetCredits);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return [</span>
+    {
+      id: 'balanced',
+      title: 'Balanced Path',
+      summary: 'Keeps steady degree progress while avoiding overloaded drafts.',
+      creditLimit: balancedLimit,
+      maxClasses: 5,
+    },
+    {
+      id: 'acceleration',
+      title: 'Acceleration Path',
+      summary: 'Pushes harder on unlocks and total requirement coverage.',
+      creditLimit: accelerationLimit,
+      maxClasses: 6,
+    },
+    {
+      id: 'light',
+      title: 'Light Load Path',
+      summary: 'Protects breathing room while still moving requirements forward.',
+      creditLimit: lightLimit,
+      maxClasses: 4,
+    },
+  ];
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >buildOptionNotes(p</span>arams: {
+  selectedCourses: SchedulerDraftCourse[];
+  lockedTargetCredits: number;
+  creditLimit: number;
+  initialPool: CandidatePoolSnapshot;
+  preferredMode: 'Any' | 'In Person' | 'Online' | 'Hybrid';
+}): string {
+  const { selectedCourses, lockedTargetCredits, creditLimit, initialPool, preferredMode } = <span class="cstat-no" title="statement not covered" >params;</span>
+  const notes: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (lockedTargetCredits &gt; creditLimit) {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push(`Your existing target-term plan is already ${lockedTargetCredits - creditLimit} credits above this option's credit target.`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (selectedCourses.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push('No additional courses fit the current prerequisite, offering, and credit-cap constraints.');</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (initialPool.plannedElsewhereCount &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push(`${initialPool.plannedElsewhereCount} remaining requirement courses were skipped because they are already planned in later semesters.`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (initialPool.blockedCount &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push(`${initialPool.blockedCount} remaining courses are blocked by prerequisites or term availability.`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (initialPool.invalidCreditCount &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push(`${initialPool.invalidCreditCount} courses were skipped because their credit values look incomplete or invalid.`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (preferredMode !== 'Any') {</span>
+<span class="cstat-no" title="statement not covered" >    notes.push(`"${preferredMode}" remains advisory only until future-term section delivery data is available.`);</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return notes.join(' ');</span>
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >buildLockedTargetDraftCourses(</span>
+  lockedCourses: SchedulerCourse[],
+  majorData: SchedulerMajor,
+  coverageWithoutTarget: Set&lt;string&gt;,
+  prereqReadySet: Set&lt;string&gt;,
+  parsedTargetTerm: ParsedTerm,
+  scheduledAnywhere: Set&lt;string&gt;
+): SchedulerDraftCourse[] {
+  const candidatePool = <span class="cstat-no" title="statement not covered" >buildCandidatePool(</span>
+    majorData,
+    coverageWithoutTarget,
+    prereqReadySet,
+    parsedTargetTerm,
+    new Map&lt;string, SchedulerCourse&gt;(),
+    scheduledAnywhere,
+    collectUnlockMap(majorData)
+  );
+  const candidateByIdent = <span class="cstat-no" title="statement not covered" >new Map(</span>
+    candidatePool.candidates.map(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >[candidate.normalizedIdent, candidate] as const)</span>
+  );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return lockedCourses.map(<span class="fstat-no" title="function not covered" >(c</span>ourse) =&gt; {</span>
+    const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+    const candidate = <span class="cstat-no" title="statement not covered" >candidateByIdent.get(normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >    if (!candidate) {</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        ...course,
+        rationale: 'Already planned in this target term on your active flowchart.',
+        reasonLabels: ['Already in target term'],
+        unlockCount: 0,
+      };
+    }
+<span class="cstat-no" title="statement not covered" >    return candidateToDraftCourse(candidate, 'Already planned in this target term and');</span>
+  });
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >buildCandidatePool(</span>
+  majorData: SchedulerMajor,
+  coverageSet: Set&lt;string&gt;,
+  prereqReadySet: Set&lt;string&gt;,
+  parsedTargetTerm: ParsedTerm,
+  laterScheduled: Map&lt;string, SchedulerCourse&gt;,
+  scheduledAnywhere: Set&lt;string&gt;,
+  unlockMap: Map&lt;string, SchedulerCourse[]&gt;
+): CandidatePoolSnapshot {
+  const candidateByIdent = <span class="cstat-no" title="statement not covered" >new Map&lt;string, CandidateCourse&gt;();</span>
+  const state = <span class="cstat-no" title="statement not covered" >computeRequirementStateWithGroups(majorData, coverageSet);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const requirement of majorData.degreeRequirements ?? []) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const course of requirement.courses ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedIdent || coverageSet.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+<span class="cstat-no" title="statement not covered" >      upsertCandidate(candidateByIdent, course, normalizedIdent, {</span>
+        key: `direct:${requirement.id}:${normalizedIdent}`,
+        label: requirement.name,
+        kind: 'direct',
+        creditsApplied: 1,
+      });
+    }
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const groupState of state.groupsNeedingWork) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const course of groupState.group.courses ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedIdent || coverageSet.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+<span class="cstat-no" title="statement not covered" >      upsertCandidate(candidateByIdent, course, normalizedIdent, {</span>
+        key: `group:${groupState.requirementId}:${groupState.group.id}:${normalizedIdent}`,
+        label: groupState.group.name || groupState.requirementName,
+        kind: 'group',
+        creditsApplied: Math.min(courseCredits(course), groupState.remainingCredits),
+      });
+    }
+  }
+&nbsp;
+  const candidates = <span class="cstat-no" title="statement not covered" >Array.from(candidateByIdent.values()).map(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; {</span>
+    const offeredOk = <span class="cstat-no" title="statement not covered" >isOfferedInTerm(candidate.course, parsedTargetTerm.term);</span>
+    const prereqOk = <span class="cstat-no" title="statement not covered" >prerequisitesSatisfied(candidate.course, prereqReadySet);</span>
+    const validCredits = <span class="cstat-no" title="statement not covered" >hasValidCredits(candidate.course);</span>
+    const plannedElsewhere = <span class="cstat-no" title="statement not covered" >laterScheduled.has(candidate.normalizedIdent);</span>
+    const unlockCount = <span class="cstat-no" title="statement not covered" >countUnlockedCourses(</span>
+      candidate.normalizedIdent,
+      prereqReadySet,
+      coverageSet,
+      scheduledAnywhere,
+      unlockMap
+    );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      ...candidate,
+      offeredOk,
+      prereqOk,
+      validCredits,
+      plannedElsewhere,
+      unlockCount,
+    };
+  });
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  return {</span>
-    rating: form.rating,
-    difficultyRating: form.difficultyRating,
-    workloadRating: form.workloadRating,
-    wouldTakeAgain: form.wouldTakeAgain === '' ? null : form.wouldTakeAgain === 'yes',
-    classTaken: form.classTaken.trim() || null,
-    periodTaken: form.periodTaken.trim() || null,
-    gradeReceived: form.gradeReceived.trim() || null,
-    positives: form.positives.trim() || null,
-    negatives: form.negatives.trim() || null,
-    wouldLikeToSee: form.wouldLikeToSee.trim() || null,
-    studyTips: form.studyTips.trim() || null,
-    anonymous: form.anonymous,
+    candidates,
+    blockedCount: candidates.filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >!candidate.prereqOk || !candidate.offeredOk)</span>.length,
+    invalidCreditCount: candidates.filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >!candidate.validCredits)</span>.length,
+    plannedElsewhereCount: candidates.filter(<span class="fstat-no" title="function not covered" >(c</span>andidate) =&gt; <span class="cstat-no" title="statement not covered" >candidate.plannedElsewhere)</span>.length,
   };
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >StarPicker({</span>
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (next: number) =&gt; void;
-}) {
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;div className="flex items-center gap-1"&gt;
-      {[1, 2, 3, 4, 5].map(<span class="fstat-no" title="function not covered" >(n</span>) =&gt; (
-<span class="cstat-no" title="statement not covered" >        &lt;button</span>
-          key={n}
-          type="button"
-          onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >o</span>nChange(n)}</span>
-          className={`rounded px-1 text-xl transition ${n &lt;= (value ?? 0) ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
-        &gt;
-          ★
-        &lt;/button&gt;
-      ))}
-    &lt;/div&gt;
-  );
+function <span class="fstat-no" title="function not covered" >computeRequirementState(m</span>ajorData: SchedulerMajor, coverageSet: Set&lt;string&gt;): RequirementState {
+  const state = <span class="cstat-no" title="statement not covered" >computeRequirementStateWithGroups(majorData, coverageSet);</span>
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    unmetDirectCount: state.unmetDirectCount,
+    unmetGroupCount: state.unmetGroupCount,
+    remainingGroupCredits: state.remainingGroupCredits,
+  };
 }
 &nbsp;
-export default function <span class="fstat-no" title="function not covered" >ProfessorReviews() {</span>
-  const [queryInput, setQueryInput<span class="cstat-no" title="statement not covered" >] = useState('');</span>
-  const [query, setQuery<span class="cstat-no" title="statement not covered" >] = useState('');</span>
-  const [department, setDepartment<span class="cstat-no" title="statement not covered" >] = useState('');</span>
-  const [departments, setDepartments<span class="cstat-no" title="statement not covered" >] = useState&lt;string[]&gt;([]);</span>
-  const [directoryStatus, setDirectoryStatus<span class="cstat-no" title="statement not covered" >] = useState&lt;ProfessorDirectoryStatus | null&gt;(null);</span>
-  const [sort, setSort<span class="cstat-no" title="statement not covered" >] = useState&lt;SortMode&gt;('rating');</span>
-  const [page, setPage<span class="cstat-no" title="statement not covered" >] = useState(0);</span>
-  const [professors, setProfessors<span class="cstat-no" title="statement not covered" >] = useState&lt;ProfessorSummary[]&gt;([]);</span>
-  const [totalPages, setTotalPages<span class="cstat-no" title="statement not covered" >] = useState(0);</span>
-  const [totalElements, setTotalElements<span class="cstat-no" title="statement not covered" >] = useState(0);</span>
-  const [listLoading, setListLoading<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [selectedProfessorId, setSelectedProfessorId<span class="cstat-no" title="statement not covered" >] = useState&lt;number | null&gt;(null);</span>
-  const [detailLoading, setDetailLoading<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [reviewsLoading, setReviewsLoading<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [detail, setDetail<span class="cstat-no" title="statement not covered" >] = useState&lt;ProfessorDetail | null&gt;(null);</span>
-  const [reviewsPage, setReviewsPage<span class="cstat-no" title="statement not covered" >] = useState&lt;ProfessorReviewPageResponse | null&gt;(null);</span>
-  const [form, setForm<span class="cstat-no" title="statement not covered" >] = useState&lt;ReviewFormState&gt;(DEFAULT_FORM);</span>
-  const [advancedOpen, setAdvancedOpen<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [savingReview, setSavingReview<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [manualRmpLink, setManualRmpLink<span class="cstat-no" title="statement not covered" >] = useState('');</span>
-  const [savingManualLink, setSavingManualLink<span class="cstat-no" title="statement not covered" >] = useState(false);</span>
-  const [error, setError<span class="cstat-no" title="statement not covered" >] = useState&lt;string | null&gt;(null);</span>
-  const [success, setSuccess<span class="cstat-no" title="statement not covered" >] = useState&lt;string | null&gt;(null);</span>
-  const [viewerRole<span class="cstat-no" title="statement not covered" >] = useState(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const stored = <span class="cstat-no" title="statement not covered" >localStorage.getItem('user');</span>
-<span class="cstat-no" title="statement not covered" >      if (!stored) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-      const parsed = <span class="cstat-no" title="statement not covered" >JSON.parse(stored) as { role?: string };</span>
-<span class="cstat-no" title="statement not covered" >      return normalizeRole(parsed.role);</span>
-    } catch {
-<span class="cstat-no" title="statement not covered" >      return '';</span>
+function <span class="fstat-no" title="function not covered" >computeRequirementStateWithGroups(m</span>ajorData: SchedulerMajor, coverageSet: Set&lt;string&gt;) {
+  const groupsNeedingWork: Array&lt;{
+    requirementId: number;
+    requirementName: string;
+    group: SchedulerRequirementGroup;
+    remainingCredits: number;
+  }&gt; = <span class="cstat-no" title="statement not covered" >[];</span>
+  let unmetDirectCount = <span class="cstat-no" title="statement not covered" >0;</span>
+  let unmetGroupCount = <span class="cstat-no" title="statement not covered" >0;</span>
+  let remainingGroupCredits = <span class="cstat-no" title="statement not covered" >0;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const requirement of majorData.degreeRequirements ?? []) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const course of requirement.courses ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedIdent || coverageSet.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+<span class="cstat-no" title="statement not covered" >      unmetDirectCount += 1;</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    for (const group of requirement.requirementGroups ?? []) {</span>
+      const requiredCredits = <span class="cstat-no" title="statement not covered" >groupRequiredCredits(group);</span>
+      const coveredCredits = <span class="cstat-no" title="statement not covered" >dedupeCourses(group.courses ?? []).reduce(<span class="fstat-no" title="function not covered" >(s</span>um, course) =&gt; {</span>
+        const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >        if (!normalizedIdent || !coverageSet.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >          return sum;</span>
+        }
+<span class="cstat-no" title="statement not covered" >        return sum + groupCourseContribution(course, group);</span>
+      }, 0);
+      const remainingCredits = <span class="cstat-no" title="statement not covered" >Math.max(requiredCredits - Math.min(requiredCredits, coveredCredits), 0);</span>
+<span class="cstat-no" title="statement not covered" >      if (remainingCredits &lt;= 0) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      unmetGroupCount += 1;</span>
+<span class="cstat-no" title="statement not covered" >      remainingGroupCredits += remainingCredits;</span>
+<span class="cstat-no" title="statement not covered" >      groupsNeedingWork.push({</span>
+        requirementId: requirement.id,
+        requirementName: requirement.name,
+        group,
+        remainingCredits,
+      });
+    }
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    unmetDirectCount,
+    unmetGroupCount,
+    remainingGroupCredits,
+    groupsNeedingWork,
+  };
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >buildScheduledContext(f</span>lowchart: Flowchart | null, parsedTargetTerm: ParsedTerm): ScheduledContext {
+  const completed = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
+  const inProgress = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
+  const priorScheduled = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse&gt;();</span>
+  const lockedTarget = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse&gt;();</span>
+  const laterScheduled = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse&gt;();</span>
+  const scheduledAnywhere = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
+  const <span class="cstat-no" title="statement not covered" >statusLookup = createStatusLookup(flowchart?.courseStatusMap);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  statusLookup.forEach(<span class="fstat-no" title="function not covered" >(r</span>awStatus, ident) =&gt; {</span>
+    const <span class="cstat-no" title="statement not covered" >normalizedStatus = normalizeStatus(rawStatus);</span>
+<span class="cstat-no" title="statement not covered" >    if (normalizedStatus === 'COMPLETED') {</span>
+<span class="cstat-no" title="statement not covered" >      completed.add(ident);</span>
+<span class="cstat-no" title="statement not covered" >      inProgress.delete(ident);</span>
+<span class="cstat-no" title="statement not covered" >      return;</span>
+    }
+<span class="cstat-no" title="statement not covered" >    if (normalizedStatus === 'IN_PROGRESS' &amp;&amp; !completed.has(ident)) {</span>
+<span class="cstat-no" title="statement not covered" >      inProgress.add(ident);</span>
     }
   });
 &nbsp;
-  const canReviewFromRole = <span class="cstat-no" title="statement not covered" >viewerRole === 'USER' || viewerRole === 'STUDENT';</span>
-  const canReview = <span class="cstat-no" title="statement not covered" >canReviewFromRole &amp;&amp; Boolean(detail?.currentUserCanReview);</span>
-  const canManageExternalLinks = <span class="cstat-no" title="statement not covered" >viewerRole === 'ADMIN';</span>
-  const directoryReady = <span class="cstat-no" title="statement not covered" >Boolean(directoryStatus?.ready);</span>
-  const directorySeeding = <span class="cstat-no" title="statement not covered" >Boolean(directoryStatus?.seeding);</span>
-  const directoryKnown = <span class="cstat-no" title="statement not covered" >directoryStatus !== null;</span>
-&nbsp;
-  const <span class="cstat-no" title="statement not covered" >selectedProfessor = useMemo(</span>
-<span class="fstat-no" title="function not covered" >    () =&gt; <span class="cstat-no" title="statement not covered" >p</span>rofessors.find(<span class="fstat-no" title="function not covered" >(p</span>) =&gt; <span class="cstat-no" title="statement not covered" >p.id === selectedProfessorId)</span> ?? null,</span>
-    [professors, selectedProfessorId]
+  const sortedSemesters = <span class="cstat-no" title="statement not covered" >[...(flowchart?.semesters ?? [])].sort(</span>
+<span class="fstat-no" title="function not covered" >    (l</span>eft, right) =&gt; <span class="cstat-no" title="statement not covered" >semesterRank(left) - semesterRank(right)</span>
   );
 &nbsp;
-  const loadDirectoryStatus = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const status = <span class="cstat-no" title="statement not covered" >await getProfessorDirectoryStatus();</span>
-<span class="cstat-no" title="statement not covered" >      setDirectoryStatus(status);</span>
-<span class="cstat-no" title="statement not covered" >      return status;</span>
-    } catch {
-<span class="cstat-no" title="statement not covered" >      setDirectoryStatus(null);</span>
-<span class="cstat-no" title="statement not covered" >      return null;</span>
+<span class="cstat-no" title="statement not covered" >  for (const semester of sortedSemesters) {</span>
+    const parsedSemester = <span class="cstat-no" title="statement not covered" >parseSemester(semester);</span>
+<span class="cstat-no" title="statement not covered" >    if (!parsedSemester) {</span>
+<span class="cstat-no" title="statement not covered" >      continue;</span>
     }
-  };
+    const relation = <span class="cstat-no" title="statement not covered" >compareTerms(parsedSemester, parsedTargetTerm);</span>
 &nbsp;
-  const loadDepartments = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const values = <span class="cstat-no" title="statement not covered" >await getProfessorDepartments();</span>
-<span class="cstat-no" title="statement not covered" >      setDepartments(values ?? []);</span>
-    } catch {
-<span class="cstat-no" title="statement not covered" >      setDepartments([]);</span>
-    }
-  };
-&nbsp;
-  const loadProfessors = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    setListLoading(true);</span>
-<span class="cstat-no" title="statement not covered" >    setError(null);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const result = <span class="cstat-no" title="statement not covered" >await browseProfessors({</span>
-        query: query || undefined,
-        department: department || undefined,
-        page,
-        size: 20,
-        sort,
-      });
-<span class="cstat-no" title="statement not covered" >      setProfessors(result.professors ?? []);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalPages(result.totalPages ?? 0);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalElements(result.totalElements ?? 0);</span>
-<span class="cstat-no" title="statement not covered" >      if (!selectedProfessorId &amp;&amp; (result.professors?.length ?? 0) &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >        setSelectedProfessorId(result.professors[0].id);</span>
+<span class="cstat-no" title="statement not covered" >    for (const course of semester.courses ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedIdent) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
       }
-    } catch (err: any) {
-      const message = <span class="cstat-no" title="statement not covered" >err?.response?.data?.message || err?.message || 'Failed to load professors.';</span>
-<span class="cstat-no" title="statement not covered" >      setError(message);</span>
-<span class="cstat-no" title="statement not covered" >      setProfessors([]);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalPages(0);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalElements(0);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setListLoading(false);</span>
-    }
-  };
 &nbsp;
-  const loadSelectedProfessor = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async (p</span>rofessorId: number) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    setDetailLoading(true);</span>
-<span class="cstat-no" title="statement not covered" >    setReviewsLoading(true);</span>
-<span class="cstat-no" title="statement not covered" >    setError(null);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const [detailData, reviewsData] = <span class="cstat-no" title="statement not covered" >await Promise.all([</span>
-        getProfessorDetail(professorId),
-        getProfessorReviews(professorId, { page: 0, size: 20 }),
-      ]);
-<span class="cstat-no" title="statement not covered" >      setDetail(detailData);</span>
-<span class="cstat-no" title="statement not covered" >      setReviewsPage(reviewsData);</span>
-<span class="cstat-no" title="statement not covered" >      if (detailData.myReview) {</span>
-<span class="cstat-no" title="statement not covered" >        setForm(fromReview(detailData.myReview));</span>
-      } else {
-<span class="cstat-no" title="statement not covered" >        setForm(DEFAULT_FORM);</span>
+<span class="cstat-no" title="statement not covered" >      scheduledAnywhere.add(normalizedIdent);</span>
+      const schedulerCourse = <span class="cstat-no" title="statement not covered" >toSchedulerCourse(course);</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedStatus = normalizeStatus(statusLookup.get(normalizedIdent));</span>
+<span class="cstat-no" title="statement not covered" >      if (normalizedStatus === 'COMPLETED') {</span>
+<span class="cstat-no" title="statement not covered" >        completed.add(normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >        inProgress.delete(normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >      } else if (normalizedStatus === 'IN_PROGRESS' &amp;&amp; !completed.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >        inProgress.add(normalizedIdent);</span>
       }
-    } catch (err: any) {
-      const message = <span class="cstat-no" title="statement not covered" >err?.response?.data?.message || err?.message || 'Failed to load professor details.';</span>
-<span class="cstat-no" title="statement not covered" >      setError(message);</span>
-<span class="cstat-no" title="statement not covered" >      setDetail(null);</span>
-<span class="cstat-no" title="statement not covered" >      setReviewsPage(null);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setDetailLoading(false);</span>
-<span class="cstat-no" title="statement not covered" >      setReviewsLoading(false);</span>
-    }
-  };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-    let cancelled = <span class="cstat-no" title="statement not covered" >false;</span>
-    let timerId: number | null = <span class="cstat-no" title="statement not covered" >null;</span>
-&nbsp;
-    const pollStatus = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-      const status = <span class="cstat-no" title="statement not covered" >await loadDirectoryStatus();</span>
-<span class="cstat-no" title="statement not covered" >      if (cancelled) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >      if (!status?.ready) {</span>
-<span class="cstat-no" title="statement not covered" >        timerId = window.setTimeout(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >          void pollStatus();</span>
-        }, 2500);
+<span class="cstat-no" title="statement not covered" >      if (relation &lt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >        if (!priorScheduled.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >          priorScheduled.set(normalizedIdent, schedulerCourse);</span>
+        }
+<span class="cstat-no" title="statement not covered" >        continue;</span>
       }
-    };
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    void pollStatus();</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    return <span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >      cancelled = true;</span>
-<span class="cstat-no" title="statement not covered" >      if (timerId !== null) {</span>
-<span class="cstat-no" title="statement not covered" >        window.clearTimeout(timerId);</span>
+<span class="cstat-no" title="statement not covered" >      if (relation === 0) {</span>
+<span class="cstat-no" title="statement not covered" >        if (!lockedTarget.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >          lockedTarget.set(normalizedIdent, schedulerCourse);</span>
+        }
+<span class="cstat-no" title="statement not covered" >        continue;</span>
       }
-    };
-  }, []);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!directoryReady) {</span>
-<span class="cstat-no" title="statement not covered" >      setDepartments([]);</span>
-<span class="cstat-no" title="statement not covered" >      return;</span>
-    }
-<span class="cstat-no" title="statement not covered" >    void loadDepartments();</span>
-  }, [directoryReady]);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!directoryReady) {</span>
-<span class="cstat-no" title="statement not covered" >      setProfessors([]);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalPages(0);</span>
-<span class="cstat-no" title="statement not covered" >      setTotalElements(0);</span>
-<span class="cstat-no" title="statement not covered" >      return;</span>
-    }
-<span class="cstat-no" title="statement not covered" >    void loadProfessors();</span>
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, department, sort, page, directoryReady]);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!selectedProfessorId) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    void loadSelectedProfessor(selectedProfessorId);</span>
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProfessorId]);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    setManualRmpLink(getRateMyProfessorsLink(detail?.externalRatings));</span>
-  }, [detail]);
-&nbsp;
-  const onSearch = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(e</span>vent: FormEvent&lt;HTMLFormElement&gt;) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    event.preventDefault();</span>
-<span class="cstat-no" title="statement not covered" >    setPage(0);</span>
-<span class="cstat-no" title="statement not covered" >    setQuery(queryInput.trim());</span>
-  };
-&nbsp;
-  const saveReview = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!selectedProfessorId) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    setSavingReview(true);</span>
-<span class="cstat-no" title="statement not covered" >    setError(null);</span>
-<span class="cstat-no" title="statement not covered" >    setSuccess(null);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const payload = <span class="cstat-no" title="statement not covered" >toPayload(form);</span>
-<span class="cstat-no" title="statement not covered" >      if (detail?.myReview) {</span>
-<span class="cstat-no" title="statement not covered" >        await updateMyProfessorReview(selectedProfessorId, payload);</span>
-<span class="cstat-no" title="statement not covered" >        setSuccess('Your review was updated.');</span>
-      } else {
-<span class="cstat-no" title="statement not covered" >        await createProfessorReview(selectedProfessorId, payload);</span>
-<span class="cstat-no" title="statement not covered" >        setSuccess('Your review was posted.');</span>
+<span class="cstat-no" title="statement not covered" >      if (!laterScheduled.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >        laterScheduled.set(normalizedIdent, schedulerCourse);</span>
       }
-<span class="cstat-no" title="statement not covered" >      await loadSelectedProfessor(selectedProfessorId);</span>
-<span class="cstat-no" title="statement not covered" >      await loadProfessors();</span>
-    } catch (err: any) {
-      const message = <span class="cstat-no" title="statement not covered" >err?.response?.data?.message || err?.message || 'Failed to save review.';</span>
-<span class="cstat-no" title="statement not covered" >      setError(message);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setSavingReview(false);</span>
     }
-  };
+  }
 &nbsp;
-  const removeReview = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!selectedProfessorId || !detail?.myReview) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    setSavingReview(true);</span>
-<span class="cstat-no" title="statement not covered" >    setError(null);</span>
-<span class="cstat-no" title="statement not covered" >    setSuccess(null);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await deleteMyProfessorReview(selectedProfessorId);</span>
-<span class="cstat-no" title="statement not covered" >      setForm(DEFAULT_FORM);</span>
-<span class="cstat-no" title="statement not covered" >      setSuccess('Your review was deleted.');</span>
-<span class="cstat-no" title="statement not covered" >      await loadSelectedProfessor(selectedProfessorId);</span>
-<span class="cstat-no" title="statement not covered" >      await loadProfessors();</span>
-    } catch (err: any) {
-      const message = <span class="cstat-no" title="statement not covered" >err?.response?.data?.message || err?.message || 'Failed to delete review.';</span>
-<span class="cstat-no" title="statement not covered" >      setError(message);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setSavingReview(false);</span>
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    completed,
+    inProgress,
+    priorScheduled,
+    lockedTarget,
+    laterScheduled,
+    scheduledAnywhere,
+  };
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >collectUnlockMap(m</span>ajorData: SchedulerMajor): Map&lt;string, SchedulerCourse[]&gt; {
+  const unlockMap = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse[]&gt;();</span>
+<span class="cstat-no" title="statement not covered" >  for (const course of collectUniqueCourses(majorData).values()) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const rawPrereq of course.prerequisites ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedPrereq = normalizeCourseIdent(rawPrereq);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedPrereq) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+      const dependents = <span class="cstat-no" title="statement not covered" >unlockMap.get(normalizedPrereq) ?? [];</span>
+<span class="cstat-no" title="statement not covered" >      dependents.push(course);</span>
+<span class="cstat-no" title="statement not covered" >      unlockMap.set(normalizedPrereq, dependents);</span>
     }
-  };
+  }
+<span class="cstat-no" title="statement not covered" >  return unlockMap;</span>
+}
 &nbsp;
-  const saveManualLink = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!selectedProfessorId) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    setSavingManualLink(true);</span>
-<span class="cstat-no" title="statement not covered" >    setError(null);</span>
-<span class="cstat-no" title="statement not covered" >    setSuccess(null);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await saveRateMyProfessorsLink(selectedProfessorId, manualRmpLink.trim());</span>
-<span class="cstat-no" title="statement not covered" >      setSuccess('Rate My Professors link saved.');</span>
-<span class="cstat-no" title="statement not covered" >      await loadSelectedProfessor(selectedProfessorId);</span>
-<span class="cstat-no" title="statement not covered" >      await loadProfessors();</span>
-    } catch (err: any) {
-      const message =
-<span class="cstat-no" title="statement not covered" >        err?.response?.data?.message || err?.message || 'Failed to save Rate My Professors link.';</span>
-<span class="cstat-no" title="statement not covered" >      setError(message);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setSavingManualLink(false);</span>
+function <span class="fstat-no" title="function not covered" >countUnlockedCourses(</span>
+  candidateIdent: string,
+  prereqReadySet: Set&lt;string&gt;,
+  coverageSet: Set&lt;string&gt;,
+  scheduledAnywhere: Set&lt;string&gt;,
+  unlockMap: Map&lt;string, SchedulerCourse[]&gt;
+): number {
+<span class="cstat-no" title="statement not covered" >  return (unlockMap.get(candidateIdent) ?? []).filter(<span class="fstat-no" title="function not covered" >(c</span>ourse) =&gt; {</span>
+    const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >    if (!normalizedIdent || coverageSet.has(normalizedIdent) || scheduledAnywhere.has(normalizedIdent)) {</span>
+<span class="cstat-no" title="statement not covered" >      return false;</span>
     }
+<span class="cstat-no" title="statement not covered" >    return prerequisitesSatisfiedWithAddedCourse(course, prereqReadySet, candidateIdent);</span>
+  }).length;
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >prerequisitesSatisfied(c</span>ourse: SchedulerCourse, satisfied: Set&lt;string&gt;): boolean {
+  const prereqs = <span class="cstat-no" title="statement not covered" >course.prerequisites ?? [];</span>
+<span class="cstat-no" title="statement not covered" >  if (prereqs.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return prereqs.every(<span class="fstat-no" title="function not covered" >(r</span>awPrereq) =&gt; {</span>
+    const <span class="cstat-no" title="statement not covered" >normalized = normalizeCourseIdent(rawPrereq);</span>
+<span class="cstat-no" title="statement not covered" >    return !normalized || satisfied.has(normalized);</span>
+  });
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >prerequisitesSatisfiedWithAddedCourse(</span>
+  course: SchedulerCourse,
+  satisfied: Set&lt;string&gt;,
+  addedIdent: string
+): boolean {
+  const prereqs = <span class="cstat-no" title="statement not covered" >course.prerequisites ?? [];</span>
+<span class="cstat-no" title="statement not covered" >  if (prereqs.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return prereqs.every(<span class="fstat-no" title="function not covered" >(r</span>awPrereq) =&gt; {</span>
+    const <span class="cstat-no" title="statement not covered" >normalized = normalizeCourseIdent(rawPrereq);</span>
+<span class="cstat-no" title="statement not covered" >    return !normalized || normalized === addedIdent || satisfied.has(normalized);</span>
+  });
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >isOfferedInTerm(c</span>ourse: SchedulerCourse, term: SchedulerTerm): boolean {
+  const offered = <span class="cstat-no" title="statement not covered" >String(course.offered ?? '').toUpperCase();</span>
+<span class="cstat-no" title="statement not covered" >  if (!offered) {</span>
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return offered.includes(term) || offered.includes('EVERY');</span>
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >hasValidCredits(c</span>ourse: SchedulerCourse): boolean {
+  const credits = <span class="cstat-no" title="statement not covered" >Number(course.credits ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  return Number.isFinite(credits) &amp;&amp; credits &gt;= 1 &amp;&amp; credits &lt;= 6;</span>
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >scoreCandidate(</span>
+  candidate: CandidateCourse,
+  strategy: StrategyId,
+  departmentCounts: Map&lt;string, number&gt;
+): number {
+  const credits = <span class="cstat-no" title="statement not covered" >courseCredits(candidate.course);</span>
+  const departmentKey = <span class="cstat-no" title="statement not covered" >extractDepartmentKey(candidate.course.courseIdent);</span>
+  const <span class="cstat-no" title="statement not covered" >repeatedDepartmentPenalty = (departmentCounts.get(departmentKey) ?? 0) * 8;</span>
+  const requirementScore = <span class="cstat-no" title="statement not covered" >candidate.reasons.reduce(<span class="fstat-no" title="function not covered" >(s</span>um, reason) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (reason.kind === 'direct') {</span>
+<span class="cstat-no" title="statement not covered" >      return sum + 90;</span>
+    }
+<span class="cstat-no" title="statement not covered" >    return sum + Math.max(reason.creditsApplied, 1) * 18;</span>
+  }, 0);
+&nbsp;
+  let score = <span class="cstat-no" title="statement not covered" >requirementScore + candidate.unlockCount * 20;</span>
+<span class="cstat-no" title="statement not covered" >  score += Math.max(0, 6 - Math.abs(credits - 3)) * 8;</span>
+<span class="cstat-no" title="statement not covered" >  score -= repeatedDepartmentPenalty;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (strategy === 'acceleration') {</span>
+<span class="cstat-no" title="statement not covered" >    score += candidate.unlockCount * 12;</span>
+<span class="cstat-no" title="statement not covered" >    score += credits * 8;</span>
+<span class="cstat-no" title="statement not covered" >    score += inferLevel(candidate.course.courseIdent) / 100;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (strategy === 'light') {</span>
+<span class="cstat-no" title="statement not covered" >    score += Math.max(0, 5 - credits) * 12;</span>
+<span class="cstat-no" title="statement not covered" >    score -= inferLevel(candidate.course.courseIdent) / 160;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return score;</span>
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >buildReasonText(r</span>easons: RequirementReason[], unlockCount: number): string {
+  const directLabels = <span class="cstat-no" title="statement not covered" >unique(reasons.filter(<span class="fstat-no" title="function not covered" >(r</span>eason) =&gt; <span class="cstat-no" title="statement not covered" >reason.kind === 'direct')</span>.map(<span class="fstat-no" title="function not covered" >(r</span>eason) =&gt; <span class="cstat-no" title="statement not covered" >reason.label)</span>);</span>
+  const groupLabels = <span class="cstat-no" title="statement not covered" >unique(reasons.filter(<span class="fstat-no" title="function not covered" >(r</span>eason) =&gt; <span class="cstat-no" title="statement not covered" >reason.kind === 'group')</span>.map(<span class="fstat-no" title="function not covered" >(r</span>eason) =&gt; <span class="cstat-no" title="statement not covered" >reason.label)</span>);</span>
+  const parts: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (directLabels.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    parts.push(`covers ${joinLabels(directLabels)}`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (groupLabels.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    parts.push(`advances ${joinLabels(groupLabels)}`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (unlockCount &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    parts.push(`unlocks ${unlockCount} follow-up ${unlockCount === 1 ? 'course' : 'courses'}`);</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return parts.length &gt; 0 ? `${capitalize(parts.join(', '))}.` : 'Supports requirement progress.';</span>
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >candidateToDraftCourse(c</span>andidate: CandidateCourse, prefix: string): SchedulerDraftCourse {
+  const reasonText = <span class="cstat-no" title="statement not covered" >buildReasonText(candidate.reasons, candidate.unlockCount);</span>
+  const normalizedReasonText = <span class="cstat-no" title="statement not covered" >reasonText ? reasonText.charAt(0).toLowerCase() + reasonText.slice(1) : '';</span>
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    ...candidate.course,
+    rationale: `${prefix} ${normalizedReasonText}`.trim(),
+    reasonLabels: unique(candidate.reasons.map(<span class="fstat-no" title="function not covered" >(r</span>eason) =&gt; <span class="cstat-no" title="statement not covered" >reason.label)</span>),
+    unlockCount: candidate.unlockCount,
   };
+}
 &nbsp;
-  const ratingBreakdown = <span class="cstat-no" title="statement not covered" >detail?.ratingBreakdown ?? {};</span>
+function <span class="fstat-no" title="function not covered" >countRequirementMoves(c</span>ourses: SchedulerDraftCourse[]): number {
+  const reasonLabels = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
+<span class="cstat-no" title="statement not covered" >  for (const course of courses) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const label of course.reasonLabels) {</span>
+<span class="cstat-no" title="statement not covered" >      reasonLabels.add(label);</span>
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  return reasonLabels.size;</span>
+}
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-slate-100"&gt;
-      &lt;Header /&gt;
-      &lt;main className="mx-auto max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8"&gt;
-        &lt;section className="rounded-2xl border border-red-100 bg-white/90 p-6 shadow-sm sm:p-8"&gt;
-          &lt;div className="flex flex-wrap items-start justify-between gap-4"&gt;
-            &lt;div&gt;
-              &lt;p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500"&gt;Professor Reviews&lt;/p&gt;
-              &lt;h1 className="mt-2 text-3xl font-bold text-gray-900"&gt;Professor Reviews&lt;/h1&gt;
-              &lt;p className="mt-2 max-w-3xl text-sm text-gray-600"&gt;
-                Browse Iowa State professors, read CourseFlow student feedback, and open external professor links when they are available.
-              &lt;/p&gt;
-            &lt;/div&gt;
-            &lt;Link
-              to="/courseflow"
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50"
-            &gt;
-              &lt;i className="pi pi-arrow-left mr-2 text-red-500"&gt;&lt;/i&gt;
-              Back
-            &lt;/Link&gt;
-          &lt;/div&gt;
-        &lt;/section&gt;
+function <span class="fstat-no" title="function not covered" >upsertCandidate(</span>
+  candidateByIdent: Map&lt;string, CandidateCourse&gt;,
+  course: SchedulerCourse,
+  normalizedIdent: string,
+  reason: RequirementReason
+): void {
+  const existing = <span class="cstat-no" title="statement not covered" >candidateByIdent.get(normalizedIdent);</span>
+<span class="cstat-no" title="statement not covered" >  if (!existing) {</span>
+<span class="cstat-no" title="statement not covered" >    candidateByIdent.set(normalizedIdent, {</span>
+      course: toSchedulerCourse(course),
+      normalizedIdent,
+      reasons: [reason],
+      unlockCount: 0,
+      prereqOk: true,
+      offeredOk: true,
+      validCredits: true,
+      plannedElsewhere: false,
+    });
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
 &nbsp;
-        {(error || success) &amp;&amp; (
-          &lt;div className="mt-4 space-y-2"&gt;
-            {error &amp;&amp; &lt;div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"&gt;{error}&lt;/div&gt;}
-            {success &amp;&amp; &lt;div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"&gt;{success}&lt;/div&gt;}
-          &lt;/div&gt;
-        )}
+<span class="cstat-no" title="statement not covered" >  if (!existing.reasons.some(<span class="fstat-no" title="function not covered" >(e</span>xistingReason) =&gt; <span class="cstat-no" title="statement not covered" >existingReason.key === reason.key)</span>) {</span>
+<span class="cstat-no" title="statement not covered" >    existing.reasons.push(reason);</span>
+  }
+}
 &nbsp;
-        &lt;div className="mt-6 grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]"&gt;
-          &lt;aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"&gt;
-            &lt;form onSubmit={onSearch} className="space-y-3"&gt;
-              &lt;label className="block text-xs font-semibold uppercase tracking-wide text-gray-500"&gt;
-                Search Professors
-              &lt;/label&gt;
-              &lt;input
-                value={queryInput}
-                onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setQueryInput(event.target.value)}</span>
-                placeholder="Name or keyword"
-                disabled={!directoryReady}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              /&gt;
-              &lt;select
-                value={department}
-                onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; {
-<span class="cstat-no" title="statement not covered" >                  setDepartment(event.target.value);</span>
-<span class="cstat-no" title="statement not covered" >                  setPage(0);</span>
-                }}
-                disabled={!directoryReady}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              &gt;
-                &lt;option value=""&gt;All Departments&lt;/option&gt;
-                {departments.map(<span class="fstat-no" title="function not covered" >(d</span>ept) =&gt; (
-<span class="cstat-no" title="statement not covered" >                  &lt;option key={dept} value={dept}&gt;</span>
-                    {dept}
-                  &lt;/option&gt;
-                ))}
-              &lt;/select&gt;
-              &lt;select
-                value={sort}
-                onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; {
-<span class="cstat-no" title="statement not covered" >                  setSort(event.target.value as SortMode);</span>
-<span class="cstat-no" title="statement not covered" >                  setPage(0);</span>
-                }}
-                disabled={!directoryReady}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              &gt;
-                &lt;option value="rating"&gt;Highest Rated&lt;/option&gt;
-                &lt;option value="name"&gt;Name (A-Z)&lt;/option&gt;
-              &lt;/select&gt;
-              &lt;button
-                type="submit"
-                disabled={!directoryReady}
-                className="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-              &gt;
-                Search
-              &lt;/button&gt;
-            &lt;/form&gt;
+function <span class="fstat-no" title="function not covered" >collectUniqueCourses(m</span>ajorData: SchedulerMajor): Map&lt;string, SchedulerCourse&gt; {
+  const courses = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse&gt;();</span>
+<span class="cstat-no" title="statement not covered" >  for (const requirement of majorData.degreeRequirements ?? []) {</span>
+<span class="cstat-no" title="statement not covered" >    for (const course of requirement.courses ?? []) {</span>
+      const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >      if (!normalizedIdent) {</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+<span class="cstat-no" title="statement not covered" >      courses.set(normalizedIdent, toSchedulerCourse(course));</span>
+    }
+<span class="cstat-no" title="statement not covered" >    for (const group of requirement.requirementGroups ?? []) {</span>
+<span class="cstat-no" title="statement not covered" >      for (const course of group.courses ?? []) {</span>
+        const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >        if (!normalizedIdent) {</span>
+<span class="cstat-no" title="statement not covered" >          continue;</span>
+        }
+<span class="cstat-no" title="statement not covered" >        courses.set(normalizedIdent, toSchedulerCourse(course));</span>
+      }
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  return courses;</span>
+}
 &nbsp;
-            &lt;div className="mt-4 border-t border-gray-200 pt-4"&gt;
-              {!directoryReady ? (
-                &lt;div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800"&gt;
-                  {directorySeeding
-                    ? 'The Iowa State professor directory is still loading for this environment. Search will unlock as soon as seeding finishes.'
-                    : directoryKnown
-                      ? 'The professor directory is currently empty. If this is a fresh environment, give startup another moment.'
-                      : 'Checking professor directory status...'}
-                &lt;/div&gt;
-              ) : (
-                &lt;p className="text-xs text-gray-500"&gt;{totalElements} professor results&lt;/p&gt;
-              )}
-              {directoryReady &amp;&amp; listLoading ? (
-                &lt;div className="mt-3 text-sm text-gray-600"&gt;Loading professors...&lt;/div&gt;
-              ) : directoryReady ? (
-                &lt;div className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1"&gt;
-                  {professors.map(<span class="fstat-no" title="function not covered" >(p</span>rofessor) =&gt; (
-<span class="cstat-no" title="statement not covered" >                    &lt;div</span>
-                      key={professor.id}
-                      className={`w-full rounded-lg border px-3 py-2 text-left transition ${
-                        selectedProfessorId === professor.id
-                          ? 'border-red-300 bg-red-50'
-                          : 'border-gray-200 hover:border-red-200 hover:bg-red-50/60'
-                      }`}
-                    &gt;
-                      &lt;button
-                        type="button"
-                        onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etSelectedProfessorId(professor.id)}</span>
-                        className="w-full text-left"
-                      &gt;
-                        &lt;div className="text-sm font-semibold text-gray-800"&gt;{professor.fullName}&lt;/div&gt;
-                        &lt;div className="mt-1 text-xs text-gray-600"&gt;{professor.department || 'Department not listed'}&lt;/div&gt;
-                        &lt;div className="mt-1 text-xs text-amber-600"&gt;
-                          {professor.reviewCount &gt; 0
-                            ? `CourseFlow: ${renderStars(professor.averageRating)} (${professor.reviewCount})`
-                            : 'CourseFlow: No reviews yet'}
-                        &lt;/div&gt;
-                      &lt;/button&gt;
-                      {professor.primaryExternalRating?.sourceUrl &amp;&amp; (
-                        &lt;a
-                          href={professor.primaryExternalRating.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-block text-xs font-medium text-sky-700 hover:underline"
-                        &gt;
-                          {professor.primaryExternalRating.sourceLabel}
-                        &lt;/a&gt;
-                      )}
-                    &lt;/div&gt;
-                  ))}
-                  {professors.length === 0 &amp;&amp; &lt;div className="text-sm text-gray-600"&gt;No professors found.&lt;/div&gt;}
-                &lt;/div&gt;
-              ) : null}
+function <span class="fstat-no" title="function not covered" >dedupeCourses(c</span>ourses: SchedulerCourse[]): SchedulerCourse[] {
+  const uniqueCourses = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SchedulerCourse&gt;();</span>
+<span class="cstat-no" title="statement not covered" >  for (const course of courses) {</span>
+    const <span class="cstat-no" title="statement not covered" >normalizedIdent = normalizeCourseIdent(course.courseIdent);</span>
+<span class="cstat-no" title="statement not covered" >    if (!normalizedIdent) {</span>
+<span class="cstat-no" title="statement not covered" >      continue;</span>
+    }
+<span class="cstat-no" title="statement not covered" >    uniqueCourses.set(normalizedIdent, toSchedulerCourse(course));</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return Array.from(uniqueCourses.values());</span>
+}
 &nbsp;
-              &lt;div className="mt-3 flex items-center justify-between"&gt;
-                &lt;button
-                  type="button"
-                  onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etPage(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; <span class="cstat-no" title="statement not covered" >Math.max(0, prev - 1))</span>}</span>
-                  disabled={!directoryReady || page &lt;= 0}
-                  className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                &gt;
-                  Prev
-                &lt;/button&gt;
-                &lt;span className="text-xs text-gray-500"&gt;
-                  {directoryReady ? `Page ${totalPages === 0 ? 0 : page + 1} / ${totalPages}` : 'Directory loading'}
-                &lt;/span&gt;
-                &lt;button
-                  type="button"
-                  onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etPage(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >prev + 1 &lt; totalPages ? prev + 1 : prev))</span>}</span>
-                  disabled={!directoryReady || page + 1 &gt;= totalPages}
-                  className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                &gt;
-                  Next
-                &lt;/button&gt;
-              &lt;/div&gt;
-            &lt;/div&gt;
-          &lt;/aside&gt;
+function <span class="fstat-no" title="function not covered" >groupRequiredCredits(g</span>roup: SchedulerRequirementGroup): number {
+  const explicitCredits = <span class="cstat-no" title="statement not covered" >Number(group.satisfyingCredits ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  if (Number.isFinite(explicitCredits) &amp;&amp; explicitCredits &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return explicitCredits;</span>
+  }
+  const smallestPositiveCourse = <span class="cstat-no" title="statement not covered" >dedupeCourses(group.courses ?? [])</span>
+    .map(<span class="fstat-no" title="function not covered" >(c</span>ourse) =&gt; <span class="cstat-no" title="statement not covered" >courseCredits(course))</span>
+    .filter(<span class="fstat-no" title="function not covered" >(c</span>redits) =&gt; <span class="cstat-no" title="statement not covered" >credits &gt; 0)</span>
+    .sort(<span class="fstat-no" title="function not covered" >(l</span>eft, right) =&gt; <span class="cstat-no" title="statement not covered" >left - right)</span>[0];
+<span class="cstat-no" title="statement not covered" >  return smallestPositiveCourse ?? 1;</span>
+}
 &nbsp;
-          &lt;section className="space-y-4"&gt;
-            {!directoryReady &amp;&amp; (
-              &lt;div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800 shadow-sm"&gt;
-                {directorySeeding
-                  ? 'CourseFlow is importing the Iowa State professor directory for this environment. Refresh is not required; the page will unlock automatically when it finishes.'
-                  : 'Waiting for the professor directory to become available.'}
-              &lt;/div&gt;
-            )}
+function <span class="fstat-no" title="function not covered" >groupCourseContribution(c</span>ourse: SchedulerCourse, group: SchedulerRequirementGroup): number {
+  const credits = <span class="cstat-no" title="statement not covered" >courseCredits(course);</span>
+<span class="cstat-no" title="statement not covered" >  if (credits &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return credits;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return groupRequiredCredits(group);</span>
+}
 &nbsp;
-            {directoryReady &amp;&amp; !selectedProfessorId &amp;&amp; (
-              &lt;div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 shadow-sm"&gt;
-                Select a professor to view details and reviews.
-              &lt;/div&gt;
-            )}
+function <span class="fstat-no" title="function not covered" >courseCredits(c</span>ourse: SchedulerCourse): number {
+  const credits = <span class="cstat-no" title="statement not covered" >Number(course.credits ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  return Number.isFinite(credits) ? credits : 0;</span>
+}
 &nbsp;
-            {directoryReady &amp;&amp; selectedProfessorId &amp;&amp; detailLoading &amp;&amp; (
-              &lt;div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 shadow-sm"&gt;
-                Loading professor details...
-              &lt;/div&gt;
-            )}
+function <span class="fstat-no" title="function not covered" >inferCurrentSchedulerTerm(): ParsedTerm {</span>
+  const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const month = <span class="cstat-no" title="statement not covered" >now.getMonth() + 1;</span>
+  const term: SchedulerTerm = <span class="cstat-no" title="statement not covered" >month &lt;= 5 ? 'SPRING' : month &lt;= 8 ? 'SUMMER' : 'FALL';</span>
+<span class="cstat-no" title="statement not covered" >  return { term, year: now.getFullYear() };</span>
+}
 &nbsp;
-            {directoryReady &amp;&amp; selectedProfessorId &amp;&amp; detail &amp;&amp; (
-              &lt;&gt;
-                &lt;article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"&gt;
-                  &lt;div className="flex flex-wrap items-start justify-between gap-3"&gt;
-                    &lt;div&gt;
-                      &lt;h2 className="text-2xl font-bold text-gray-900"&gt;{detail.fullName}&lt;/h2&gt;
-                      &lt;p className="mt-1 text-sm text-gray-700"&gt;{detail.title || 'Title not listed'}&lt;/p&gt;
-                      &lt;p className="mt-1 text-sm text-gray-600"&gt;{detail.department || 'Department not listed'}&lt;/p&gt;
-                      {detail.email &amp;&amp; &lt;p className="mt-1 text-sm text-gray-600"&gt;{detail.email}&lt;/p&gt;}
-                      &lt;div className="mt-2 flex flex-wrap gap-3"&gt;
-                        {detail.profileUrl &amp;&amp; (
-                          &lt;a
-                            href={detail.profileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-block text-sm font-medium text-red-600 hover:underline"
-                          &gt;
-                            View Faculty Profile
-                          &lt;/a&gt;
-                        )}
-                        {detail.externalRatings
-                          .filter(<span class="fstat-no" title="function not covered" >(r</span>ating) =&gt; <span class="cstat-no" title="statement not covered" >Boolean(rating.sourceUrl))</span>
-                          .map(<span class="fstat-no" title="function not covered" >(r</span>ating) =&gt; (
-<span class="cstat-no" title="statement not covered" >                            &lt;a</span>
-                              key={`${rating.sourceSystem}-${rating.sourceUrl ?? 'link'}`}
-                              href={rating.sourceUrl ?? undefined}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-block text-sm font-medium text-sky-700 hover:underline"
-                            &gt;
-                              {rating.sourceLabel}
-                            &lt;/a&gt;
-                          ))}
-                      &lt;/div&gt;
-                    &lt;/div&gt;
-                    &lt;div className="rounded-lg border border-gray-200 bg-slate-50 px-4 py-3 text-right"&gt;
-                      &lt;div className="text-xs uppercase tracking-wide text-gray-500"&gt;CourseFlow Reviews&lt;/div&gt;
-                      &lt;div className="text-xl font-bold text-gray-900"&gt;
-                        {detail.reviewCount &gt; 0 ? `${detail.averageRating.toFixed(2)} / 5` : 'No reviews yet'}
-                      &lt;/div&gt;
-                      &lt;div className="text-xs text-amber-600"&gt;
-                        {detail.reviewCount &gt; 0 ? renderStars(detail.averageRating) : 'Be the first reviewer'}
-                      &lt;/div&gt;
-                      &lt;div className="text-xs text-gray-600"&gt;{detail.reviewCount} total CourseFlow reviews&lt;/div&gt;
-                    &lt;/div&gt;
-                  &lt;/div&gt;
+function <span class="fstat-no" title="function not covered" >parseSemester(s</span>emester: Semester): ParsedTerm | null {
+  const normalizedTerm = <span class="cstat-no" title="statement not covered" >String(semester.term ?? '').trim().toUpperCase();</span>
+<span class="cstat-no" title="statement not covered" >  if (!TERM_ORDER.includes(normalizedTerm as SchedulerTerm) || !Number.isFinite(semester.year)) {</span>
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return { term: normalizedTerm as SchedulerTerm, year: semester.year };</span>
+}
 &nbsp;
-                  {detail.bio &amp;&amp; (
-                    &lt;p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"&gt;
-                      {detail.bio}
-                    &lt;/p&gt;
-                  )}
+function <span class="fstat-no" title="function not covered" >compareTerms(l</span>eft: ParsedTerm, right: ParsedTerm): number {
+<span class="cstat-no" title="statement not covered" >  return termValue(left) - termValue(right);</span>
+}
 &nbsp;
-                  {canManageExternalLinks &amp;&amp; (
-                    &lt;div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/80 p-4"&gt;
-                      &lt;div className="flex flex-wrap items-start justify-between gap-3"&gt;
-                        &lt;div&gt;
-                          &lt;h3 className="text-sm font-semibold text-sky-900"&gt;Rate My Professors Link&lt;/h3&gt;
-                          &lt;p className="text-xs text-sky-800"&gt;
-                            Admin only. Paste the public professor link here to make it show up on this page.
-                          &lt;/p&gt;
-                        &lt;/div&gt;
-                        {getRateMyProfessorsLink(detail.externalRatings) &amp;&amp; (
-                          &lt;a
-                            href={getRateMyProfessorsLink(detail.externalRatings)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-medium text-sky-700 hover:underline"
-                          &gt;
-                            Open current link
-                          &lt;/a&gt;
-                        )}
-                      &lt;/div&gt;
-                      &lt;div className="mt-3 flex flex-col gap-2 sm:flex-row"&gt;
-                        &lt;input
-                          type="url"
-                          value={manualRmpLink}
-                          onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setManualRmpLink(event.target.value)}</span>
-                          placeholder="https://www.ratemyprofessors.com/professor/123456"
-                          className="min-w-0 flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm"
-                          disabled={savingManualLink}
-                        /&gt;
-                        &lt;button
-                          type="button"
-                          onClick={saveManualLink}
-                          disabled={!manualRmpLink.trim() || savingManualLink}
-                          className="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-sky-300"
-                        &gt;
-                          {savingManualLink ? 'Saving...' : 'Save Link'}
-                        &lt;/button&gt;
-                      &lt;/div&gt;
-                    &lt;/div&gt;
-                  )}
+function <span class="fstat-no" title="function not covered" >termValue(t</span>erm: ParsedTerm): number {
+<span class="cstat-no" title="statement not covered" >  return term.year * 10 + TERM_RANK[term.term];</span>
+}
 &nbsp;
-                  &lt;div className="mt-4 grid gap-2 sm:grid-cols-5"&gt;
-                    {[5, 4, 3, 2, 1].map(<span class="fstat-no" title="function not covered" >(r</span>ating) =&gt; (
-<span class="cstat-no" title="statement not covered" >                      &lt;div key={rating} className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-center"&gt;</span>
-                        &lt;div className="text-xs font-semibold text-gray-700"&gt;{rating}★&lt;/div&gt;
-                        &lt;div className="text-sm text-gray-600"&gt;{ratingBreakdown[String(rating)] ?? 0}&lt;/div&gt;
-                      &lt;/div&gt;
-                    ))}
-                  &lt;/div&gt;
-                &lt;/article&gt;
+function <span class="fstat-no" title="function not covered" >semesterRank(s</span>emester: Semester): number {
+  const parsed = <span class="cstat-no" title="statement not covered" >parseSemester(semester);</span>
+<span class="cstat-no" title="statement not covered" >  return parsed ? termValue(parsed) : Number.MAX_SAFE_INTEGER;</span>
+}
 &nbsp;
-                &lt;article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"&gt;
-                  &lt;div className="flex items-center justify-between"&gt;
-                    &lt;h3 className="text-lg font-semibold text-gray-900"&gt;Student Reviews&lt;/h3&gt;
-                    {reviewsLoading &amp;&amp; &lt;span className="text-xs text-gray-500"&gt;Loading...&lt;/span&gt;}
-                  &lt;/div&gt;
-                  &lt;div className="mt-3 space-y-3"&gt;
-                    {(reviewsPage?.reviews ?? []).map(<span class="fstat-no" title="function not covered" >(r</span>eview) =&gt; (
-<span class="cstat-no" title="statement not covered" >                      &lt;div key={review.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3"&gt;</span>
-                        &lt;div className="flex flex-wrap items-start justify-between gap-2"&gt;
-                          &lt;div&gt;
-                            &lt;div className="text-sm font-semibold text-gray-800"&gt;
-                              {review.reviewerDisplayName}
-                              {review.anonymous &amp;&amp; &lt;span className="ml-2 text-xs text-gray-500"&gt;(Anonymous)&lt;/span&gt;}
-                            &lt;/div&gt;
-                            &lt;div className="text-xs text-gray-500"&gt;{formatDateTime(review.createdAt)}&lt;/div&gt;
-                          &lt;/div&gt;
-                          &lt;div className="text-sm font-semibold text-amber-600"&gt;
-                            {renderStars(review.rating)} ({review.rating}/5)
-                          &lt;/div&gt;
-                        &lt;/div&gt;
-                        &lt;div className="mt-2 grid gap-2 text-xs text-gray-600 sm:grid-cols-2"&gt;
-                          {review.classTaken &amp;&amp; &lt;div&gt;Class: {review.classTaken}&lt;/div&gt;}
-                          {review.periodTaken &amp;&amp; &lt;div&gt;Period: {review.periodTaken}&lt;/div&gt;}
-                          {review.gradeReceived &amp;&amp; &lt;div&gt;Grade: {review.gradeReceived}&lt;/div&gt;}
-                          {review.wouldTakeAgain !== null &amp;&amp; (
-                            &lt;div&gt;Would take again: {review.wouldTakeAgain ? 'Yes' : 'No'}&lt;/div&gt;
-                          )}
-                          {review.difficultyRating !== null &amp;&amp; &lt;div&gt;Difficulty: {review.difficultyRating}/5&lt;/div&gt;}
-                          {review.workloadRating !== null &amp;&amp; &lt;div&gt;Workload: {review.workloadRating}/5&lt;/div&gt;}
-                        &lt;/div&gt;
-                        {review.positives &amp;&amp; (
-                          &lt;p className="mt-2 text-sm text-gray-700"&gt;
-                            &lt;span className="font-semibold"&gt;Positives: &lt;/span&gt;
-                            {review.positives}
-                          &lt;/p&gt;
-                        )}
-                        {review.negatives &amp;&amp; (
-                          &lt;p className="mt-1 text-sm text-gray-700"&gt;
-                            &lt;span className="font-semibold"&gt;Negatives: &lt;/span&gt;
-                            {review.negatives}
-                          &lt;/p&gt;
-                        )}
-                        {review.wouldLikeToSee &amp;&amp; (
-                          &lt;p className="mt-1 text-sm text-gray-700"&gt;
-                            &lt;span className="font-semibold"&gt;Would like to see: &lt;/span&gt;
-                            {review.wouldLikeToSee}
-                          &lt;/p&gt;
-                        )}
-                        {review.studyTips &amp;&amp; (
-                          &lt;p className="mt-1 text-sm text-gray-700"&gt;
-                            &lt;span className="font-semibold"&gt;Tips: &lt;/span&gt;
-                            {review.studyTips}
-                          &lt;/p&gt;
-                        )}
-                      &lt;/div&gt;
-                    ))}
-                    {(reviewsPage?.reviews?.length ?? 0) === 0 &amp;&amp; (
-                      &lt;div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600"&gt;
-                        No reviews yet for this professor.
-                      &lt;/div&gt;
-                    )}
-                  &lt;/div&gt;
-                &lt;/article&gt;
+function <span class="fstat-no" title="function not covered" >inferLevel(c</span>ourseIdent: string): number {
+  const match = <span class="cstat-no" title="statement not covered" >courseIdent.match(/(\d{4})/);</span>
+<span class="cstat-no" title="statement not covered" >  return match ? Number(match[1]) : 0;</span>
+}
 &nbsp;
-                &lt;article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"&gt;
-                  &lt;div className="flex flex-wrap items-center justify-between gap-2"&gt;
-                    &lt;h3 className="text-lg font-semibold text-gray-900"&gt;
-                      {detail.myReview ? 'Edit Your Review' : 'Leave a Review'}
-                    &lt;/h3&gt;
-                    {!canReview &amp;&amp; (
-                      &lt;span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700"&gt;
-                        Only student accounts can submit reviews.
-                      &lt;/span&gt;
-                    )}
-                  &lt;/div&gt;
+function <span class="fstat-no" title="function not covered" >extractDepartmentKey(c</span>ourseIdent: string): string {
+  const normalized = <span class="cstat-no" title="statement not covered" >String(courseIdent ?? '').toUpperCase();</span>
+  const match = <span class="cstat-no" title="statement not covered" >normalized.match(/^[A-Z]+/);</span>
+<span class="cstat-no" title="statement not covered" >  return match?.[0] ?? normalized;</span>
+}
 &nbsp;
-                  &lt;div className="mt-3 space-y-3"&gt;
-                    &lt;div&gt;
-                      &lt;label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500"&gt;Overall Rating&lt;/label&gt;
-                      &lt;StarPicker
-                        value={form.rating}
-                        onChange={<span class="fstat-no" title="function not covered" >(n</span>ext) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, rating: next }))</span>}</span>
-                      /&gt;
-                    &lt;/div&gt;
+function <span class="fstat-no" title="function not covered" >toSchedulerCourse(c</span>ourse: Partial&lt;SchedulerCourse&gt;): SchedulerCourse {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    id: Number(course.id ?? 0),
+    courseIdent: String(course.courseIdent ?? ''),
+    name: String(course.name ?? ''),
+    credits: Number(course.credits ?? 0),
+    offered: course.offered,
+    prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
+    prereq_txt: course.prereq_txt,
+  };
+}
 &nbsp;
-                    &lt;div className="grid gap-3 sm:grid-cols-2"&gt;
-                      &lt;input
-                        value={form.classTaken}
-                        onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, classTaken: event.target.value }))</span>}</span>
-                        placeholder="Class taken (example: COM S 3270)"
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                        disabled={!canReview || savingReview}
-                      /&gt;
-                      &lt;input
-                        value={form.periodTaken}
-                        onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, periodTaken: event.target.value }))</span>}</span>
-                        placeholder="Period taken (example: Fall 2025)"
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                        disabled={!canReview || savingReview}
-                      /&gt;
-                    &lt;/div&gt;
+function <span class="fstat-no" title="function not covered" >unique(v</span>alues: string[]): string[] {
+<span class="cstat-no" title="statement not covered" >  return Array.from(new Set(values.filter(Boolean)));</span>
+}
 &nbsp;
-                    &lt;button
-                      type="button"
-                      onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etAdvancedOpen(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; <span class="cstat-no" title="statement not covered" >!prev)</span>}</span>
-                      className="text-sm font-medium text-red-600 hover:underline"
-                    &gt;
-                      {advancedOpen ? 'Hide advanced fields' : 'Show advanced fields'}
-                    &lt;/button&gt;
+function <span class="fstat-no" title="function not covered" >joinLabels(v</span>alues: string[]): string {
+<span class="cstat-no" title="statement not covered" >  if (values.length &lt;= 1) {</span>
+<span class="cstat-no" title="statement not covered" >    return values[0] ?? '';</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (values.length === 2) {</span>
+<span class="cstat-no" title="statement not covered" >    return `${values[0]} and ${values[1]}`;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;</span>
+}
 &nbsp;
-                    {advancedOpen &amp;&amp; (
-                      &lt;div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3"&gt;
-                        &lt;div className="grid gap-3 sm:grid-cols-2"&gt;
-                          &lt;div&gt;
-                            &lt;label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500"&gt;Difficulty&lt;/label&gt;
-                            &lt;StarPicker
-                              value={form.difficultyRating}
-                              onChange={<span class="fstat-no" title="function not covered" >(n</span>ext) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, difficultyRating: next }))</span>}</span>
-                            /&gt;
-                          &lt;/div&gt;
-                          &lt;div&gt;
-                            &lt;label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500"&gt;Workload&lt;/label&gt;
-                            &lt;StarPicker
-                              value={form.workloadRating}
-                              onChange={<span class="fstat-no" title="function not covered" >(n</span>ext) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, workloadRating: next }))</span>}</span>
-                            /&gt;
-                          &lt;/div&gt;
-                        &lt;/div&gt;
+function <span class="fstat-no" title="function not covered" >capitalize(v</span>alue: string): string {
+<span class="cstat-no" title="statement not covered" >  if (!value) {</span>
+<span class="cstat-no" title="statement not covered" >    return value;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return value.charAt(0).toUpperCase() + value.slice(1);</span>
+}
 &nbsp;
-                        &lt;div className="grid gap-3 sm:grid-cols-2"&gt;
-                          &lt;select
-                            value={form.wouldTakeAgain}
-                            onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, wouldTakeAgain: event.target.value }))</span>}</span>
-                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                            disabled={!canReview || savingReview}
-                          &gt;
-                            &lt;option value=""&gt;Would take again? (Optional)&lt;/option&gt;
-                            &lt;option value="yes"&gt;Yes&lt;/option&gt;
-                            &lt;option value="no"&gt;No&lt;/option&gt;
-                          &lt;/select&gt;
-                          &lt;input
-                            value={form.gradeReceived}
-                            onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, gradeReceived: event.target.value }))</span>}</span>
-                            placeholder="Grade received (optional)"
-                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                            disabled={!canReview || savingReview}
-                          /&gt;
-                        &lt;/div&gt;
-&nbsp;
-                        &lt;textarea
-                          value={form.positives}
-                          onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, positives: event.target.value }))</span>}</span>
-                          placeholder="Positives"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                          disabled={!canReview || savingReview}
-                        /&gt;
-                        &lt;textarea
-                          value={form.negatives}
-                          onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, negatives: event.target.value }))</span>}</span>
-                          placeholder="Negatives"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                          disabled={!canReview || savingReview}
-                        /&gt;
-                        &lt;textarea
-                          value={form.wouldLikeToSee}
-                          onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, wouldLikeToSee: event.target.value }))</span>}</span>
-                          placeholder="What would you like to see improved?"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                          disabled={!canReview || savingReview}
-                        /&gt;
-                        &lt;textarea
-                          value={form.studyTips}
-                          onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, studyTips: event.target.value }))</span>}</span>
-                          placeholder="Tips for future students"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                          disabled={!canReview || savingReview}
-                        /&gt;
-&nbsp;
-                        &lt;label className="flex items-center gap-2 text-sm text-gray-700"&gt;
-                          &lt;input
-                            type="checkbox"
-                            checked={form.anonymous}
-                            onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, anonymous: event.target.checked }))</span>}</span>
-                            disabled={!canReview || savingReview}
-                          /&gt;
-                          Post review anonymously
-                        &lt;/label&gt;
-                      &lt;/div&gt;
-                    )}
-&nbsp;
-                    &lt;div className="flex flex-wrap gap-2"&gt;
-                      &lt;button
-                        type="button"
-                        onClick={saveReview}
-                        disabled={!canReview || savingReview}
-                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
-                      &gt;
-                        {detail.myReview ? 'Update Review' : 'Post Review'}
-                      &lt;/button&gt;
-                      &lt;button
-                        type="button"
-                        onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etForm(detail.myReview ? fromReview(detail.myReview) : DEFAULT_FORM)}</span>
-                        disabled={!canReview || savingReview}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      &gt;
-                        Reset Form
-                      &lt;/button&gt;
-                      {detail.myReview &amp;&amp; (
-                        &lt;button
-                          type="button"
-                          onClick={removeReview}
-                          disabled={!canReview || savingReview}
-                          className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        &gt;
-                          Delete My Review
-                        &lt;/button&gt;
-                      )}
-                    &lt;/div&gt;
-                  &lt;/div&gt;
-                &lt;/article&gt;
-              &lt;/&gt;
-            )}
-&nbsp;
-            {selectedProfessorId &amp;&amp; !selectedProfessor &amp;&amp; !listLoading &amp;&amp; (
-              &lt;div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 shadow-sm"&gt;
-                The selected professor is not in the current page results. Adjust filters or choose another profile.
-              &lt;/div&gt;
-            )}
-          &lt;/section&gt;
-        &lt;/div&gt;
-      &lt;/main&gt;
-    &lt;/div&gt;
-  );
+function <span class="fstat-no" title="function not covered" >clamp(v</span>alue: number, min: number, max: number): number {
+<span class="cstat-no" title="statement not covered" >  return Math.min(max, Math.max(min, value));</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
